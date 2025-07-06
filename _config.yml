@@ -1,0 +1,6 @@
+# The name of your theme (optional but good practice)
+theme: jekyll-theme-minimal 
+
+# The base URL of your site
+# Replace 'repository-name' with your repository's name
+baseurl: "/repository-name" 
