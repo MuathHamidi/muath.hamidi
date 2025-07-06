@@ -19,7 +19,7 @@ title: Muath Hamidi CV
 
 <!-- This is the main content area -->
 ## Education
-*   **Currently:** PhD student in Physics, Université de Montréal.
+*   **Currently:** PhD student in Physics, Institut Courtois, Université de Montréal.
 *   **2024:** M.Sc., Physics, McGill University.
 *   **2021:** B.Sc., Physics, Birzeit University.
 
