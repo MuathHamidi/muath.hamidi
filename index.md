@@ -12,7 +12,7 @@ title: Muath Hamidi CV
     <div class="profile-contact">
         <h1>Muath Hamidi</h1>
         <p>
-            <strong>E-mail:</strong> muath.hamidi@umontreal.ca<br>
+            <strong>E-mail:</strong> muath.hamidi@mail.mcgill.ca<br>
         </p>
     </div>
 </div>
