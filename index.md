@@ -11,8 +11,6 @@ title: Muath Hamidi CV
     </div>
     <div class="profile-contact">
         <h1>Muath Hamidi</h1>
-        <p>104-2020 Saint Denis Street,<br>
-        Montréal, QC H2X 3K7, Canada</p>
         <p>
             <strong>E-mail:</strong> muath.hamidi@umontreal.ca<br>
         </p>
