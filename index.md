@@ -7,7 +7,7 @@ title: Muath Hamidi CV
 <div class="profile-header">
     <div class="profile-photo">
         <!-- The 'alt' text is for accessibility -->
-        <img src="/assets/images/profile-picture.jpg" alt="Profile Photo of Muath Hamidi">
+        <img src="{{ site.baseurl }}/assets/images/profile-picture.jpg" alt="Profile Photo of Muath Hamidi">
     </div>
     <div class="profile-contact">
         <h1>Muath Hamidi</h1>
