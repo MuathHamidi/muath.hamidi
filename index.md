@@ -15,7 +15,6 @@ title: Muath Hamidi CV
         Montréal, QC H2X 3K7, Canada</p>
         <p>
             <strong>E-mail:</strong> muath.hamidi@umontreal.ca<br>
-            <strong>Phone:</strong> +1 (514) 235-2858
         </p>
     </div>
 </div>
