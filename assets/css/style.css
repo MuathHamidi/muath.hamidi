@@ -1,27 +1,33 @@
+/* --- Google AI Studio Inspired Dark Theme --- */
+
 /* General Body Styles */
 body {
+    /* Main page background - not pure black to reduce eye strain */
+    background-color: #1e1f22;
+    /* Main text color - light gray, not pure white */
+    color: #e0e0e0;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
     line-height: 1.6;
-    color: #333;
-    background-color: #f8f9fa;
     margin: 0;
 }
 
+/* Main Content Card */
 .container {
+    /* Slightly lighter dark gray for the main content area */
+    background-color: #2b2d30;
+    border: 1px solid #3f4146; /* Subtle border for definition */
+    box-shadow: none; /* Shadows don't look good on dark-on-dark themes */
     max-width: 960px;
     margin: 2rem auto;
-    padding: 1rem 2rem;
-    background-color: #ffffff;
-    border: 1px solid #dee2e6;
+    padding: 1.5rem 2.5rem;
     border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
 }
 
 /* Profile Header Section */
 .profile-header {
     display: flex;
     align-items: center;
-    border-bottom: 2px solid #e9ecef;
+    border-bottom: 1px solid #3f4146;
     padding-bottom: 1.5rem;
     margin-bottom: 1.5rem;
 }
@@ -29,44 +35,47 @@ body {
 .profile-photo img {
     width: 120px;
     height: 120px;
-    border-radius: 50%; /* Makes the image circular */
-    object-fit: cover; /* Prevents the image from being distorted */
+    border-radius: 50%;
+    object-fit: cover;
     margin-right: 1.5rem;
-    border: 3px solid #dee2e6;
+    border: 3px solid #4a4d52;
 }
 
+/* Name and Contact Info */
 .profile-contact h1 {
+    /* Accent color for your name */
+    color: #89b4fa; /* A pleasant, readable blue */
     margin: 0;
-    color: #0366d6; /* A nice blue color */
     font-size: 2.5rem;
 }
 
 .profile-contact p {
+    /* A slightly dimmer color for less important text */
+    color: #c0c0c0;
     margin: 0.25rem 0;
-    color: #555;
     font-size: 1rem;
 }
 
-/* Main Content Headings */
+/* Main Section Headings (Education, Skills, etc.) */
 h2 {
-    color: #0366d6;
-    border-bottom: 1px solid #e9ecef;
+    /* Using the accent color for all major headings */
+    color: #89b4fa;
+    border-bottom: 1px solid #3f4146;
     padding-bottom: 0.5rem;
     margin-top: 2rem;
     font-size: 1.75rem;
 }
 
-/* List styles for experience, awards, etc. */
+/* List styles */
 ul {
     padding-left: 20px;
-    list-style-type: none; /* Remove default bullets */
+    list-style-type: none;
 }
 
 ul li {
     margin-bottom: 0.75rem;
 }
 
-/* Style for nested lists (like in Research Experience) */
 ul li ul {
     margin-top: 0.5rem;
     padding-left: 25px;
@@ -75,9 +84,20 @@ ul li ul {
 ul li ul li {
     margin-bottom: 0.25rem;
     font-size: 0.95em;
+    color: #c0c0c0; /* Dimmer text for sub-items */
 }
 
-/* Responsive design for smaller screens */
+/* Link Styles */
+a {
+    color: #89b4fa;
+    text-decoration: none;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* Responsive design for smaller screens (no color changes needed) */
 @media (max-width: 768px) {
     .profile-header {
         flex-direction: column;
@@ -90,7 +110,9 @@ ul li ul li {
     }
     
     .container {
-        padding: 1rem;
+        padding: 1.5rem 1rem;
         margin: 1rem;
+        border-radius: 0;
+        border: none;
     }
 }
