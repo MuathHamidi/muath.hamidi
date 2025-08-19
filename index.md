@@ -11,3 +11,4 @@ Navigate through the sections to learn more:
 - [**Apps**](./apps.html) - See the web applications I have built.
 - [**Posts**](./posts.html) - Read my blog posts.
 - [**Documents**](./documents.html) - Access shared documents.
+- [**Contact**](./contact.html) - Contact me.
