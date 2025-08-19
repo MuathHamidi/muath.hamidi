@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VSEPR Calculator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main container for the VSEPR calculator -->
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-xl">
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">VSEPR Calculator</h1>
+        <p class="text-center text-gray-600 mb-8">
+            Enter the number of bonding pairs and lone pairs around the central atom to predict its molecular geometry.
+        </p>
+
+        <!-- Input fields section -->
+        <div class="space-y-6 mb-8">
+            <div>
+                <label for="bondingPairs" class="block text-sm font-medium text-gray-700 mb-1">Number of Bonding Pairs</label>
+                <input type="number" id="bondingPairs" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 4 for methane">
+            </div>
+            <div>
+                <label for="lonePairs" class="block text-sm font-medium text-gray-700 mb-1">Number of Lone Pairs</label>
+                <input type="number" id="lonePairs" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 1 for ammonia">
+            </div>
+        </div>
+
+        <!-- Calculate button -->
+        <div class="text-center mb-8">
+            <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                Calculate Geometry
+            </button>
+        </div>
+
+        <!-- Results section -->
+        <div id="results" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+            <div id="messageBox" class="text-red-600 mb-4 hidden"></div>
+            <div id="geometryDisplay" class="space-y-3">
+                <p><strong>Electron Geometry:</strong> <span id="electronGeometry" class="font-medium text-gray-900">-</span></p>
+                <p><strong>Molecular Geometry:</strong> <span id="molecularGeometry" class="font-medium text-gray-900">-</span></p>
+                <p><strong>Ideal Bond Angles:</strong> <span id="bondAngles" class="font-medium text-gray-900">-</span></p>
+                <div id="imagePlaceholder" class="mt-4 text-center">
+                    <p class="text-gray-500 italic">No image available for this geometry.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Get all necessary HTML elements
+        const bondingPairsInput = document.getElementById('bondingPairs');
+        const lonePairsInput = document.getElementById('lonePairs');
+        const calculateButton = document.getElementById('calculateButton');
+        const messageBox = document.getElementById('messageBox');
+        const electronGeometrySpan = document.getElementById('electronGeometry');
+        const molecularGeometrySpan = document.getElementById('molecularGeometry');
+        const bondAnglesSpan = document.getElementById('bondAngles');
+        const imagePlaceholder = document.getElementById('imagePlaceholder');
+
+        // Main function to calculate VSEPR geometry
+        const calculateVSEPR = (bondingPairs, lonePairs) => {
+            // Calculate the total number of electron groups
+            const totalGroups = bondingPairs + lonePairs;
+
+            let electronGeometry = "N/A";
+            let molecularGeometry = "N/A";
+            let bondAngles = "N/A";
+            let geometryImage = null;
+
+            // Handle invalid input
+            if (totalGroups < 2 || totalGroups > 6) {
+                return {
+                    error: "Total electron groups must be between 2 and 6.",
+                    electronGeometry: "-",
+                    molecularGeometry: "-",
+                    bondAngles: "-",
+                    image: null
+                };
+            }
+
+            // Determine electron geometry based on total number of groups
+            switch (totalGroups) {
+                case 2:
+                    electronGeometry = "Linear";
+                    bondAngles = "180°";
+                    break;
+                case 3:
+                    electronGeometry = "Trigonal Planar";
+                    bondAngles = "120°";
+                    break;
+                case 4:
+                    electronGeometry = "Tetrahedral";
+                    bondAngles = "109.5°";
+                    break;
+                case 5:
+                    electronGeometry = "Trigonal Bipyramidal";
+                    bondAngles = "120°, 90°";
+                    break;
+                case 6:
+                    electronGeometry = "Octahedral";
+                    bondAngles = "90°";
+                    break;
+            }
+
+            // Determine molecular geometry based on electron geometry and lone pairs
+            if (lonePairs === 0) {
+                // If there are no lone pairs, molecular geometry is the same as electron geometry
+                molecularGeometry = electronGeometry;
+            } else {
+                // Handle cases with lone pairs, which distort the shape
+                switch (totalGroups) {
+                    case 2:
+                        // No lone pair cases for 2 groups with atoms
+                        molecularGeometry = "Linear";
+                        break;
+                    case 3:
+                        if (lonePairs === 1) {
+                            molecularGeometry = "Bent";
+                            bondAngles = "< 120°";
+                        }
+                        break;
+                    case 4:
+                        if (lonePairs === 1) {
+                            molecularGeometry = "Trigonal Pyramidal";
+                            bondAngles = "< 109.5°";
+                        } else if (lonePairs === 2) {
+                            molecularGeometry = "Bent";
+                            bondAngles = "< 109.5°";
+                        }
+                        break;
+                    case 5:
+                        if (lonePairs === 1) {
+                            molecularGeometry = "Seesaw";
+                            bondAngles = "< 120°, < 90°";
+                        } else if (lonePairs === 2) {
+                            molecularGeometry = "T-shaped";
+                            bondAngles = "< 90°";
+                        } else if (lonePairs === 3) {
+                            molecularGeometry = "Linear";
+                            bondAngles = "180°";
+                        }
+                        break;
+                    case 6:
+                        if (lonePairs === 1) {
+                            molecularGeometry = "Square Pyramidal";
+                            bondAngles = "< 90°";
+                        } else if (lonePairs === 2) {
+                            molecularGeometry = "Square Planar";
+                            bondAngles = "90°";
+                        }
+                        break;
+                }
+            }
+
+            // Return the calculated properties
+            return {
+                electronGeometry,
+                molecularGeometry,
+                bondAngles,
+                image: geometryImage
+            };
+        };
+
+        // Event listener for the calculate button
+        calculateButton.addEventListener('click', () => {
+            // Reset message and display
+            messageBox.textContent = '';
+            messageBox.classList.add('hidden');
+            electronGeometrySpan.textContent = '-';
+            molecularGeometrySpan.textContent = '-';
+            bondAnglesSpan.textContent = '-';
+            imagePlaceholder.innerHTML = '<p class="text-gray-500 italic">No image available for this geometry.</p>';
+
+            // Get user input and convert to integers
+            const bondingPairs = parseInt(bondingPairsInput.value);
+            const lonePairs = parseInt(lonePairsInput.value);
+
+            // Validate that inputs are numbers
+            if (isNaN(bondingPairs) || isNaN(lonePairs)) {
+                messageBox.textContent = 'Please enter valid numbers for both fields.';
+                messageBox.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                // Call the main calculation function
+                const result = calculateVSEPR(bondingPairs, lonePairs);
+
+                // Check for errors from the function
+                if (result.error) {
+                    messageBox.textContent = result.error;
+                    messageBox.classList.remove('hidden');
+                    return;
+                }
+
+                // Update the display with the results
+                electronGeometrySpan.textContent = result.electronGeometry;
+                molecularGeometrySpan.textContent = result.molecularGeometry;
+                bondAnglesSpan.textContent = result.bondAngles;
+
+            } catch (error) {
+                // Catch any unexpected errors
+                messageBox.textContent = 'An unexpected error occurred. Please try again.';
+                messageBox.classList.remove('hidden');
+                console.error('Calculation error:', error);
+            }
+        });
+    </script>
+</body>
+</html>
