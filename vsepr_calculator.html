@@ -9,89 +9,99 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #121212; /* Very dark background */
+            color: #f5f5f5; /* Light text for readability */
         }
 
-        /* Basic dark mode styles */
-        .dark {
-            background-color: #1a1a1a;
-            color: #e5e7eb;
+        /* Main calculator container */
+        .calculator-container {
+            background-color: #1e1e1e; /* Slightly lighter dark gray */
+            border-color: #2a2a2a;
         }
-        .dark .bg-white {
-            background-color: #2d2d2d;
-            border-color: #4b5563;
+
+        .calculator-container h1, .calculator-container p, .calculator-container label {
+            color: #f5f5f5;
         }
-        .dark .text-gray-800 {
-            color: #e5e7eb;
+
+        /* Input fields and labels */
+        input {
+            background-color: #282828;
+            color: #e5e5e5;
+            border-color: #444;
         }
-        .dark .text-gray-600 {
-            color: #a0a0a0;
+
+        /* Placeholder text color */
+        input::placeholder {
+            color: #888;
         }
-        .dark .text-gray-700 {
-            color: #a0a0a0;
+
+        /* Results section container */
+        .results-container {
+            background-color: #282828; /* Dark gray background for results */
+            border-color: #444;
         }
-        .dark .border-gray-300 {
-            border-color: #4b5563;
+        
+        .results-container strong, .results-container h2 {
+            color: #f5f5f5; /* Light text for titles and strong tags */
         }
-        .dark .focus\:ring-blue-500:focus {
-            --tw-ring-color: #3b82f6;
+
+        .results-container p, .results-container span {
+            color: #e5e5e5; /* Slightly muted light text for regular content */
         }
-        .dark .bg-gray-50 {
-            background-color: #2d2d2d;
-            border-color: #4b5563;
+
+        .results-container .italic {
+            color: #a0a0a0; /* Gray for italic text */
         }
-        .dark .text-gray-900 {
-            color: #e5e7eb;
+
+        /* Blue button */
+        .blue-button {
+            background-color: #3b82f6;
+            color: white;
         }
-        .dark .text-gray-500 {
-            color: #a0a0a0;
+
+        .blue-button:hover {
+            background-color: #2563eb;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 transition-colors duration-300">
+<body class="flex items-center justify-center min-h-screen p-4">
 
     <!-- Main container for the VSEPR calculator -->
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-xl transition-colors duration-300">
-        <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">VSEPR Calculator</h1>
-        <p class="text-center text-gray-600 mb-8">
+    <div class="calculator-container p-8 rounded-xl shadow-lg w-full max-w-xl">
+        <h1 class="text-3xl font-bold text-center mb-6">VSEPR Calculator</h1>
+        <p class="text-center mb-8">
             Enter the number of bonding pairs and lone pairs around the central atom to predict its molecular geometry.
         </p>
-
-        <!-- Theme toggle button -->
-        <div class="text-right mb-4">
-            <button id="themeToggle" class="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 py-2 px-4 rounded-full text-xs font-semibold shadow-md transition-colors duration-300">
-                Toggle Dark Mode
-            </button>
-        </div>
 
         <!-- Input fields section -->
         <div class="space-y-6 mb-8">
             <div>
-                <label for="bondingPairs" class="block text-sm font-medium text-gray-700 mb-1">Number of Bonding Pairs</label>
+                <label for="bondingPairs" class="block text-sm font-medium mb-1">Number of Bonding Pairs</label>
                 <input type="number" id="bondingPairs" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 4 for methane">
             </div>
             <div>
-                <label for="lonePairs" class="block text-sm font-medium text-gray-700 mb-1">Number of Lone Pairs</label>
+                <label for="lonePairs" class="block text-sm font-medium mb-1">Number of Lone Pairs</label>
                 <input type="number" id="lonePairs" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="e.g., 1 for ammonia">
             </div>
         </div>
 
         <!-- Calculate button -->
         <div class="text-center mb-8">
-            <button id="calculateButton" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+            <button id="calculateButton" class="blue-button font-bold py-3 px-8 rounded-lg shadow-md transition duration-300 ease-in-out transform hover:scale-105">
                 Calculate Geometry
             </button>
         </div>
 
         <!-- Results section -->
-        <div id="results" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-            <h2 class="text-xl font-semibold text-gray-800 mb-4">Results</h2>
+        <div id="results" class="results-container p-6 rounded-lg border border-gray-200">
+            <h2 class="text-xl font-semibold mb-4">Results</h2>
             <div id="messageBox" class="text-red-600 mb-4 hidden"></div>
             <div id="geometryDisplay" class="space-y-3">
-                <p><strong>Electron Geometry:</strong> <span id="electronGeometry" class="font-medium text-gray-900">-</span></p>
-                <p><strong>Molecular Geometry:</strong> <span id="molecularGeometry" class="font-medium text-gray-900">-</span></p>
-                <p><strong>Ideal Bond Angles:</strong> <span id="bondAngles" class="font-medium text-gray-900">-</span></p>
+                <p><strong>Electron Geometry:</strong> <span id="electronGeometry" class="font-medium">-</span></p>
+                <p><strong>Molecular Geometry:</strong> <span id="molecularGeometry" class="font-medium">-</span></p>
+                <p><strong>Ideal Bond Angles:</strong> <span id="bondAngles" class="font-medium">-</span></p>
                 <div id="imagePlaceholder" class="mt-4 text-center">
-                    <p class="text-gray-500 italic">No image available for this geometry.</p>
+                    <p class="italic">No image available for this geometry.</p>
                 </div>
             </div>
         </div>
@@ -107,13 +117,6 @@
         const molecularGeometrySpan = document.getElementById('molecularGeometry');
         const bondAnglesSpan = document.getElementById('bondAngles');
         const imagePlaceholder = document.getElementById('imagePlaceholder');
-        const themeToggle = document.getElementById('themeToggle');
-        const body = document.body;
-
-        // Function to toggle the theme
-        themeToggle.addEventListener('click', () => {
-            body.classList.toggle('dark');
-        });
 
         // Main function to calculate VSEPR geometry
         const calculateVSEPR = (bondingPairs, lonePairs) => {
@@ -227,7 +230,7 @@
             electronGeometrySpan.textContent = '-';
             molecularGeometrySpan.textContent = '-';
             bondAnglesSpan.textContent = '-';
-            imagePlaceholder.innerHTML = '<p class="text-gray-500 italic">No image available for this geometry.</p>';
+            imagePlaceholder.innerHTML = '<p class="italic">No image available for this geometry.</p>';
 
             // Get user input and convert to integers
             const bondingPairs = parseInt(bondingPairsInput.value);
