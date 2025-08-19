@@ -1,7 +1,7 @@
 ---
 layout: default
 ---
-# Welcome to My Website
+# Welcome to Muath Hamidi's Website
 
 This is my personal page. Here you can find my professional background, projects, and other information.
 
