@@ -68,6 +68,7 @@ title: Muath Hamidi CV
 *   **2017-2018:** Member of Astronomy Club, Birzeit University
 
 ## Workshops Attended
+*   **2025:** Conference on Strongly Correlated Electron Systems 2025 (SCES 2025), Montreal, Quebec.
 *   **2024:** RQMP Grand Conference, Montreal, Quebec.
 *   **2023:** IQT Canada, Montreal, Quebec.
 *   **2022:** Fall 2022 INTRIQ Meeting, Bromont, Quebec.
@@ -77,6 +78,7 @@ title: Muath Hamidi CV
 *   **2017:** ICTP & CERN conference at Birzeit University.
 
 ## Other Activities
+*   **2019:** Helped organise the SCES 2025 conference (Student volunteer).
 *   **2019:** Accomplished 155 hours of scientific community work.
 *   **2016:** 2nd Place at the National Physics Olympics, Palestine. (Participant)
 *   **2015:** AMEDEAST Programme. (Participant)
