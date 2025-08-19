@@ -9,18 +9,59 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+        }
+
+        /* Basic dark mode styles */
+        .dark {
+            background-color: #1a1a1a;
+            color: #e5e7eb;
+        }
+        .dark .bg-white {
+            background-color: #2d2d2d;
+            border-color: #4b5563;
+        }
+        .dark .text-gray-800 {
+            color: #e5e7eb;
+        }
+        .dark .text-gray-600 {
+            color: #a0a0a0;
+        }
+        .dark .text-gray-700 {
+            color: #a0a0a0;
+        }
+        .dark .border-gray-300 {
+            border-color: #4b5563;
+        }
+        .dark .focus\:ring-blue-500:focus {
+            --tw-ring-color: #3b82f6;
+        }
+        .dark .bg-gray-50 {
+            background-color: #2d2d2d;
+            border-color: #4b5563;
+        }
+        .dark .text-gray-900 {
+            color: #e5e7eb;
+        }
+        .dark .text-gray-500 {
+            color: #a0a0a0;
         }
     </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4 transition-colors duration-300">
 
     <!-- Main container for the VSEPR calculator -->
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-xl">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-xl transition-colors duration-300">
         <h1 class="text-3xl font-bold text-center text-gray-800 mb-6">VSEPR Calculator</h1>
         <p class="text-center text-gray-600 mb-8">
             Enter the number of bonding pairs and lone pairs around the central atom to predict its molecular geometry.
         </p>
+
+        <!-- Theme toggle button -->
+        <div class="text-right mb-4">
+            <button id="themeToggle" class="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-200 py-2 px-4 rounded-full text-xs font-semibold shadow-md transition-colors duration-300">
+                Toggle Dark Mode
+            </button>
+        </div>
 
         <!-- Input fields section -->
         <div class="space-y-6 mb-8">
@@ -66,6 +107,13 @@
         const molecularGeometrySpan = document.getElementById('molecularGeometry');
         const bondAnglesSpan = document.getElementById('bondAngles');
         const imagePlaceholder = document.getElementById('imagePlaceholder');
+        const themeToggle = document.getElementById('themeToggle');
+        const body = document.body;
+
+        // Function to toggle the theme
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark');
+        });
 
         // Main function to calculate VSEPR geometry
         const calculateVSEPR = (bondingPairs, lonePairs) => {
