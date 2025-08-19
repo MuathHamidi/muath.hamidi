@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Periodic Table of Elements - Dark Mode</title>
+    <!-- Use Tailwind CSS for modern styling and responsiveness -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a202c; /* Dark background */
+            color: #e2e8f0; /* Light text */
+        }
+
+        /* Custom CSS for the periodic table grid */
+        .periodic-table-grid {
+            display: grid;
+            grid-template-columns: repeat(18, 1fr);
+            grid-template-rows: repeat(7, 1fr) 0.5fr repeat(2, 1fr);
+            gap: 4px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 1rem;
+            user-select: none;
+            overflow-x: auto;
+        }
+
+        .element-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #2d3748; /* Darker background for boxes */
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease-in-out;
+            cursor: pointer;
+            height: 100%;
+            aspect-ratio: 1 / 1; /* Keep boxes square */
+            min-width: 45px;
+            text-align: center;
+            position: relative;
+        }
+
+        .element-box:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.4);
+            z-index: 10;
+        }
+
+        .atomic-number {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-size: 0.5rem;
+            font-weight: 500;
+            color: #a0aec0;
+        }
+
+        .element-symbol {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #e2e8f0;
+        }
+
+        .element-name {
+            font-size: 0.6rem;
+            font-weight: 400;
+            margin-top: -2px;
+            color: #cbd5e0;
+        }
+
+        .lanthanide-actinide {
+            grid-column: 4 / span 1;
+        }
+        
+        /* Specific element positions for correct grid layout */
+        .H { grid-area: 1 / 1; }
+        .He { grid-area: 1 / 18; }
+        .Li { grid-area: 2 / 1; }
+        .Be { grid-area: 2 / 2; }
+        /* Placeholder for empty cells */
+        .empty { visibility: hidden; }
+
+        /* Color classes for different element types (Dark Mode) */
+        .alkali-metal { background-color: #5b21b6; }
+        .alkaline-earth-metal { background-color: #4338ca; }
+        .transition-metal { background-color: #1d4ed8; }
+        .post-transition-metal { background-color: #0d9488; }
+        .metalloid { background-color: #059669; }
+        .nonmetal { background-color: #3f6212; }
+        .halogen { background-color: #ca8a04; }
+        .noble-gas { background-color: #b91c1c; }
+        .lanthanide { background-color: #be185d; }
+        .actinide { background-color: #9a3412; }
+        .unknown { background-color: #4a5568; }
+
+        /* Modal styling */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: #2d3748;
+            color: #e2e8f0;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+            position: relative;
+            transform: scale(0.95);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+
+        .modal.is-active .modal-content {
+            transform: scale(1);
+            opacity: 1;
+        }
+
+        .close-button {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #a0aec0;
+            transition: color 0.2s;
+        }
+
+        .close-button:hover {
+            color: #e2e8f0;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .periodic-table-grid {
+                grid-template-columns: repeat(18, minmax(30px, 1fr));
+                gap: 2px;
+                padding: 0.5rem;
+            }
+            .element-symbol { font-size: 1rem; }
+            .element-name { font-size: 0.5rem; }
+            .atomic-number { font-size: 0.4rem; }
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <!-- Header -->
+    <header class="text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-gray-100 mb-2">The Periodic Table of Elements</h1>
+        <p class="text-lg text-gray-400">Click on any element for more information.</p>
+    </header>
+
+    <!-- Main periodic table container -->
+    <main id="periodic-table-container" class="periodic-table-grid"></main>
+
+    <!-- Modal for element details -->
+    <div id="element-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <div id="modal-content-details">
+                <!-- Element details will be dynamically injected here -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Array of all elements with their properties
+        const elements = [
+            // Period 1
+            { atomicNumber: 1, symbol: "H", name: "Hydrogen", atomicMass: 1.008, groupBlock: "nonmetal", period: 1, group: 1, electronConfiguration: "1s¹", block: "s" },
+            { atomicNumber: 2, symbol: "He", name: "Helium", atomicMass: 4.002602, groupBlock: "noble-gas", period: 1, group: 18, electronConfiguration: "1s²", block: "s" },
+            // Period 2
+            { atomicNumber: 3, symbol: "Li", name: "Lithium", atomicMass: 6.94, groupBlock: "alkali-metal", period: 2, group: 1, electronConfiguration: "[He] 2s¹", block: "s" },
+            { atomicNumber: 4, symbol: "Be", name: "Beryllium", atomicMass: 9.0121831, groupBlock: "alkaline-earth-metal", period: 2, group: 2, electronConfiguration: "[He] 2s²", block: "s" },
+            { atomicNumber: 5, symbol: "B", name: "Boron", atomicMass: 10.81, groupBlock: "metalloid", period: 2, group: 13, electronConfiguration: "[He] 2s² 2p¹", block: "p" },
+            { atomicNumber: 6, symbol: "C", name: "Carbon", atomicMass: 12.011, groupBlock: "nonmetal", period: 2, group: 14, electronConfiguration: "[He] 2s² 2p²", block: "p" },
+            { atomicNumber: 7, symbol: "N", name: "Nitrogen", atomicMass: 14.007, groupBlock: "nonmetal", period: 2, group: 15, electronConfiguration: "[He] 2s² 2p³", block: "p" },
+            { atomicNumber: 8, symbol: "O", name: "Oxygen", atomicMass: 15.999, groupBlock: "nonmetal", period: 2, group: 16, electronConfiguration: "[He] 2s² 2p⁴", block: "p" },
+            { atomicNumber: 9, symbol: "F", name: "Fluorine", atomicMass: 18.9984032, groupBlock: "halogen", period: 2, group: 17, electronConfiguration: "[He] 2s² 2p⁵", block: "p" },
+            { atomicNumber: 10, symbol: "Ne", name: "Neon", atomicMass: 20.1797, groupBlock: "noble-gas", period: 2, group: 18, electronConfiguration: "[He] 2s² 2p⁶", block: "p" },
+            // Period 3
+            { atomicNumber: 11, symbol: "Na", name: "Sodium", atomicMass: 22.98976928, groupBlock: "alkali-metal", period: 3, group: 1, electronConfiguration: "[Ne] 3s¹", block: "s" },
+            { atomicNumber: 12, symbol: "Mg", name: "Magnesium", atomicMass: 24.305, groupBlock: "alkaline-earth-metal", period: 3, group: 2, electronConfiguration: "[Ne] 3s²", block: "s" },
+            { atomicNumber: 13, symbol: "Al", name: "Aluminum", atomicMass: 26.9815385, groupBlock: "post-transition-metal", period: 3, group: 13, electronConfiguration: "[Ne] 3s² 3p¹", block: "p" },
+            { atomicNumber: 14, symbol: "Si", name: "Silicon", atomicMass: 28.085, groupBlock: "metalloid", period: 3, group: 14, electronConfiguration: "[Ne] 3s² 3p²", block: "p" },
+            { atomicNumber: 15, symbol: "P", name: "Phosphorus", atomicMass: 30.973762, groupBlock: "nonmetal", period: 3, group: 15, electronConfiguration: "[Ne] 3s² 3p³", block: "p" },
+            { atomicNumber: 16, symbol: "S", name: "Sulfur", atomicMass: 32.06, groupBlock: "nonmetal", period: 3, group: 16, electronConfiguration: "[Ne] 3s² 3p⁴", block: "p" },
+            { atomicNumber: 17, symbol: "Cl", name: "Chlorine", atomicMass: 35.45, groupBlock: "halogen", period: 3, group: 17, electronConfiguration: "[Ne] 3s² 3p⁵", block: "p" },
+            { atomicNumber: 18, symbol: "Ar", name: "Argon", atomicMass: 39.948, groupBlock: "noble-gas", period: 3, group: 18, electronConfiguration: "[Ne] 3s² 3p⁶", block: "p" },
+            // Period 4
+            { atomicNumber: 19, symbol: "K", name: "Potassium", atomicMass: 39.0983, groupBlock: "alkali-metal", period: 4, group: 1, electronConfiguration: "[Ar] 4s¹", block: "s" },
+            { atomicNumber: 20, symbol: "Ca", name: "Calcium", atomicMass: 40.078, groupBlock: "alkaline-earth-metal", period: 4, group: 2, electronConfiguration: "[Ar] 4s²", block: "s" },
+            { atomicNumber: 21, symbol: "Sc", name: "Scandium", atomicMass: 44.955908, groupBlock: "transition-metal", period: 4, group: 3, electronConfiguration: "[Ar] 3d¹ 4s²", block: "d" },
+            { atomicNumber: 22, symbol: "Ti", name: "Titanium", atomicMass: 47.867, groupBlock: "transition-metal", period: 4, group: 4, electronConfiguration: "[Ar] 3d² 4s²", block: "d" },
+            { atomicNumber: 23, symbol: "V", name: "Vanadium", atomicMass: 50.9415, groupBlock: "transition-metal", period: 4, group: 5, electronConfiguration: "[Ar] 3d³ 4s²", block: "d" },
+            { atomicNumber: 24, symbol: "Cr", name: "Chromium", atomicMass: 51.9961, groupBlock: "transition-metal", period: 4, group: 6, electronConfiguration: "[Ar] 3d⁵ 4s¹", block: "d" },
+            { atomicNumber: 25, symbol: "Mn", name: "Manganese", atomicMass: 54.938044, groupBlock: "transition-metal", period: 4, group: 7, electronConfiguration: "[Ar] 3d⁵ 4s²", block: "d" },
+            { atomicNumber: 26, symbol: "Fe", name: "Iron", atomicMass: 55.845, groupBlock: "transition-metal", period: 4, group: 8, electronConfiguration: "[Ar] 3d⁶ 4s²", block: "d" },
+            { atomicNumber: 27, symbol: "Co", name: "Cobalt", atomicMass: 58.933194, groupBlock: "transition-metal", period: 4, group: 9, electronConfiguration: "[Ar] 3d⁷ 4s²", block: "d" },
+            { atomicNumber: 28, symbol: "Ni", name: "Nickel", atomicMass: 58.6934, groupBlock: "transition-metal", period: 4, group: 10, electronConfiguration: "[Ar] 3d⁸ 4s²", block: "d" },
+            { atomicNumber: 29, symbol: "Cu", name: "Copper", atomicMass: 63.546, groupBlock: "transition-metal", period: 4, group: 11, electronConfiguration: "[Ar] 3d¹⁰ 4s¹", block: "d" },
+            { atomicNumber: 30, symbol: "Zn", name: "Zinc", atomicMass: 65.38, groupBlock: "transition-metal", period: 4, group: 12, electronConfiguration: "[Ar] 3d¹⁰ 4s²", block: "d" },
+            { atomicNumber: 31, symbol: "Ga", name: "Gallium", atomicMass: 69.723, groupBlock: "post-transition-metal", period: 4, group: 13, electronConfiguration: "[Ar] 3d¹⁰ 4s² 4p¹", block: "p" },
+            { atomicNumber: 32, symbol: "Ge", name: "Germanium", atomicMass: 72.630, groupBlock: "metalloid", period: 4, group: 14, electronConfiguration: "[Ar] 3d¹⁰ 4s² 4p²", block: "p" },
+            { atomicNumber: 33, symbol: "As", name: "Arsenic", atomicMass: 74.921595, groupBlock: "metalloid", period: 4, group: 15, electronConfiguration: "[Ar] 3d¹⁰ 4s² 4p³", block: "p" },
+            { atomicNumber: 34, symbol: "Se", name: "Selenium", atomicMass: 78.971, groupBlock: "nonmetal", period: 4, group: 16, electronConfiguration: "[Ar] 3d¹⁰ 4s² 4p⁴", block: "p" },
+            { atomicNumber: 35, symbol: "Br", name: "Bromine", atomicMass: 79.904, groupBlock: "halogen", period: 4, group: 17, electronConfiguration: "[Ar] 3d¹⁰ 4s² 4p⁵", block: "p" },
+            { atomicNumber: 36, symbol: "Kr", name: "Krypton", atomicMass: 83.798, groupBlock: "noble-gas", period: 4, group: 18, electronConfiguration: "[Ar] 3d¹⁰ 4s² 4p⁶", block: "p" },
+            // Period 5
+            { atomicNumber: 37, symbol: "Rb", name: "Rubidium", atomicMass: 85.4678, groupBlock: "alkali-metal", period: 5, group: 1, electronConfiguration: "[Kr] 5s¹", block: "s" },
+            { atomicNumber: 38, symbol: "Sr", name: "Strontium", atomicMass: 87.62, groupBlock: "alkaline-earth-metal", period: 5, group: 2, electronConfiguration: "[Kr] 5s²", block: "s" },
+            { atomicNumber: 39, symbol: "Y", name: "Yttrium", atomicMass: 88.90584, groupBlock: "transition-metal", period: 5, group: 3, electronConfiguration: "[Kr] 4d¹ 5s²", block: "d" },
+            { atomicNumber: 40, symbol: "Zr", name: "Zirconium", atomicMass: 91.224, groupBlock: "transition-metal", period: 5, group: 4, electronConfiguration: "[Kr] 4d² 5s²", block: "d" },
+            { atomicNumber: 41, symbol: "Nb", name: "Niobium", atomicMass: 92.90637, groupBlock: "transition-metal", period: 5, group: 5, electronConfiguration: "[Kr] 4d⁴ 5s¹", block: "d" },
+            { atomicNumber: 42, symbol: "Mo", name: "Molybdenum", atomicMass: 95.95, groupBlock: "transition-metal", period: 5, group: 6, electronConfiguration: "[Kr] 4d⁵ 5s¹", block: "d" },
+            { atomicNumber: 43, symbol: "Tc", name: "Technetium", atomicMass: 98, groupBlock: "transition-metal", period: 5, group: 7, electronConfiguration: "[Kr] 4d⁵ 5s²", block: "d" },
+            { atomicNumber: 44, symbol: "Ru", name: "Ruthenium", atomicMass: 101.07, groupBlock: "transition-metal", period: 5, group: 8, electronConfiguration: "[Kr] 4d⁷ 5s¹", block: "d" },
+            { atomicNumber: 45, symbol: "Rh", name: "Rhodium", atomicMass: 102.9055, groupBlock: "transition-metal", period: 5, group: 9, electronConfiguration: "[Kr] 4d⁸ 5s¹", block: "d" },
+            { atomicNumber: 46, symbol: "Pd", name: "Palladium", atomicMass: 106.42, groupBlock: "transition-metal", period: 5, group: 10, electronConfiguration: "[Kr] 4d¹⁰", block: "d" },
+            { atomicNumber: 47, symbol: "Ag", name: "Silver", atomicMass: 107.8682, groupBlock: "transition-metal", period: 5, group: 11, electronConfiguration: "[Kr] 4d¹⁰ 5s¹", block: "d" },
+            { atomicNumber: 48, symbol: "Cd", name: "Cadmium", atomicMass: 112.414, groupBlock: "transition-metal", period: 5, group: 12, electronConfiguration: "[Kr] 4d¹⁰ 5s²", block: "d" },
+            { atomicNumber: 49, symbol: "In", name: "Indium", atomicMass: 114.818, groupBlock: "post-transition-metal", period: 5, group: 13, electronConfiguration: "[Kr] 4d¹⁰ 5s² 5p¹", block: "p" },
+            { atomicNumber: 50, symbol: "Sn", name: "Tin", atomicMass: 118.710, groupBlock: "post-transition-metal", period: 5, group: 14, electronConfiguration: "[Kr] 4d¹⁰ 5s² 5p²", block: "p" },
+            { atomicNumber: 51, symbol: "Sb", name: "Antimony", atomicMass: 121.760, groupBlock: "metalloid", period: 5, group: 15, electronConfiguration: "[Kr] 4d¹⁰ 5s² 5p³", block: "p" },
+            { atomicNumber: 52, symbol: "Te", name: "Tellurium", atomicMass: 127.60, groupBlock: "metalloid", period: 5, group: 16, electronConfiguration: "[Kr] 4d¹⁰ 5s² 5p⁴", block: "p" },
+            { atomicNumber: 53, symbol: "I", name: "Iodine", atomicMass: 126.90447, groupBlock: "halogen", period: 5, group: 17, electronConfiguration: "[Kr] 4d¹⁰ 5s² 5p⁵", block: "p" },
+            { atomicNumber: 54, symbol: "Xe", name: "Xenon", atomicMass: 131.293, groupBlock: "noble-gas", period: 5, group: 18, electronConfiguration: "[Kr] 4d¹⁰ 5s² 5p⁶", block: "p" },
+            // Period 6
+            { atomicNumber: 55, symbol: "Cs", name: "Cesium", atomicMass: 132.905452, groupBlock: "alkali-metal", period: 6, group: 1, electronConfiguration: "[Xe] 6s¹", block: "s" },
+            { atomicNumber: 56, symbol: "Ba", name: "Barium", atomicMass: 137.327, groupBlock: "alkaline-earth-metal", period: 6, group: 2, electronConfiguration: "[Xe] 6s²", block: "s" },
+            { atomicNumber: 57, symbol: "La", name: "Lanthanum", atomicMass: 138.90547, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 5d¹ 6s²", block: "d" },
+            { atomicNumber: 72, symbol: "Hf", name: "Hafnium", atomicMass: 178.49, groupBlock: "transition-metal", period: 6, group: 4, electronConfiguration: "[Xe] 4f¹⁴ 5d² 6s²", block: "d" },
+            { atomicNumber: 73, symbol: "Ta", name: "Tantalum", atomicMass: 180.94788, groupBlock: "transition-metal", period: 6, group: 5, electronConfiguration: "[Xe] 4f¹⁴ 5d³ 6s²", block: "d" },
+            { atomicNumber: 74, symbol: "W", name: "Tungsten", atomicMass: 183.84, groupBlock: "transition-metal", period: 6, group: 6, electronConfiguration: "[Xe] 4f¹⁴ 5d⁴ 6s²", block: "d" },
+            { atomicNumber: 75, symbol: "Re", name: "Rhenium", atomicMass: 186.207, groupBlock: "transition-metal", period: 6, group: 7, electronConfiguration: "[Xe] 4f¹⁴ 5d⁵ 6s²", block: "d" },
+            { atomicNumber: 76, symbol: "Os", name: "Osmium", atomicMass: 190.23, groupBlock: "transition-metal", period: 6, group: 8, electronConfiguration: "[Xe] 4f¹⁴ 5d⁶ 6s²", block: "d" },
+            { atomicNumber: 77, symbol: "Ir", name: "Iridium", atomicMass: 192.217, groupBlock: "transition-metal", period: 6, group: 9, electronConfiguration: "[Xe] 4f¹⁴ 5d⁷ 6s²", block: "d" },
+            { atomicNumber: 78, symbol: "Pt", name: "Platinum", atomicMass: 195.084, groupBlock: "transition-metal", period: 6, group: 10, electronConfiguration: "[Xe] 4f¹⁴ 5d⁹ 6s¹", block: "d" },
+            { atomicNumber: 79, symbol: "Au", name: "Gold", atomicMass: 196.96657, groupBlock: "transition-metal", period: 6, group: 11, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s¹", block: "d" },
+            { atomicNumber: 80, symbol: "Hg", name: "Mercury", atomicMass: 200.592, groupBlock: "transition-metal", period: 6, group: 12, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s²", block: "d" },
+            { atomicNumber: 81, symbol: "Tl", name: "Thallium", atomicMass: 204.38, groupBlock: "post-transition-metal", period: 6, group: 13, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹", block: "p" },
+            { atomicNumber: 82, symbol: "Pb", name: "Lead", atomicMass: 207.2, groupBlock: "post-transition-metal", period: 6, group: 14, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²", block: "p" },
+            { atomicNumber: 83, symbol: "Bi", name: "Bismuth", atomicMass: 208.98040, groupBlock: "post-transition-metal", period: 6, group: 15, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³", block: "p" },
+            { atomicNumber: 84, symbol: "Po", name: "Polonium", atomicMass: 209, groupBlock: "post-transition-metal", period: 6, group: 16, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴", block: "p" },
+            { atomicNumber: 85, symbol: "At", name: "Astatine", atomicMass: 210, groupBlock: "halogen", period: 6, group: 17, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵", block: "p" },
+            { atomicNumber: 86, symbol: "Rn", name: "Radon", atomicMass: 222, groupBlock: "noble-gas", period: 6, group: 18, electronConfiguration: "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶", block: "p" },
+            // Period 7
+            { atomicNumber: 87, symbol: "Fr", name: "Francium", atomicMass: 223, groupBlock: "alkali-metal", period: 7, group: 1, electronConfiguration: "[Rn] 7s¹", block: "s" },
+            { atomicNumber: 88, symbol: "Ra", name: "Radium", atomicMass: 226, groupBlock: "alkaline-earth-metal", period: 7, group: 2, electronConfiguration: "[Rn] 7s²", block: "s" },
+            { atomicNumber: 89, symbol: "Ac", name: "Actinium", atomicMass: 227, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 6d¹ 7s²", block: "d" },
+            { atomicNumber: 104, symbol: "Rf", name: "Rutherfordium", atomicMass: 267, groupBlock: "transition-metal", period: 7, group: 4, electronConfiguration: "[Rn] 5f¹⁴ 6d² 7s²", block: "d" },
+            { atomicNumber: 105, symbol: "Db", name: "Dubnium", atomicMass: 268, groupBlock: "transition-metal", period: 7, group: 5, electronConfiguration: "[Rn] 5f¹⁴ 6d³ 7s²", block: "d" },
+            { atomicNumber: 106, symbol: "Sg", name: "Seaborgium", atomicMass: 269, groupBlock: "transition-metal", period: 7, group: 6, electronConfiguration: "[Rn] 5f¹⁴ 6d⁴ 7s²", block: "d" },
+            { atomicNumber: 107, symbol: "Bh", name: "Bohrium", atomicMass: 270, groupBlock: "transition-metal", period: 7, group: 7, electronConfiguration: "[Rn] 5f¹⁴ 6d⁵ 7s²", block: "d" },
+            { atomicNumber: 108, symbol: "Hs", name: "Hassium", atomicMass: 269, groupBlock: "transition-metal", period: 7, group: 8, electronConfiguration: "[Rn] 5f¹⁴ 6d⁶ 7s²", block: "d" },
+            { atomicNumber: 109, symbol: "Mt", name: "Meitnerium", atomicMass: 278, groupBlock: "transition-metal", period: 7, group: 9, electronConfiguration: "[Rn] 5f¹⁴ 6d⁷ 7s²", block: "d" },
+            { atomicNumber: 110, symbol: "Ds", name: "Darmstadtium", atomicMass: 281, groupBlock: "transition-metal", period: 7, group: 10, electronConfiguration: "[Rn] 5f¹⁴ 6d⁸ 7s²", block: "d" },
+            { atomicNumber: 111, symbol: "Rg", name: "Roentgenium", atomicMass: 282, groupBlock: "transition-metal", period: 7, group: 11, electronConfiguration: "[Rn] 5f¹⁴ 6d⁹ 7s²", block: "d" },
+            { atomicNumber: 112, symbol: "Cn", name: "Copernicium", atomicMass: 285, groupBlock: "transition-metal", period: 7, group: 12, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s²", block: "d" },
+            { atomicNumber: 113, symbol: "Nh", name: "Nihonium", atomicMass: 286, groupBlock: "post-transition-metal", period: 7, group: 13, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹", block: "p" },
+            { atomicNumber: 114, symbol: "Fl", name: "Flerovium", atomicMass: 289, groupBlock: "post-transition-metal", period: 7, group: 14, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²", block: "p" },
+            { atomicNumber: 115, symbol: "Mc", name: "Moscovium", atomicMass: 290, groupBlock: "post-transition-metal", period: 7, group: 15, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³", block: "p" },
+            { atomicNumber: 116, symbol: "Lv", name: "Livermorium", atomicMass: 293, groupBlock: "post-transition-metal", period: 7, group: 16, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴", block: "p" },
+            { atomicNumber: 117, symbol: "Ts", name: "Tennessine", atomicMass: 294, groupBlock: "halogen", period: 7, group: 17, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵", block: "p" },
+            { atomicNumber: 118, symbol: "Og", name: "Oganesson", atomicMass: 294, groupBlock: "noble-gas", period: 7, group: 18, electronConfiguration: "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶", block: "p" },
+            // Lanthanides
+            { atomicNumber: 58, symbol: "Ce", name: "Cerium", atomicMass: 140.116, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹ 5d¹ 6s²", block: "f" },
+            { atomicNumber: 59, symbol: "Pr", name: "Praseodymium", atomicMass: 140.90766, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f³ 6s²", block: "f" },
+            { atomicNumber: 60, symbol: "Nd", name: "Neodymium", atomicMass: 144.242, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f⁴ 6s²", block: "f" },
+            { atomicNumber: 61, symbol: "Pm", name: "Promethium", atomicMass: 145, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f⁵ 6s²", block: "f" },
+            { atomicNumber: 62, symbol: "Sm", name: "Samarium", atomicMass: 150.36, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f⁶ 6s²", block: "f" },
+            { atomicNumber: 63, symbol: "Eu", name: "Europium", atomicMass: 151.964, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f⁷ 6s²", block: "f" },
+            { atomicNumber: 64, symbol: "Gd", name: "Gadolinium", atomicMass: 157.25, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f⁷ 5d¹ 6s²", block: "f" },
+            { atomicNumber: 65, symbol: "Tb", name: "Terbium", atomicMass: 158.92535, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f⁹ 6s²", block: "f" },
+            { atomicNumber: 66, symbol: "Dy", name: "Dysprosium", atomicMass: 162.500, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹⁰ 6s²", block: "f" },
+            { atomicNumber: 67, symbol: "Ho", name: "Holmium", atomicMass: 164.93033, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹¹ 6s²", block: "f" },
+            { atomicNumber: 68, symbol: "Er", name: "Erbium", atomicMass: 167.259, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹² 6s²", block: "f" },
+            { atomicNumber: 69, symbol: "Tm", name: "Thulium", atomicMass: 168.93422, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹³ 6s²", block: "f" },
+            { atomicNumber: 70, symbol: "Yb", name: "Ytterbium", atomicMass: 173.045, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹⁴ 6s²", block: "f" },
+            { atomicNumber: 71, symbol: "Lu", name: "Lutetium", atomicMass: 174.9668, groupBlock: "lanthanide", period: 6, group: 3, electronConfiguration: "[Xe] 4f¹⁴ 5d¹ 6s²", block: "d" },
+            // Actinides
+            { atomicNumber: 90, symbol: "Th", name: "Thorium", atomicMass: 232.0377, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 6d² 7s²", block: "f" },
+            { atomicNumber: 91, symbol: "Pa", name: "Protactinium", atomicMass: 231.03588, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f² 6d¹ 7s²", block: "f" },
+            { atomicNumber: 92, symbol: "U", name: "Uranium", atomicMass: 238.02891, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f³ 6d¹ 7s²", block: "f" },
+            { atomicNumber: 93, symbol: "Np", name: "Neptunium", atomicMass: 237, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f⁴ 6d¹ 7s²", block: "f" },
+            { atomicNumber: 94, symbol: "Pu", name: "Plutonium", atomicMass: 244, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f⁶ 7s²", block: "f" },
+            { atomicNumber: 95, symbol: "Am", name: "Americium", atomicMass: 243, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f⁷ 7s²", block: "f" },
+            { atomicNumber: 96, symbol: "Cm", name: "Curium", atomicMass: 247, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f⁷ 6d¹ 7s²", block: "f" },
+            { atomicNumber: 97, symbol: "Bk", name: "Berkelium", atomicMass: 247, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f⁹ 7s²", block: "f" },
+            { atomicNumber: 98, symbol: "Cf", name: "Californium", atomicMass: 251, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f¹⁰ 7s²", block: "f" },
+            { atomicNumber: 99, symbol: "Es", name: "Einsteinium", atomicMass: 252, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f¹¹ 7s²", block: "f" },
+            { atomicNumber: 100, symbol: "Fm", name: "Fermium", atomicMass: 257, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f¹² 7s²", block: "f" },
+            { atomicNumber: 101, symbol: "Md", name: "Mendelevium", atomicMass: 258, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f¹³ 7s²", block: "f" },
+            { atomicNumber: 102, symbol: "No", name: "Nobelium", atomicMass: 259, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f¹⁴ 7s²", block: "f" },
+            { atomicNumber: 103, symbol: "Lr", name: "Lawrencium", atomicMass: 262, groupBlock: "actinide", period: 7, group: 3, electronConfiguration: "[Rn] 5f¹⁴ 7s¹ 7p²", block: "d" }
+        ];
+
+        // Get the main container for the periodic table
+        const tableContainer = document.getElementById('periodic-table-container');
+        const modal = document.getElementById('element-modal');
+        const modalDetails = document.getElementById('modal-content-details');
+        const closeModalButton = document.querySelector('.close-button');
+        
+        // Map element types to their color classes (Dark Mode)
+        const groupBlockColors = {
+            'alkali-metal': 'bg-purple-800',
+            'alkaline-earth-metal': 'bg-indigo-800',
+            'transition-metal': 'bg-blue-800',
+            'post-transition-metal': 'bg-teal-800',
+            'metalloid': 'bg-green-800',
+            'nonmetal': 'bg-lime-800',
+            'halogen': 'bg-yellow-800',
+            'noble-gas': 'bg-red-800',
+            'lanthanide': 'bg-pink-800',
+            'actinide': 'bg-orange-800',
+            'unknown': 'bg-gray-700',
+        };
+
+        // Function to create an element box
+        function createElementBox(element) {
+            const elDiv = document.createElement('div');
+            elDiv.classList.add('element-box', element.groupBlock);
+            elDiv.style.gridRow = element.period;
+            elDiv.style.gridColumn = element.group;
+
+            // Adjust grid placement for the f-block elements
+            if (element.atomicNumber >= 57 && element.atomicNumber <= 71) {
+                elDiv.style.gridRow = 9; // Place them in the bottom block, row 9
+                elDiv.style.gridColumn = element.atomicNumber - 54;
+            }
+            if (element.atomicNumber >= 89 && element.atomicNumber <= 103) {
+                elDiv.style.gridRow = 10; // Place them in the bottom block, row 10
+                elDiv.style.gridColumn = element.atomicNumber - 86;
+            }
+
+            elDiv.innerHTML = `
+                <div class="atomic-number">${element.atomicNumber}</div>
+                <div class="element-symbol">${element.symbol}</div>
+                <div class="element-name">${element.name}</div>
+            `;
+            elDiv.addEventListener('click', () => showElementDetails(element));
+            return elDiv;
+        }
+
+        // Function to generate and display the periodic table
+        function generateTable() {
+            // First, create empty placeholders for the grid layout
+            for (let i = 0; i < 18; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.classList.add('empty');
+                if (i >= 2 && i < 12) {
+                    emptyCell.style.gridRow = 2; // Empty cells in Period 2
+                    emptyCell.style.gridColumn = i + 1;
+                    tableContainer.appendChild(emptyCell);
+                }
+                if (i >= 2 && i < 12) {
+                    emptyCell.style.gridRow = 3; // Empty cells in Period 3
+                    emptyCell.style.gridColumn = i + 1;
+                    tableContainer.appendChild(emptyCell);
+                }
+            }
+
+            // Create the element boxes
+            elements.forEach(element => {
+                const elementBox = createElementBox(element);
+                elementBox.classList.add(groupBlockColors[element.groupBlock]);
+                tableContainer.appendChild(elementBox);
+            });
+
+            // Add the Lanthanide and Actinide series placeholders
+            const lanthanidePlaceholder = document.createElement('div');
+            lanthanidePlaceholder.classList.add('element-box', 'lanthanide-actinide', 'cursor-default', 'bg-gray-800');
+            lanthanidePlaceholder.style.gridRow = 6;
+            lanthanidePlaceholder.style.gridColumn = 3;
+            lanthanidePlaceholder.innerHTML = '<span class="text-sm text-gray-400">57-71<br>La-Lu</span>';
+            tableContainer.appendChild(lanthanidePlaceholder);
+
+            const actinidePlaceholder = document.createElement('div');
+            actinidePlaceholder.classList.add('element-box', 'lanthanide-actinide', 'cursor-default', 'bg-gray-800');
+            actinidePlaceholder.style.gridRow = 7;
+            actinidePlaceholder.style.gridColumn = 3;
+            actinidePlaceholder.innerHTML = '<span class="text-sm text-gray-400">89-103<br>Ac-Lr</span>';
+            tableContainer.appendChild(actinidePlaceholder);
+
+            // Add group numbers to the top
+            for (let i = 1; i <= 18; i++) {
+                const groupNumber = document.createElement('div');
+                groupNumber.classList.add('text-center', 'font-bold', 'text-gray-400', 'text-sm');
+                groupNumber.style.gridRow = 0;
+                groupNumber.style.gridColumn = i;
+                groupNumber.textContent = i;
+                tableContainer.appendChild(groupNumber);
+            }
+        }
+
+        // Function to show the modal with element details
+        function showElementDetails(element) {
+            modalDetails.innerHTML = `
+                <div class="flex items-center space-x-4 mb-4">
+                    <div class="w-16 h-16 rounded-full flex items-center justify-center text-4xl font-bold ${groupBlockColors[element.groupBlock]}">
+                        ${element.symbol}
+                    </div>
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-100">${element.name} (${element.symbol})</h2>
+                        <p class="text-gray-400">Atomic Number: ${element.atomicNumber}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="p-4 bg-gray-700 rounded-lg">
+                        <h3 class="font-semibold text-gray-300 mb-1">Atomic Mass</h3>
+                        <p class="text-gray-100">${element.atomicMass} u</p>
+                    </div>
+                    <div class="p-4 bg-gray-700 rounded-lg">
+                        <h3 class="font-semibold text-gray-300 mb-1">Group Block</h3>
+                        <p class="text-gray-100">${element.groupBlock.replace('-', ' ').toUpperCase()}</p>
+                    </div>
+                    <div class="p-4 bg-gray-700 rounded-lg">
+                        <h3 class="font-semibold text-gray-300 mb-1">Period</h3>
+                        <p class="text-gray-100">${element.period}</p>
+                    </div>
+                    <div class="p-4 bg-gray-700 rounded-lg">
+                        <h3 class="font-semibold text-gray-300 mb-1">Group</h3>
+                        <p class="text-gray-100">${element.group}</p>
+                    </div>
+                    <div class="p-4 bg-gray-700 rounded-lg col-span-1 md:col-span-2">
+                        <h3 class="font-semibold text-gray-300 mb-1">Electron Configuration</h3>
+                        <p class="text-gray-100">${element.electronConfiguration}</p>
+                    </div>
+                </div>
+            `;
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('is-active');
+            }, 10);
+        }
+
+        // Function to hide the modal
+        function hideElementDetails() {
+            modal.classList.remove('is-active');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+
+        // Event listeners to close the modal
+        closeModalButton.addEventListener('click', hideElementDetails);
+        modal.addEventListener('click', (e) => {
+            if (e.target.id === 'element-modal') {
+                hideElementDetails();
+            }
+        });
+
+        // Generate the table when the window loads
+        window.onload = generateTable;
+
+    </script>
+</body>
+</html>
