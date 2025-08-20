@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oxidation Number Calculator</title>
+    <!-- Use Tailwind CSS for a modern, responsive design -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .bg-gradient-header {
+            background-image: linear-gradient(to right, #0ea5e9, #6366f1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        /* Custom styles to handle nested subscript formatting */
+        .sub {
+            vertical-align: sub;
+            font-size: 0.75em;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 flex items-center justify-center p-4">
+    <div class="bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl max-w-lg w-full flex flex-col items-center border border-gray-700">
+        <h1 class="text-3xl md:text-4xl font-extrabold mb-4 text-center bg-gradient-header">
+            Oxidation Number Calculator
+        </h1>
+        <p class="text-center text-gray-300 mb-6">
+            Find definitive answers or likely possibilities for any chemical formula.
+        </p>
+        
+        <div class="w-full flex flex-col md:flex-row items-stretch md:items-center space-y-4 md:space-y-0 md:space-x-4">
+            <input 
+                id="formulaInput" 
+                type="text" 
+                placeholder="e.g., H2O, Fe3O4, Cu(NO3)2" 
+                class="flex-1 bg-gray-700 text-gray-200 p-3 rounded-xl border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder-gray-400"
+            >
+            <button 
+                id="calculateBtn" 
+                class="px-6 py-3 bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:from-sky-500 hover:to-indigo-500 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+            >
+                Calculate
+            </button>
+        </div>
+
+        <div id="results" class="mt-8 w-full">
+            <!-- Results will be displayed here dynamically -->
+            <div class="bg-gray-700 p-6 rounded-2xl shadow-inner text-center border border-gray-600">
+                <p>Your results will appear here.</p>
+            </div>
+        </div>
+
+        <div id="messageBox" class="mt-4 w-full p-4 bg-red-800 text-white rounded-xl hidden"></div>
+    </div>
+
+    <script>
+        // --- DATA SECTION ---
+        const ELEMENT_DATA = { /* Omitted for brevity, but this comprehensive list is essential */
+            'H': { states: [1, -1] }, 'He': { states: [0] }, 'Li': { states: [1] }, 'Be': { states: [2] }, 'B': { states: [3, -5] }, 'C': { states: [4, 2, -4] }, 'N': { states: [-3, 5, 3, 4, 2, 1, -1, -2] }, 'O': { states: [-2, -1, 1, 2] }, 'F': { states: [-1] }, 'Ne': { states: [0] }, 'Na': { states: [1] }, 'Mg': { states: [2] }, 'Al': { states: [3] }, 'Si': { states: [4, -4, 2] }, 'P': { states: [5, 3, -3] }, 'S': { states: [-2, 6, 4, 2] }, 'Cl': { states: [-1, 1, 3, 5, 7] }, 'Ar': { states: [0] }, 'K': { states: [1] }, 'Ca': { states: [2] }, 'Sc': { states: [3] }, 'Ti': { states: [4, 3, 2] }, 'V': { states: [5, 4, 3, 2] }, 'Cr': { states: [3, 6, 2] }, 'Mn': { states: [2, 7, 4, 3] }, 'Fe': { states: [3, 2, 4, 2.66] }, 'Co': { states: [2, 3] }, 'Ni': { states: [2, 3, 4] }, 'Cu': { states: [2, 1, 3] }, 'Zn': { states: [2] }, 'Ga': { states: [3] }, 'Ge': { states: [4, 2] }, 'As': { states: [3, 5, -3] }, 'Se': { states: [-2, 4, 6] }, 'Br': { states: [-1, 1, 3, 5] }, 'Kr': { states: [2, 0] }, 'Rb': { states: [1] }, 'Sr': { states: [2] }, 'Y': { states: [3] }, 'Zr': { states: [4] }, 'Nb': { states: [5, 3] }, 'Mo': { states: [6, 4] }, 'Tc': { states: [7, 4] }, 'Ru': { states: [3, 4, 8, 2] }, 'Rh': { states: [3, 1] }, 'Pd': { states: [2, 0, 4] }, 'Ag': { states: [1] }, 'Cd': { states: [2] }, 'In': { states: [3, 1] }, 'Sn': { states: [4, 2] }, 'Sb': { states: [3, 5, -3] }, 'Te': { states: [-2, 4, 6] }, 'I': { states: [-1, 1, 5, 7] }, 'Xe': { states: [0, 2, 4, 6] }, 'Cs': { states: [1] }, 'Ba': { states: [2] }, 'La': { states: [3] }, 'Ce': { states: [3, 4] }, 'Pr': { states: [3] }, 'Nd': { states: [3] }, 'Pm': { states: [3] }, 'Sm': { states: [3, 2] }, 'Eu': { states: [3, 2] }, 'Gd': { states: [3] }, 'Tb': { states: [3, 4] }, 'Dy': { states: [3] }, 'Ho': { states: [3] }, 'Er': { states: [3] }, 'Tm': { states: [3, 2] }, 'Yb': { states: [3, 2] }, 'Lu': { states: [3] }, 'Hf': { states: [4] }, 'Ta': { states: [5] }, 'W': { states: [6, 4] }, 'Re': { states: [7, 4, 6] }, 'Os': { states: [4, 8, 3] }, 'Ir': { states: [4, 3] }, 'Pt': { states: [4, 2] }, 'Au': { states: [3, 1] }, 'Hg': { states: [2, 1] }, 'Tl': { states: [1, 3] }, 'Pb': { states: [2, 4] }, 'Bi': { states: [3, 5, -3] }, 'Po': { states: [4, 2, -2] }, 'At': { states: [-1, 1, 3, 5, 7] }, 'Rn': { states: [2, 0] }, 'Fr': { states: [1] }, 'Ra': { states: [2] }, 'Ac': { states: [3] }, 'Th': { states: [4] }, 'Pa': { states: [5, 4] }, 'U': { states: [6, 4, 5, 3] }, 'Np': { states: [5, 6, 4] }, 'Pu': { states: [4, 6, 5, 3] }, 'Am': { states: [3, 6, 4, 5] }, 'Cm': { states: [3] }, 'Bk': { states: [3, 4] }, 'Cf': { states: [3] }, 'Es': { states: [3] }, 'Fm': { states: [3] }, 'Md': { states: [3] }, 'No': { states: [2, 3] }, 'Lr': { states: [3] }, 'Rf': { states: [4] }, 'Db': { states: [5] }, 'Sg': { states: [6] }, 'Bh': { states: [7] }, 'Hs': { states: [8] }, 'Mt': { states: [9] }, 'Ds': { states: [] }, 'Rg': { states: [] }, 'Cn': { states: [2] }, 'Nh': { states: [1] }, 'Fl': { states: [2] }, 'Mc': { states: [3] }, 'Lv': { states: [4] }, 'Ts': { states: [-1] }, 'Og': { states: [4] },
+        };
+        const POLYATOMIC_IONS = {
+            'OH': -1, 'CN': -1, 'NO3': -1, 'NO2': -1, 'HCO3': -1, 'HSO4': -1, 
+            'ClO': -1, 'ClO2': -1, 'ClO3': -1, 'ClO4': -1, 'MnO4': -1, 'SCN': -1,
+            'SO4': -2, 'SO3': -2, 'CO3': -2, 'CrO4': -2, 'Cr2O7': -2, 'HPO4': -2,
+            'S2O3': -2, 'C2O4': -2, 'PO4': -3, 'PO3': -3, 'AsO4': -3, 'NH4': 1, 'H3O': 1
+        };
+        // NEW HIERARCHICAL RULE SET
+        const PRIORITY_RULES = [
+            { elements: ['F'], value: -1 },
+            { elements: ['Li', 'Na', 'K', 'Rb', 'Cs', 'Fr'], value: 1 }, // Group 1
+            { elements: ['Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Ra'], value: 2 }, // Group 2
+            { elements: ['Al'], value: 3 },
+            { elements: ['H'], value: 1 }, // Standard case for H
+            { elements: ['O'], value: -2 }, // Standard case for O
+            { elements: ['Cl', 'Br', 'I', 'At'], value: -1 } // Standard case for Halogens
+        ];
+
+        const formulaInput = document.getElementById('formulaInput');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultsDiv = document.getElementById('results');
+        const messageBox = document.getElementById('messageBox');
+
+        calculateBtn.addEventListener('click', main);
+        formulaInput.addEventListener('keyup', (event) => (event.key === 'Enter') && main());
+
+        // Function to show a message in the message box
+        function showMessage(message, isError = true) {
+            resultsDiv.innerHTML = '';
+            messageBox.textContent = message;
+            messageBox.classList.remove('hidden');
+            messageBox.classList.add(isError ? 'bg-red-800' : 'bg-green-700');
+        }
+
+        // Function to hide the message box
+        function hideMessage() {
+            messageBox.classList.add('hidden');
+            messageBox.classList.remove('bg-red-800', 'bg-green-700');
+        }
+
+        /**
+         * Parses a chemical formula string, handling parentheses, subscripts, and charges.
+         * @param {string} formula The chemical formula string.
+         * @returns {{atoms: object, totalCharge: number, formulaPart: string}} An object containing the parsed data.
+         */
+        function parseFormula(formula) {
+            let charge = 0;
+            let formulaPart = formula;
+            const atoms = {};
+            const stack = [atoms];
+            const regex = /([A-Z][a-z]?|\(|\))(\d*)|([+-]\d*)$/g;
+            let match;
+
+            while ((match = regex.exec(formula)) !== null) {
+                const [fullMatch, elementOrParen, subscript, chargeMatch] = match;
+
+                if (elementOrParen === '(') {
+                    const newScope = {};
+                    stack.push(newScope);
+                } else if (elementOrParen === ')') {
+                    if (stack.length < 2) throw new Error("Mismatched parentheses in formula.");
+                    const group = stack.pop();
+                    const multiplier = subscript ? parseInt(subscript) : 1;
+                    const parentScope = stack[stack.length - 1];
+                    for (const el in group) {
+                        parentScope[el] = (parentScope[el] || 0) + group[el] * multiplier;
+                    }
+                } else if (elementOrParen) {
+                    const count = subscript ? parseInt(subscript) : 1;
+                    const currentScope = stack[stack.length - 1];
+                    currentScope[elementOrParen] = (currentScope[elementOrParen] || 0) + count;
+                } else if (chargeMatch) {
+                    // This handles a charge at the very end of the formula
+                    const sign = chargeMatch.includes('+') ? 1 : -1;
+                    const numStr = chargeMatch.replace(/[+-]/, '') || '1';
+                    charge = sign * parseInt(numStr);
+                    formulaPart = formula.substring(0, formula.lastIndexOf(chargeMatch));
+                }
+            }
+
+            if (stack.length !== 1) throw new Error("Mismatched parentheses in formula.");
+            if (Object.keys(atoms).length === 0) throw new Error("Invalid or empty formula.");
+
+            return { atoms: atoms, totalCharge: charge, formulaPart };
+        }
+
+        // *** COMPLETELY REWRITTEN SOLVER ***
+        function solve(atoms, totalCharge) {
+            let assignments = {};
+            let knownSum = 0;
+            let remainingAtoms = { ...atoms };
+
+            // Step 1: Attempt to solve algebraically using the strict rule hierarchy
+            for (const rule of PRIORITY_RULES) {
+                for (const el of rule.elements) {
+                    if (remainingAtoms[el]) {
+                        assignments[el] = rule.value;
+                        // Special case for hydrides
+                        if (el === 'H' && Object.keys(atoms).some(atom => PRIORITY_RULES[1].elements.includes(atom) || PRIORITY_RULES[2].elements.includes(atom))) {
+                            assignments[el] = -1; // It's a hydride
+                        }
+                        knownSum += assignments[el] * remainingAtoms[el];
+                        delete remainingAtoms[el];
+                    }
+                }
+            }
+            
+            // --- NEW LOGIC FOR INFERRING A CHARGE ---
+            // If the formula has no charge specified, but all elements have fixed states,
+            // calculate the correct charge and display it as an inferred solution.
+            // CORRECTED BUG: The inferred charge is the calculated sum, not its inverse.
+            if (totalCharge === 0 && Object.keys(remainingAtoms).length === 0 && Math.abs(knownSum) > 0.001) {
+                return { 
+                    type: 'inferred_charge', 
+                    solution: assignments, 
+                    inferredCharge: knownSum
+                };
+            }
+            // --- END NEW LOGIC ---
+
+            // Step 2: Check if the algebraic approach succeeded
+            const remainingKeys = Object.keys(remainingAtoms);
+            if (remainingKeys.length === 1) {
+                const unknownEl = remainingKeys[0];
+                const finalState = (totalCharge - knownSum) / remainingAtoms[unknownEl];
+                assignments[unknownEl] = finalState;
+                if (ELEMENT_DATA[unknownEl] && !ELEMENT_DATA[unknownEl].states.includes(finalState) && finalState !== 0) {
+                     return { type: 'inferred', solution: assignments, message: `Could not determine a definitive solution. This solution is derived based on rules, but the calculated state for ${unknownEl} is not a common oxidation state.`};
+                }
+                return { type: 'definitive', solution: assignments };
+            }
+            if (remainingKeys.length === 0) {
+                 if(Math.abs(knownSum - totalCharge) > 0.001) throw new Error("Formula violates fundamental oxidation rules.");
+                 return { type: 'definitive', solution: assignments };
+            }
+
+            // Step 3: If algebraic failed, it's ambiguous. Fallback to combinatorial search.
+            const comboSolutions = solveByCombination(remainingAtoms, totalCharge - knownSum);
+            if (comboSolutions.length > 0) {
+                rankSolutions(comboSolutions, remainingAtoms);
+                const fullSolutions = comboSolutions.map(s => {
+                    const merged = { ...assignments, ...s };
+                    delete merged.score; // Remove score before returning
+                    return merged;
+                });
+                return { type: 'combinatorial', solutions: fullSolutions };
+            }
+            
+            // --- NEW INFERRED SOLUTION FOR UNCOMMON STATES ---
+            if (remainingKeys.length === 1) {
+                const unknownEl = remainingKeys[0];
+                const finalState = (totalCharge - knownSum) / remainingAtoms[unknownEl];
+                assignments[unknownEl] = finalState;
+                return { 
+                    type: 'inferred', 
+                    solution: assignments, 
+                    message: `A solution was found, but the calculated oxidation state for ${unknownEl} (${finalState}) is not a common one. This is the most likely solution based on other elements.` 
+                };
+            }
+            // --- END NEW LOGIC ---
+
+            throw new Error("Could not determine a solution. The formula may be chemically invalid.");
+        }
+
+        function solveByCombination(atoms, charge) {
+            const elements = Object.keys(atoms);
+            const solutions = [];
+
+            // A helper function for the recursive combination search
+            function findSolutionsRecursive(index, currentAssignments) {
+                if (index === elements.length) {
+                    // Base case: All elements have an assigned state
+                    let sum = 0;
+                    for (const el in currentAssignments) {
+                        sum += currentAssignments[el] * atoms[el];
+                    }
+                    if (Math.abs(sum - charge) < 0.001) { // Check if the sum matches the charge
+                        solutions.push({ ...currentAssignments });
+                    }
+                    return;
+                }
+
+                const currentEl = elements[index];
+                const possibleStates = ELEMENT_DATA[currentEl]?.states || [];
+                
+                if (possibleStates.length === 0) {
+                    // Handle elements with no predefined states
+                    solutions.push({ ...currentAssignments, [currentEl]: 'Unknown'});
+                    return;
+                }
+                
+                for (const state of possibleStates) {
+                    findSolutionsRecursive(index + 1, { ...currentAssignments, [currentEl]: state });
+                }
+            }
+
+            findSolutionsRecursive(0, {});
+            return solutions;
+        }
+
+        function rankSolutions(solutions, atoms) {
+            const getPenalty = (el, state) => ELEMENT_DATA[el]?.states?.indexOf(state) ?? 100;
+            solutions.forEach(sol => {
+                sol.score = Object.keys(sol).reduce((acc, el) => acc + getPenalty(el, sol[el]) * atoms[el], 0);
+            });
+            solutions.sort((a, b) => a.score - b.score);
+        }
+
+        function displaySolution(solution, totalCharge, wasImplicit, formulaPart) {
+            let html = `<div class="bg-gray-800 p-6 rounded-2xl shadow-inner border border-gray-700">`;
+            
+            if (wasImplicit) {
+                html += `<div class="p-3 bg-indigo-900 text-indigo-300 rounded-lg text-sm mb-4"><strong>Note:</strong> Recognized <strong>${formulaPart}</strong> as a common ion with a charge of <strong>${totalCharge}</strong>.</div>`;
+            }
+            
+            // Special display for inferred charge
+            if (solution.type === 'inferred_charge') {
+                 html += `<div class="p-3 bg-indigo-900 text-indigo-300 rounded-lg text-sm mb-4"><strong>Note:</strong> The sum of oxidation numbers is <strong>${formatOxidationNumber(solution.inferredCharge)}</strong>, suggesting this is a stable ion with that charge.</div>`;
+                 totalCharge = solution.inferredCharge;
+            }
+            
+            html += `<p class="text-gray-300">Total Charge of Species: <strong>${totalCharge}</strong> (${totalCharge === 0 ? 'Neutral' : 'Ion'})</p>`;
+            
+            switch (solution.type) {
+                case 'definitive':
+                case 'inferred_charge':
+                    html += `<h2 class="text-xl font-bold mt-4 mb-2 text-sky-300">Oxidation Numbers</h2>`;
+                    html += `<ul class="space-y-3">`;
+                    for (const element in solution.solution) {
+                        html += `
+                            <li class="p-3 bg-gray-700 rounded-xl flex justify-between items-center shadow">
+                                <span class="text-lg font-semibold">${element}</span>
+                                <span class="text-xl font-bold text-sky-400">${formatOxidationNumber(solution.solution[element])}</span>
+                            </li>
+                        `;
+                    }
+                    html += `</ul>`;
+                    break;
+                case 'inferred':
+                    html += `<h2 class="text-xl font-bold mt-4 mb-2 text-sky-300">Inferred Solution</h2>`;
+                    html += `<div class="p-3 bg-yellow-900 text-yellow-300 rounded-lg text-sm mb-4"><strong>Note:</strong> This solution is based on fixed rules, and the calculated state for the unknown element may not be a common one.</div>`;
+                    html += `<ul class="space-y-3">`;
+                    for (const element in solution.solution) {
+                        html += `
+                            <li class="p-3 bg-gray-700 rounded-xl flex justify-between items-center shadow">
+                                <span class="text-lg font-semibold">${element}</span>
+                                <span class="text-xl font-bold text-sky-400">${formatOxidationNumber(solution.solution[element])}</span>
+                            </li>
+                        `;
+                    }
+                    html += `</ul>`;
+                    break;
+                case 'combinatorial':
+                    html += `<h2 class="text-xl font-bold mt-4 mb-2 text-sky-300">Plausible Solutions</h2>`;
+                    html += `<p class="text-gray-400 text-sm mb-4">Multiple combinations are possible. The solutions are ranked by likelihood, with #1 being the most probable.</p>`;
+                    solution.solutions.forEach((sol, index) => {
+                        html += `<div class="p-4 bg-gray-700 rounded-xl shadow mt-4">
+                            <strong class="text-lg font-bold text-sky-300">Solution ${index + 1}</strong>
+                            <ul class="space-y-2 mt-2">`;
+                        for (const element in sol) {
+                            html += `<li class="flex justify-between items-center text-gray-200">
+                                <span>${element}:</span>
+                                <span>${formatOxidationNumber(sol[element])}</span>
+                            </li>`;
+                        }
+                        html += `</ul></div>`;
+                    });
+                    break;
+            }
+            html += `</div>`;
+            resultsDiv.innerHTML = html;
+        }
+
+        function formatOxidationNumber(num) {
+            if (num === 'Unknown') return 'Unknown';
+            const sign = num >= 0 ? '+' : '';
+            return `${sign}${Number.isInteger(num) ? num : num.toFixed(2)}`;
+        }
+
+        function displayError(message) {
+            resultsDiv.innerHTML = `<div class="bg-gray-800 p-6 rounded-2xl shadow-inner text-center"><p class="text-red-400 font-semibold">${message}</p></div>`;
+            hideMessage(); // Ensure the main message box is hidden
+        }
+
+        function main() {
+            const rawFormula = formulaInput.value.trim();
+            if (!rawFormula) return displayError("Please enter a formula.");
+            
+            try {
+                let { atoms, totalCharge, formulaPart } = parseFormula(rawFormula);
+                let wasImplicit = false;
+                if (totalCharge === 0 && POLYATOMIC_IONS[formulaPart] !== undefined) {
+                    totalCharge = POLYATOMIC_IONS[formulaPart];
+                    wasImplicit = true;
+                }
+                const solution = solve(atoms, totalCharge);
+                displaySolution(solution, totalCharge, wasImplicit, formulaPart);
+            } catch (error) {
+                displayError(error.message);
+            }
+        }
+    </script>
+</body>
+</html>
