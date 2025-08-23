@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIF File Atom Position Parser</title>
+    <style>
+        /* General dark theme styles */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        h1 {
+            color: #8ac8ff;
+            text-align: center;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        
+        /* Controls and Status */
+        #controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #file-input, #folder-input {
+            display: none;
+        }
+        #status-container {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #status {
+            font-style: italic;
+            color: #999;
+            white-space: nowrap;
+        }
+        #spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Results section */
+        #results-container {
+            margin-top: 20px;
+        }
+        .result-file {
+            margin-bottom: 15px;
+            border: 1px solid #333;
+            border-radius: 5px;
+        }
+        .result-file summary {
+            font-weight: bold;
+            font-size: 1.1em;
+            padding: 12px;
+            cursor: pointer;
+            background-color: #2c2c2c;
+        }
+        .result-file[open] summary {
+            background-color: #3a3a3a;
+            border-bottom: 1px solid #444;
+        }
+        .result-content {
+            padding: 15px;
+            background-color: #1f1f1f;
+        }
+        
+        /* Table styles */
+        .result-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        .result-table th, .result-table td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #333;
+        }
+        .result-table thead th {
+            background-color: #444;
+            color: #8ac8ff;
+            font-weight: normal;
+            font-size: 0.9em;
+            text-transform: uppercase;
+        }
+        .result-table tbody tr:hover {
+            background-color: #2c2c2c;
+        }
+        
+        .error-message {
+            background-color: #58151c;
+            color: #fdd;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #8B0000;
+        }
+
+        /* Plotly and Data Toggle styles */
+        .plot-toggle, .data-toggle {
+             margin-bottom: 10px;
+        }
+        .plot-toggle summary, .data-toggle summary {
+            font-size: 1em;
+            font-weight: normal;
+            background-color: #252525;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .plot-toggle summary:hover, .data-toggle summary:hover {
+            background-color: #333;
+        }
+        .plot-container {
+            height: 500px;
+            width: 100%;
+            padding-top: 10px;
+        }
+    </style>
+    <!-- JSZip library -->
+    <script src="https://cdn.jsdelivr.net/npm/jszip@3.7.1/dist/jszip.min.js"></script>
+    <!-- FileSaver.js -->
+    <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+
+    <div class="p-8">
+        <h1>CIF File Atom Position Parser</h1>
+        <p style="text-align:center;">
+            Select one or more CIF files or a folder to extract the fractional atomic coordinates.
+        </p>
+
+        <div id="controls">
+            <label for="file-input" class="button">Select CIF File(s)</label>
+            <input type="file" id="file-input" accept=".cif" multiple>
+            <label for="folder-input" class="button">Select Folder</label>
+            <input type="file" id="folder-input" webkitdirectory directory multiple>
+            <button class="button" id="clear-btn" style="background-color: #6c757d;">Clear Results</button>
+            <div id="status-container">
+                <div id="spinner"></div>
+                <div id="status">Ready to analyze.</div>
+            </div>
+        </div>
+
+        <div id="results-container"></div>
+    </div>
+
+    <script>
+        let globalParsedData = [];
+
+        const fileInput = document.getElementById('file-input');
+        const folderInput = document.getElementById('folder-input');
+        const clearBtn = document.getElementById('clear-btn');
+        const resultsContainer = document.getElementById('results-container');
+        const statusElement = document.getElementById('status');
+        const spinner = document.getElementById('spinner');
+
+        fileInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
+        folderInput.addEventListener('change', (e) => handleFileSelection(e.target.files));
+        
+        clearBtn.addEventListener('click', () => {
+            resultsContainer.innerHTML = '';
+            statusElement.textContent = 'Ready to analyze.';
+            fileInput.value = '';
+            folderInput.value = '';
+            globalParsedData = [];
+            document.querySelectorAll('.download-all-btn').forEach(btn => btn.remove());
+        });
+
+        async function handleFileSelection(files) {
+            const cifFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.cif'));
+            if (cifFiles.length === 0) {
+                statusElement.textContent = 'No .cif files selected.';
+                return;
+            }
+
+            resultsContainer.innerHTML = '';
+            document.querySelectorAll('.download-all-btn').forEach(btn => btn.remove());
+            spinner.style.display = 'block';
+            globalParsedData = [];
+
+            const processPromises = cifFiles.map(file => processSingleFile(file));
+            globalParsedData = await Promise.all(processPromises);
+            displayResults(globalParsedData);
+
+            spinner.style.display = 'none';
+            statusElement.textContent = `Analysis complete. Processed ${cifFiles.length} file(s).`;
+        }
+        
+        function processSingleFile(file) {
+            return new Promise(resolve => {
+                statusElement.textContent = `Analyzing: ${file.name}...`;
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const content = event.target.result;
+                    const parsed = parseCif(content, file.name);
+                    resolve(parsed);
+                };
+                reader.onerror = () => resolve({ filename: file.name, error: `Error reading file: ${file.name}` });
+                reader.readAsText(file);
+            });
+        }
+        
+        function evaluateSymOp(expr, x, y, z) {
+            let val = 0;
+            if (expr.includes('x')) val = expr.includes('-x') ? -x : x;
+            else if (expr.includes('y')) val = expr.includes('-y') ? -y : y;
+            else if (expr.includes('z')) val = expr.includes('-z') ? -z : z;
+
+            const fractionMatch = expr.match(/([+\-]?)\s*(\d+)\/(\d+)/);
+            if (fractionMatch) {
+                const sign = fractionMatch[1] === '-' ? -1 : 1;
+                val += sign * (parseInt(fractionMatch[2]) / parseInt(fractionMatch[3]));
+            }
+            return val;
+        }
+
+        function normalizeCoord(coord) {
+            let norm = coord % 1.0;
+            return norm < 0 ? norm + 1.0 : norm;
+        }
+
+        function parseCif(content, fileName) {
+            const lines = content.split('\n').map(line => line.trim());
+            let asymmetricAtoms = [];
+            let symmetryOps = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                if (lines[i].toLowerCase() !== 'loop_') continue;
+                
+                const headers = [];
+                const dataLines = [];
+                let j = i + 1;
+                while (j < lines.length && lines[j].startsWith('_')) headers.push(lines[j++]);
+                while (j < lines.length && lines[j] && !lines[j].startsWith('_') && !lines[j].toLowerCase().startsWith('loop_') && !lines[j].toLowerCase().startsWith('data_')) dataLines.push(lines[j++]);
+                
+                const requiredAtomHeaders = ['_atom_site_fract_x', '_atom_site_fract_y', '_atom_site_fract_z'];
+                if (requiredAtomHeaders.every(h => headers.includes(h))) {
+                    const xIndex = headers.indexOf('_atom_site_fract_x');
+                    const yIndex = headers.indexOf('_atom_site_fract_y');
+                    const zIndex = headers.indexOf('_atom_site_fract_z');
+                    const labelIndex = headers.indexOf('_atom_site_label');
+                    const typeSymbolIndex = headers.indexOf('_atom_site_type_symbol');
+
+                    for (const line of dataLines) {
+                        const values = line.match(/'[^']*'|\S+/g) || [];
+                        if (values.length < Math.max(xIndex, yIndex, zIndex)) continue;
+                        const atom = {
+                            symbol: "N/A",
+                            x: parseFloat(values[xIndex].replace(/\(.*\)/, '')),
+                            y: parseFloat(values[yIndex].replace(/\(.*\)/, '')),
+                            z: parseFloat(values[zIndex].replace(/\(.*\)/, ''))
+                        };
+                        if (typeSymbolIndex !== -1 && values[typeSymbolIndex]) atom.symbol = values[typeSymbolIndex].replace(/'/g, '');
+                        else if (labelIndex !== -1 && values[labelIndex]) atom.symbol = values[labelIndex].replace(/'/g, '').replace(/\d+$/, '');
+                        asymmetricAtoms.push(atom);
+                    }
+                } else if (headers.includes('_space_group_symop_operation_xyz')) {
+                    symmetryOps.push(...dataLines.map(line => line.replace(/'/g, '').toLowerCase()));
+                }
+                i = j - 1;
+            }
+
+            if (asymmetricAtoms.length === 0) return { filename: fileName, error: "Could not find `loop_` block with atom site data." };
+            if (symmetryOps.length === 0) return { filename: fileName, atoms: asymmetricAtoms };
+
+            const finalAtoms = [];
+            const uniquePositions = new Set();
+            const precision = 1e5;
+            for (const atom of asymmetricAtoms) {
+                for (const op of symmetryOps) {
+                    const [opX, opY, opZ] = op.split(',');
+                    if (!opX || !opY || !opZ) continue;
+                    let newX = normalizeCoord(evaluateSymOp(opX, atom.x, atom.y, atom.z));
+                    let newY = normalizeCoord(evaluateSymOp(opY, atom.x, atom.y, atom.z));
+                    let newZ = normalizeCoord(evaluateSymOp(opZ, atom.x, atom.y, atom.z));
+                    const key = `${Math.round(newX*precision)},${Math.round(newY*precision)},${Math.round(newZ*precision)}`;
+                    if (!uniquePositions.has(key)) {
+                        uniquePositions.add(key);
+                        finalAtoms.push({ symbol: atom.symbol, x: newX, y: newY, z: newZ });
+                    }
+                }
+            }
+            return { filename: fileName, atoms: finalAtoms };
+        }
+
+        function renderPlot(containerId, atoms) {
+            const atomsBySymbol = atoms.reduce((acc, atom) => {
+                (acc[atom.symbol] = acc[atom.symbol] || { x: [], y: [], z: [] }).x.push(atom.x);
+                acc[atom.symbol].y.push(atom.y);
+                acc[atom.symbol].z.push(atom.z);
+                return acc;
+            }, {});
+            const dataTraces = Object.keys(atomsBySymbol).map(symbol => ({
+                ...atomsBySymbol[symbol],
+                mode: 'markers', type: 'scatter3d', name: symbol,
+                marker: { size: 6, opacity: 0.8 }
+            }));
+            const layout = {
+                title: '3D Atomic Positions', autosize: true,
+                margin: { l: 0, r: 0, b: 0, t: 40 },
+                scene: {
+                    xaxis: { title: 'X (fractional)', color: '#e0e0e0', gridcolor: '#444' },
+                    yaxis: { title: 'Y (fractional)', color: '#e0e0e0', gridcolor: '#444' },
+                    zaxis: { title: 'Z (fractional)', color: '#e0e0e0', gridcolor: '#444' }
+                },
+                paper_bgcolor: '#1f1f1f', plot_bgcolor: '#1f1f1f',
+                font: { color: '#e0e0e0' },
+                legend: { bgcolor: 'rgba(31, 31, 31, 0.7)', bordercolor: '#444' }
+            };
+            Plotly.newPlot(containerId, dataTraces, layout, {responsive: true});
+        }
+
+        function displayResults(results) {
+            resultsContainer.innerHTML = '';
+            if (results.length > 0) {
+                if (results.filter(r => !r.error).length > 1) {
+                    const downloadAllBtn = document.createElement('button');
+                    downloadAllBtn.textContent = 'Download All as TXT (ZIP)';
+                    downloadAllBtn.className = 'button download-all-btn';
+                    downloadAllBtn.onclick = downloadAllTxts;
+                    document.getElementById('controls').appendChild(downloadAllBtn);
+                }
+
+                results.forEach((result, index) => {
+                    const details = document.createElement('details');
+                    details.className = 'result-file';
+                    const summary = document.createElement('summary');
+                    const contentDiv = document.createElement('div');
+                    contentDiv.className = 'result-content';
+                    
+                    if (result.error) {
+                        summary.textContent = `${result.filename} - ERROR`;
+                        const errorDiv = document.createElement('div');
+                        errorDiv.className = 'error-message';
+                        errorDiv.textContent = result.error;
+                        contentDiv.appendChild(errorDiv);
+                    } else {
+                        summary.textContent = `${result.filename} (${result.atoms.length} atoms)`;
+                        
+                        // 3D Plot Section
+                        const plotToggle = document.createElement('details');
+                        plotToggle.className = 'plot-toggle';
+                        const plotSummary = document.createElement('summary');
+                        plotSummary.textContent = 'Show/Hide 3D Plot';
+                        const plotContainer = document.createElement('div');
+                        const plotId = `plot-${index}`;
+                        plotContainer.id = plotId;
+                        plotContainer.className = 'plot-container';
+                        
+                        plotToggle.appendChild(plotSummary);
+                        plotToggle.appendChild(plotContainer);
+                        contentDiv.appendChild(plotToggle);
+
+                        plotToggle.addEventListener('toggle', () => {
+                            if (plotToggle.open && plotContainer.innerHTML === '') renderPlot(plotId, result.atoms);
+                        }, { once: true });
+
+                        // Data Table Section
+                        const dataToggle = document.createElement('details');
+                        dataToggle.className = 'data-toggle';
+                        const dataSummary = document.createElement('summary');
+                        dataSummary.textContent = 'Show/Hide Atomic Positions Data';
+                        
+                        const table = document.createElement('table');
+                        table.className = 'result-table';
+                        const thead = table.createTHead();
+                        const headerRow = thead.insertRow();
+                        ['Symbol', 'x', 'y', 'z'].forEach(text => {
+                            const th = document.createElement('th');
+                            th.textContent = text;
+                            headerRow.appendChild(th);
+                        });
+                        const tbody = table.createTBody();
+                        result.atoms.forEach(atom => {
+                            const row = tbody.insertRow();
+                            row.insertCell().textContent = atom.symbol;
+                            row.insertCell().textContent = atom.x.toFixed(5);
+                            row.insertCell().textContent = atom.y.toFixed(5);
+                            row.insertCell().textContent = atom.z.toFixed(5);
+                        });
+                        
+                        const downloadBtn = document.createElement('button');
+                        downloadBtn.textContent = `Download as Text`;
+                        downloadBtn.className = 'button';
+                        downloadBtn.style.marginTop = '15px';
+                        downloadBtn.onclick = () => downloadTxt(result);
+
+                        dataToggle.appendChild(dataSummary);
+                        dataToggle.appendChild(table);
+                        dataToggle.appendChild(downloadBtn);
+                        contentDiv.appendChild(dataToggle);
+                    }
+
+                    details.appendChild(summary);
+                    details.appendChild(contentDiv);
+                    resultsContainer.appendChild(details);
+                });
+            }
+        }
+
+        function convertToTxt(result) {
+            let txt = 'Symbol\tx\ty\tz\n';
+            result.atoms.forEach(atom => {
+                txt += `${atom.symbol}\t${atom.x.toFixed(6)}\t${atom.y.toFixed(6)}\t${atom.z.toFixed(6)}\n`;
+            });
+            return txt;
+        }
+
+        function downloadTxt(result) {
+            const txt = convertToTxt(result);
+            const blob = new Blob([txt], { type: 'text/plain;charset=utf-8;' });
+            saveAs(blob, `${result.filename.replace('.cif', '.txt')}`);
+        }
+
+        async function downloadAllTxts() {
+            if (globalParsedData.length === 0) return;
+            const zip = new JSZip();
+            globalParsedData.forEach(result => {
+                if (!result.error) {
+                    const txt = convertToTxt(result);
+                    zip.file(result.filename.replace('.cif', '.txt'), txt);
+                }
+            });
+            const content = await zip.generateAsync({ type: "blob" });
+            saveAs(content, "cif_results.zip");
+        }
+    </script>
+</body>
+</html>
