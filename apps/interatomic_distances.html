@@ -352,7 +352,7 @@
                         x: {
                             type: 'linear',
                             min: 0,
-                            max: 6, // MODIFIED: Changed max value to 6
+                            max: 6,
                             title: { display: true, text: 'Interatomic Distance (Å)', font: { size: 14 }, color: '#f0f0f0' },
                             ticks: { color: '#c0c0c0' },
                             grid: { color: 'rgba(255, 255, 255, 0.1)' }
@@ -375,12 +375,14 @@
             });
         }
         
+        // MODIFIED: This function is updated to include Standard Deviation.
         function calculateAndDisplayStats(data) {
             if (!data || data.length === 0) {
                 statsOutput.style.display = 'none';
                 return;
             }
 
+            // --- First pass: Calculate total count and weighted average ---
             let totalCount = 0, weightedSum = 0, maxCount = -1, mostFrequentDistance = null;
             data.forEach(item => {
                 totalCount += item.count;
@@ -392,12 +394,29 @@
             });
 
             const weightedAverage = totalCount > 0 ? weightedSum / totalCount : 0;
+            
+            // --- Second pass: Calculate weighted standard deviation ---
+            let sumOfSquaredDifferences = 0;
+            if (totalCount > 0) {
+                data.forEach(item => {
+                    const difference = item.distance - weightedAverage;
+                    sumOfSquaredDifferences += (difference * difference) * item.count;
+                });
+            }
+            const variance = totalCount > 0 ? sumOfSquaredDifferences / totalCount : 0;
+            const stdDev = Math.sqrt(variance);
+            const stdDevPercentage = weightedAverage > 0 ? (stdDev / weightedAverage) * 100 : 0;
+
+            // --- Get other stats ---
             const minDistance = data[0].distance;
             const maxDistance = data[data.length - 1].distance;
 
+            // --- Display all results ---
             statsContent.innerHTML = `
                 <p><strong>Total Number of Pairs:</strong> ${totalCount.toLocaleString()}</p>
                 <p><strong>Weighted Average Distance:</strong> ${weightedAverage.toFixed(4)} Å</p>
+                <p><strong>Standard Deviation:</strong> ${stdDev.toFixed(4)} Å</p>
+                <p><strong>Std. Dev. (% of Average):</strong> ${stdDevPercentage.toFixed(2)}%</p>
                 <p><strong>Most Frequent Distance:</strong> ${mostFrequentDistance} Å (with a count of ${maxCount.toLocaleString()})</p>
                 <p><strong>Minimum Distance:</strong> ${minDistance} Å</p>
                 <p><strong>Maximum Distance:</strong> ${maxDistance} Å</p>`;
