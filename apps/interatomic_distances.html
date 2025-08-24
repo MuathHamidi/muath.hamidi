@@ -211,19 +211,20 @@
                 distanceChart.destroy();
             }
 
-            const labels = data.map(d => d.distance);
-            const counts = data.map(d => d.count);
+            // MODIFIED: Format data for a linear axis as {x, y} pairs
+            const chartData = data.map(d => ({ x: d.distance, y: d.count }));
 
             distanceChart = new Chart(chartCtx, {
                 type: 'bar',
                 data: {
-                    labels: labels,
+                    // MODIFIED: No 'labels' property needed for a linear axis
                     datasets: [{
                         label: `Count for ${pair}`,
-                        data: counts,
+                        data: chartData, // Use the new {x, y} data structure
                         backgroundColor: 'rgba(75, 192, 192, 0.6)',
                         borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
+                        borderWidth: 1,
+                        barThickness: 3, // Set a small thickness for bars on a linear scale
                     }]
                 },
                 options: {
@@ -231,9 +232,10 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            // MODIFIED: Set a fixed, hardcoded range for the x-axis
+                            // MODIFIED: Crucially, set the axis type to 'linear'
+                            type: 'linear',
                             min: 0,
-                            max: 6,
+                            max: 6.00,
                             title: {
                                 display: true,
                                 text: 'Interatomic Distance (Å)',
@@ -242,8 +244,6 @@
                             },
                             ticks: {
                                 color: '#c0c0c0',
-                                autoSkip: true,
-                                maxTicksLimit: 30
                             },
                             grid: {
                                 color: 'rgba(255, 255, 255, 0.1)'
@@ -268,8 +268,9 @@
                     plugins: {
                         tooltip: {
                             callbacks: {
-                                title: context => `Distance: ${context[0].label} Å`,
-                                label: context => `Count: ${context.raw.toLocaleString()}`
+                                // MODIFIED: Tooltip must get x-value from parsed data, not a label
+                                title: context => `Distance: ${context[0].parsed.x} Å`,
+                                label: context => `Count: ${context.raw.y.toLocaleString()}`
                             }
                         },
                         legend: { 
@@ -305,12 +306,15 @@
 
             const weightedAverage = totalCount > 0 ? weightedSum / totalCount : 0;
             
+            const minDistance = data.length > 0 ? data[0].distance : "N/A";
+            const maxDistance = data.length > 0 ? data[data.length - 1].distance : "N/A";
+
             statsContent.innerHTML = `
                 <p><strong>Total Number of Pairs:</strong> ${totalCount.toLocaleString()}</p>
                 <p><strong>Weighted Average Distance:</strong> ${weightedAverage.toFixed(4)} Å</p>
                 <p><strong>Most Frequent Distance:</strong> ${mostFrequentDistance} Å (with a count of ${maxCount.toLocaleString()})</p>
-                <p><strong>Minimum Distance:</strong> ${data[0].distance} Å</p>
-                <p><strong>Maximum Distance:</strong> ${data[data.length - 1].distance} Å</p>
+                <p><strong>Minimum Distance:</strong> ${minDistance} Å</p>
+                <p><strong>Maximum Distance:</strong> ${maxDistance} Å</p>
             `;
         }
 
