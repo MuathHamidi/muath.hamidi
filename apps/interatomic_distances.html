@@ -130,6 +130,7 @@
                 const rawData = await response.text();
                 
                 parsedData = parseRawData(rawData);
+                
                 populateSelector(Object.keys(parsedData));
 
                 if (Object.keys(parsedData).length > 0) {
@@ -220,7 +221,7 @@
                     datasets: [{
                         label: `Count for ${pair}`,
                         data: counts,
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)', /* A nice teal color for bars */
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
                         borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
                     }]
@@ -230,19 +231,22 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
+                            // MODIFIED: Set a fixed, hardcoded range for the x-axis
+                            min: 0,
+                            max: 6,
                             title: {
                                 display: true,
                                 text: 'Interatomic Distance (Å)',
                                 font: { size: 14 },
-                                color: '#f0f0f0' // Dark mode text color
+                                color: '#f0f0f0'
                             },
                             ticks: {
-                                color: '#c0c0c0', // Lighter gray for tick labels
+                                color: '#c0c0c0',
                                 autoSkip: true,
                                 maxTicksLimit: 30
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
+                                color: 'rgba(255, 255, 255, 0.1)'
                             }
                         },
                         y: {
@@ -251,13 +255,13 @@
                                 display: true,
                                 text: 'Count',
                                 font: { size: 14 },
-                                color: '#f0f0f0' // Dark mode text color
+                                color: '#f0f0f0'
                             },
                             ticks: {
-                                color: '#c0c0c0' // Lighter gray for tick labels
+                                color: '#c0c0c0'
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
+                                color: 'rgba(255, 255, 255, 0.1)'
                             }
                         }
                     },
@@ -271,7 +275,7 @@
                         legend: { 
                             display: true,
                             labels: {
-                                color: '#f0f0f0' // Dark mode legend text
+                                color: '#f0f0f0'
                             }
                         }
                     }
