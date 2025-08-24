@@ -111,7 +111,6 @@
         // Global variables
         let parsedData = {};
         let distanceChart = null;
-        let globalMaxDistance = 0; // NEW: Variable to hold the max distance across all data
 
         // Get DOM elements
         const pairSelector = document.getElementById('pair-selector');
@@ -131,10 +130,6 @@
                 const rawData = await response.text();
                 
                 parsedData = parseRawData(rawData);
-                
-                // NEW: Calculate the global maximum distance after parsing all data
-                calculateGlobalMaxDistance();
-
                 populateSelector(Object.keys(parsedData));
 
                 if (Object.keys(parsedData).length > 0) {
@@ -151,24 +146,6 @@
             }
         }
         
-        // NEW: Function to find the maximum distance in the entire dataset
-        function calculateGlobalMaxDistance() {
-            let maxDist = 0;
-            // Iterate over each array of distances in our parsedData object
-            for (const pair in parsedData) {
-                const distances = parsedData[pair];
-                if (distances.length > 0) {
-                    // Since the arrays are sorted, the last element has the max distance for that pair
-                    const lastDistance = distances[distances.length - 1].distance;
-                    if (lastDistance > maxDist) {
-                        maxDist = lastDistance;
-                    }
-                }
-            }
-            // Round up to the next whole number for a cleaner axis
-            globalMaxDistance = Math.ceil(maxDist); 
-        }
-
         function handlePairSelection() {
             const selectedPair = pairSelector.value;
             if (selectedPair && parsedData[selectedPair]) {
@@ -243,7 +220,7 @@
                     datasets: [{
                         label: `Count for ${pair}`,
                         data: counts,
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)', /* A nice teal color for bars */
                         borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
                     }]
@@ -253,22 +230,19 @@
                     maintainAspectRatio: false,
                     scales: {
                         x: {
-                            // MODIFIED: Set fixed min and max for the x-axis
-                            min: 0,
-                            max: globalMaxDistance,
                             title: {
                                 display: true,
                                 text: 'Interatomic Distance (Å)',
                                 font: { size: 14 },
-                                color: '#f0f0f0'
+                                color: '#f0f0f0' // Dark mode text color
                             },
                             ticks: {
-                                color: '#c0c0c0',
+                                color: '#c0c0c0', // Lighter gray for tick labels
                                 autoSkip: true,
                                 maxTicksLimit: 30
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
                             }
                         },
                         y: {
@@ -277,13 +251,13 @@
                                 display: true,
                                 text: 'Count',
                                 font: { size: 14 },
-                                color: '#f0f0f0'
+                                color: '#f0f0f0' // Dark mode text color
                             },
                             ticks: {
-                                color: '#c0c0c0'
+                                color: '#c0c0c0' // Lighter gray for tick labels
                             },
                             grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
+                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
                             }
                         }
                     },
@@ -297,7 +271,7 @@
                         legend: { 
                             display: true,
                             labels: {
-                                color: '#f0f0f0'
+                                color: '#f0f0f0' // Dark mode legend text
                             }
                         }
                     }
