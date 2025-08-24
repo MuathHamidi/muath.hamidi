@@ -7,10 +7,11 @@
     <!-- Using Chart.js library for plotting -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        /* --- Dark Mode Theme --- */
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f9;
-            color: #333;
+            background-color: #1a1a2e; /* Dark navy background */
+            color: #f0f0f0; /* Light text for readability */
             margin: 0;
             padding: 20px;
             display: flex;
@@ -20,14 +21,15 @@
         .container {
             width: 90%;
             max-width: 1200px;
-            background-color: #ffffff;
+            background-color: #2d2d44; /* Slightly lighter container background */
             padding: 25px;
             border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border: 1px solid #4a4a68;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
         }
         h1 {
             text-align: center;
-            color: #2c3e50;
+            color: #ffffff; /* Pure white for main heading */
             margin-bottom: 20px;
         }
         .controls {
@@ -35,14 +37,19 @@
             gap: 15px;
             align-items: center;
             margin-bottom: 25px;
-            justify-content: center; /* Center the selector */
+            justify-content: center;
             flex-wrap: wrap;
+        }
+        label {
+            color: #c0c0c0; /* Lighter gray for labels */
         }
         select {
             padding: 10px;
             font-size: 16px;
             border-radius: 4px;
-            border: 1px solid #ccc;
+            background-color: #3d3d56; /* Darker background for select */
+            color: #f0f0f0; /* Light text */
+            border: 1px solid #5a5a78;
             min-width: 200px;
         }
         .chart-container {
@@ -53,24 +60,25 @@
         .stats {
             margin-top: 30px;
             padding: 20px;
-            background-color: #ecf0f1;
+            background-color: #252538; /* A different shade for the stats box */
             border-radius: 5px;
-            border: 1px solid #bdc3c7;
+            border: 1px solid #4a4a68;
         }
         .stats h2 {
             margin-top: 0;
-            color: #2c3e50;
+            color: #ffffff;
         }
         .stats p {
             margin: 8px 0;
             font-size: 16px;
+            color: #e0e0e0;
         }
         .stats strong {
-            color: #34495e;
+            color: #87ceeb; /* A nice light blue for emphasis */
         }
         #status-message {
             text-align: center;
-            color: #c0392b;
+            color: #ff6b6b; /* A brighter red for errors */
             font-weight: bold;
             margin-bottom: 15px;
         }
@@ -126,7 +134,7 @@
 
                 if (Object.keys(parsedData).length > 0) {
                     pairSelector.disabled = false;
-                    handlePairSelection(); // Automatically trigger visualization for the first item
+                    handlePairSelection(); 
                 } else {
                     throw new Error("Data file was loaded, but no valid data could be parsed.");
                 }
@@ -212,8 +220,8 @@
                     datasets: [{
                         label: `Count for ${pair}`,
                         data: counts,
-                        backgroundColor: 'rgba(52, 152, 219, 0.6)',
-                        borderColor: 'rgba(41, 128, 185, 1)',
+                        backgroundColor: 'rgba(75, 192, 192, 0.6)', /* A nice teal color for bars */
+                        borderColor: 'rgba(75, 192, 192, 1)',
                         borderWidth: 1
                     }]
                 },
@@ -225,11 +233,16 @@
                             title: {
                                 display: true,
                                 text: 'Interatomic Distance (Å)',
-                                font: { size: 14 }
+                                font: { size: 14 },
+                                color: '#f0f0f0' // Dark mode text color
                             },
                             ticks: {
+                                color: '#c0c0c0', // Lighter gray for tick labels
                                 autoSkip: true,
                                 maxTicksLimit: 30
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
                             }
                         },
                         y: {
@@ -237,7 +250,14 @@
                             title: {
                                 display: true,
                                 text: 'Count',
-                                font: { size: 14 }
+                                font: { size: 14 },
+                                color: '#f0f0f0' // Dark mode text color
+                            },
+                            ticks: {
+                                color: '#c0c0c0' // Lighter gray for tick labels
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)' // Faint white grid lines
                             }
                         }
                     },
@@ -245,10 +265,15 @@
                         tooltip: {
                             callbacks: {
                                 title: context => `Distance: ${context[0].label} Å`,
-                                label: context => `Count: ${context.raw}`
+                                label: context => `Count: ${context.raw.toLocaleString()}`
                             }
                         },
-                        legend: { display: true }
+                        legend: { 
+                            display: true,
+                            labels: {
+                                color: '#f0f0f0' // Dark mode legend text
+                            }
+                        }
                     }
                 }
             });
