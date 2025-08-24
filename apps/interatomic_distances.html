@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interatomic Distance Visualizer</title>
+    <!-- Using Chart.js library for plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f4f7f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            background-color: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 25px;
+            justify-content: center; /* Center the selector */
+            flex-wrap: wrap;
+        }
+        select {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 200px;
+        }
+        .chart-container {
+            position: relative;
+            height: 400px;
+            width: 100%;
+        }
+        .stats {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #ecf0f1;
+            border-radius: 5px;
+            border: 1px solid #bdc3c7;
+        }
+        .stats h2 {
+            margin-top: 0;
+            color: #2c3e50;
+        }
+        .stats p {
+            margin: 8px 0;
+            font-size: 16px;
+        }
+        .stats strong {
+            color: #34495e;
+        }
+        #status-message {
+            text-align: center;
+            color: #c0392b;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Interatomic Distance Visualizer</h1>
+        <div id="status-message"></div>
+        
+        <div class="controls">
+            <label for="pair-selector">Select an atom pair to view its distance distribution:</label>
+            <select id="pair-selector" disabled>
+                <option>Loading data...</option>
+            </select>
+        </div>
+
+        <div class="chart-container">
+            <canvas id="distance-chart"></canvas>
+        </div>
+        
+        <div id="stats-output" class="stats" style="display: none;">
+            <h2>Statistics for Selected Pair</h2>
+            <p id="stats-content"></p>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let parsedData = {};
+        let distanceChart = null;
+
+        // Get DOM elements
+        const pairSelector = document.getElementById('pair-selector');
+        const statsOutput = document.getElementById('stats-output');
+        const statsContent = document.getElementById('stats-content');
+        const statusMessage = document.getElementById('status-message');
+        const chartCtx = document.getElementById('distance-chart').getContext('2d');
+
+        // Main function to initialize the app
+        async function initializeApp() {
+            const dataPath = './data/interatomic_distances.txt';
+            try {
+                const response = await fetch(dataPath);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}. Could not fetch data file.`);
+                }
+                const rawData = await response.text();
+                
+                parsedData = parseRawData(rawData);
+                populateSelector(Object.keys(parsedData));
+
+                if (Object.keys(parsedData).length > 0) {
+                    pairSelector.disabled = false;
+                    handlePairSelection(); // Automatically trigger visualization for the first item
+                } else {
+                    throw new Error("Data file was loaded, but no valid data could be parsed.");
+                }
+
+            } catch (error) {
+                console.error('Initialization failed:', error);
+                statusMessage.textContent = `Error: ${error.message} Make sure 'interatomic_distances.txt' is in a 'data' subfolder and you are running a local web server.`;
+                pairSelector.innerHTML = '<option>Failed to load</option>';
+            }
+        }
+        
+        function handlePairSelection() {
+            const selectedPair = pairSelector.value;
+            if (selectedPair && parsedData[selectedPair]) {
+                const data = parsedData[selectedPair];
+                visualizeData(selectedPair, data);
+                calculateAndDisplayStats(data);
+                statsOutput.style.display = 'block';
+            }
+        }
+
+        function parseRawData(text) {
+            const data = {};
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+
+            lines.forEach(line => {
+                const parts = line.trim().split(/\s+/);
+                if (parts.length < 4 || parts.length % 2 !== 0) {
+                    console.warn(`Skipping malformed line: ${line}`);
+                    return;
+                }
+
+                const atom1 = parts[0];
+                const atom2 = parts[1];
+                const key = `${atom1}-${atom2}`;
+                
+                if (!data[key]) {
+                    data[key] = [];
+                }
+
+                for (let i = 2; i < parts.length; i += 2) {
+                    const distance = parseFloat(parts[i]);
+                    const count = parseInt(parts[i+1], 10);
+                    if (!isNaN(distance) && !isNaN(count)) {
+                        data[key].push({ distance, count });
+                    }
+                }
+                
+                data[key].sort((a, b) => a.distance - b.distance);
+            });
+            return data;
+        }
+
+        function populateSelector(pairs) {
+            pairs.sort();
+            pairSelector.innerHTML = ''; 
+            
+            if (pairs.length === 0) {
+                 pairSelector.innerHTML = '<option>No pairs found</option>';
+                 return;
+            }
+            
+            pairs.forEach(pair => {
+                const option = document.createElement('option');
+                option.value = pair;
+                option.textContent = pair;
+                pairSelector.appendChild(option);
+            });
+        }
+
+        function visualizeData(pair, data) {
+            if (distanceChart) {
+                distanceChart.destroy();
+            }
+
+            const labels = data.map(d => d.distance);
+            const counts = data.map(d => d.count);
+
+            distanceChart = new Chart(chartCtx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: `Count for ${pair}`,
+                        data: counts,
+                        backgroundColor: 'rgba(52, 152, 219, 0.6)',
+                        borderColor: 'rgba(41, 128, 185, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Interatomic Distance (Å)',
+                                font: { size: 14 }
+                            },
+                            ticks: {
+                                autoSkip: true,
+                                maxTicksLimit: 30
+                            }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Count',
+                                font: { size: 14 }
+                            }
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                title: context => `Distance: ${context[0].label} Å`,
+                                label: context => `Count: ${context.raw}`
+                            }
+                        },
+                        legend: { display: true }
+                    }
+                }
+            });
+        }
+        
+        function calculateAndDisplayStats(data) {
+            if (data.length === 0) {
+                statsContent.innerHTML = "No data to calculate statistics.";
+                return;
+            }
+
+            let totalCount = 0;
+            let weightedSum = 0;
+            let maxCount = -1;
+            let mostFrequentDistance = null;
+
+            data.forEach(item => {
+                totalCount += item.count;
+                weightedSum += item.distance * item.count;
+                if (item.count > maxCount) {
+                    maxCount = item.count;
+                    mostFrequentDistance = item.distance;
+                }
+            });
+
+            const weightedAverage = totalCount > 0 ? weightedSum / totalCount : 0;
+            
+            statsContent.innerHTML = `
+                <p><strong>Total Number of Pairs:</strong> ${totalCount.toLocaleString()}</p>
+                <p><strong>Weighted Average Distance:</strong> ${weightedAverage.toFixed(4)} Å</p>
+                <p><strong>Most Frequent Distance:</strong> ${mostFrequentDistance} Å (with a count of ${maxCount.toLocaleString()})</p>
+                <p><strong>Minimum Distance:</strong> ${data[0].distance} Å</p>
+                <p><strong>Maximum Distance:</strong> ${data[data.length - 1].distance} Å</p>
+            `;
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', initializeApp);
+        pairSelector.addEventListener('change', handlePairSelection);
+    </script>
+</body>
+</html>
