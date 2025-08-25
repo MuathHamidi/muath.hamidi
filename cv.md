@@ -72,6 +72,7 @@ title: Muath Hamidi CV
 
 ## Workshops Attended
 *   **2025:** Conference on Strongly Correlated Electron Systems 2025 (SCES 2025), Montreal, Quebec.
+*   **2025:** RQMP Grand Conference, Montreal, Quebec.
 *   **2024:** RQMP Grand Conference, Montreal, Quebec.
 *   **2023:** IQT Canada, Montreal, Quebec.
 *   **2022:** Fall 2022 INTRIQ Meeting, Bromont, Quebec.
