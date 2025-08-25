@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIF File Builder with Auto-Symmetry</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px;
+            background-color: #f9f9f9;
+        }
+        .container {
+            background-color: #fff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+            color: #2c3e50;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        input[type="text"], input[type="number"], select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 1rem;
+            background-color: #fff;
+        }
+        #symmetryDisplay {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            white-space: pre;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        td input {
+            width: 95%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            color: white;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 10px;
+            margin-right: 10px;
+        }
+        .btn-add { background-color: #28a745; }
+        .btn-remove { background-color: #dc3545; padding: 5px 10px; font-size: 0.8rem; }
+        .btn-generate { background-color: #007bff; }
+        .btn-download { background-color: #17a2b8; }
+        #cifOutput {
+            width: 100%;
+            height: 300px;
+            margin-top: 20px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            white-space: pre;
+            overflow-wrap: normal;
+            overflow-x: scroll;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>CIF File Builder</h1>
+        <p>Fill in the crystallographic data below. Symmetry generators will be added automatically based on your space group selection.</p>
+
+        <!-- Section 1: General Crystal Information -->
+        <h2>Crystal Information</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="dataBlockName">Data Block Name</label>
+                <input type="text" id="dataBlockName" value="my_crystal">
+            </div>
+            <div class="form-group">
+                <label for="spaceGroupSelect">Space Group</label>
+                <select id="spaceGroupSelect"></select>
+            </div>
+        </div>
+        
+        <h3>Unit Cell Parameters</h3>
+        <div class="form-grid">
+            <div class="form-group"><label for="cellA">a (Å)</label><input type="number" id="cellA" step="any" value="5.43"></div>
+            <div class="form-group"><label for="cellB">b (Å)</label><input type="number" id="cellB" step="any" value="5.43"></div>
+            <div class="form-group"><label for="cellC">c (Å)</label><input type="number" id="cellC" step="any" value="5.43"></div>
+            <div class="form-group"><label for="cellAlpha">α (°)</label><input type="number" id="cellAlpha" step="any" value="90.0"></div>
+            <div class="form-group"><label for="cellBeta">β (°)</label><input type="number" id="cellBeta" step="any" value="90.0"></div>
+            <div class="form-group"><label for="cellGamma">γ (°)</label><input type="number" id="cellGamma" step="any" value="90.0"></div>
+        </div>
+        
+        <h3>Symmetry Operations</h3>
+        <div id="symmetryDisplay">Select a space group to see its generators here.</div>
+
+        <!-- Section 2: Atomic Coordinates -->
+        <h2>Atomic Coordinates</h2>
+        <table id="atomTable">
+            <thead>
+                <tr>
+                    <th>Label</th><th>Element</th><th>Fract x</th><th>Fract y</th><th>Fract z</th><th>Occupancy</th><th>Uiso</th><th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="atomTableBody"></tbody>
+        </table>
+        <button id="addAtomBtn" class="btn-add">Add Atom</button>
+
+        <!-- Section 3: Output -->
+        <h2>Generated CIF</h2>
+        <button id="generateBtn" class="btn-generate">Generate CIF</button>
+        <button id="downloadBtn" class="btn-download">Download .cif File</button>
+        <textarea id="cifOutput" readonly placeholder="CIF content will appear here..."></textarea>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get DOM elements
+            const addAtomBtn = document.getElementById('addAtomBtn');
+            const atomTableBody = document.getElementById('atomTableBody');
+            const generateBtn = document.getElementById('generateBtn');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const cifOutput = document.getElementById('cifOutput');
+            const spaceGroupSelect = document.getElementById('spaceGroupSelect');
+            const symmetryDisplay = document.getElementById('symmetryDisplay');
+            
+            // This will hold the data fetched from the JSON file
+            let spacegroupData = [];
+
+            // --- Function to populate the space group dropdown ---
+            const populateSpaceGroupSelect = () => {
+                spacegroupData.forEach(sg => {
+                    const option = document.createElement('option');
+                    option.value = sg.number;
+                    // Use the `symbol` property from the new JSON structure
+                    option.textContent = `${sg.number}: ${sg.symbol}`;
+                    spaceGroupSelect.appendChild(option);
+                });
+            };
+
+            // --- Function to update the displayed symmetry info ---
+            const updateSymmetryInfo = () => {
+                const selectedSgNumber = parseInt(spaceGroupSelect.value, 10);
+                const selectedSg = spacegroupData.find(sg => sg.number === selectedSgNumber);
+
+                if (selectedSg) {
+                    // Use the `equivPosAsXyz` property from the new JSON structure
+                    symmetryDisplay.textContent = selectedSg.equivPosAsXyz.join('\n');
+                } else {
+                    symmetryDisplay.textContent = 'No symmetry data found for this selection.';
+                }
+            };
+
+            // --- Function to add a new atom row to the table ---
+            const addAtomRow = () => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><input type="text" class="atom-label" placeholder="e.g., Si1"></td>
+                    <td><input type="text" class="atom-element" placeholder="e.g., Si"></td>
+                    <td><input type="number" step="any" class="atom-x" value="0.0"></td>
+                    <td><input type="number" step="any" class="atom-y" value="0.0"></td>
+                    <td><input type="number" step="any" class="atom-z" value="0.0"></td>
+                    <td><input type="number" step="any" class="atom-occ" value="1.0"></td>
+                    <td><input type="number" step="any" class="atom-uiso" value="0.025"></td>
+                    <td><button class="btn-remove">Remove</button></td>
+                `;
+                atomTableBody.appendChild(row);
+                row.querySelector('.btn-remove').addEventListener('click', () => row.remove());
+            };
+
+            // --- Function to generate the CIF file content ---
+            const generateCif = () => {
+                let lines = [];
+                const getValue = (id, placeholder = '?') => document.getElementById(id).value || placeholder;
+                const getNum = (id, decimals = 4, placeholder = '?') => {
+                    const val = parseFloat(document.getElementById(id).value);
+                    return isNaN(val) ? placeholder : val.toFixed(decimals);
+                };
+
+                const selectedSgNumber = parseInt(spaceGroupSelect.value, 10);
+                const selectedSg = spacegroupData.find(sg => sg.number === selectedSgNumber);
+
+                lines.push(`data_${getValue('dataBlockName', 'unnamed')}`);
+                lines.push('');
+                lines.push('_cell_length_a                  ' + getNum('cellA'));
+                lines.push('_cell_length_b                  ' + getNum('cellB'));
+                lines.push('_cell_length_c                  ' + getNum('cellC'));
+                lines.push('_cell_angle_alpha               ' + getNum('cellAlpha', 2));
+                lines.push('_cell_angle_beta                ' + getNum('cellBeta', 2));
+                lines.push('_cell_angle_gamma               ' + getNum('cellGamma', 2));
+                lines.push('');
+
+                if (selectedSg) {
+                    // Use the `symbol` property from the new JSON structure
+                    lines.push(`_symmetry_space_group_name_H-M  '${selectedSg.symbol}'`);
+                    lines.push(`_symmetry_Int_Tables_number     ${selectedSg.number}`);
+                    lines.push('');
+                    lines.push('loop_');
+                    lines.push('  _symmetry_equiv_pos_as_xyz');
+                    // Use the `equivPosAsXyz` property from the new JSON structure
+                    selectedSg.equivPosAsXyz.forEach(op => {
+                        lines.push(`  '${op.replace(/'/g, "")}'`);
+                    });
+                    lines.push('');
+                } else {
+                    lines.push("# WARNING: Space group data not found.");
+                }
+
+                lines.push('loop_');
+                lines.push('  _atom_site_label');
+                lines.push('  _atom_site_type_symbol');
+                lines.push('  _atom_site_fract_x');
+                lines.push('  _atom_site_fract_y');
+                lines.push('  _atom_site_fract_z');
+                lines.push('  _atom_site_occupancy');
+                lines.push('  _atom_site_U_iso_or_equiv');
+
+                const atomRows = atomTableBody.querySelectorAll('tr');
+                atomRows.forEach(row => {
+                    const label = (row.querySelector('.atom-label').value || '?').padEnd(8);
+                    const element = (row.querySelector('.atom-element').value || '?').padEnd(4);
+                    const x = parseFloat(row.querySelector('.atom-x').value || 0).toFixed(5).padStart(10);
+                    const y = parseFloat(row.querySelector('.atom-y').value || 0).toFixed(5).padStart(10);
+                    const z = parseFloat(row.querySelector('.atom-z').value || 0).toFixed(5).padStart(10);
+                    const occ = parseFloat(row.querySelector('.atom-occ').value || 1).toFixed(3).padStart(8);
+                    const uiso = parseFloat(row.querySelector('.atom-uiso').value || 0).toFixed(4).padStart(8);
+                    lines.push(`  ${label} ${element} ${x} ${y} ${z} ${occ} ${uiso}`);
+                });
+                
+                cifOutput.value = lines.join('\n');
+            };
+            
+            // --- Function to download the generated CIF ---
+            const downloadCif = () => {
+                const cifContent = cifOutput.value;
+                if (!cifContent) {
+                    alert('Please generate the CIF content first!');
+                    return;
+                }
+                const filename = (document.getElementById('dataBlockName').value || 'crystal') + '.cif';
+                const blob = new Blob([cifContent], { type: 'text/plain;charset=utf-8' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            };
+
+            // Event Listeners
+            addAtomBtn.addEventListener('click', addAtomRow);
+            spaceGroupSelect.addEventListener('change', updateSymmetryInfo);
+            generateBtn.addEventListener('click', generateCif);
+            downloadBtn.addEventListener('click', downloadCif);
+
+            // --- Initial Setup: Fetch data and then initialize the app ---
+            fetch('../data/space_groups_generators.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    spacegroupData = data;
+                    
+                    // Now that data is loaded, populate the UI
+                    populateSpaceGroupSelect();
+                    updateSymmetryInfo();
+                    addAtomRow();
+                })
+                .catch(error => {
+                    console.error("Could not load space group data:", error);
+                    symmetryDisplay.textContent = 'Error: Could not load space group data from ../data/space_groups_generators.json. Please check the file path and browser console.';
+                    alert('Failed to load essential crystallographic data. The application may not function correctly.');
+                });
+        });
+    </script>
+</body>
+</html>
