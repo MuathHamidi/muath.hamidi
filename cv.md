@@ -29,6 +29,9 @@ title: Muath Hamidi CV
 *   **2021-2023:** Teaching Assistant, McGill University.
 
 ## Research Experience
+*   **2024-Now: Université de Montréal, PhD**
+    *   *Novel Quantum Materials Discovery Via Neural Embroidery Networks (NEN).*
+    *   Advisor: Andrea Bianchi.
 *   **2021-2023: McGill University, M.Sc.**
     *   *Topology and Superconductivity In and Out of Equilibrium.*
     *   Advisor: Tami Pereg-Barnea.
@@ -40,7 +43,7 @@ title: Muath Hamidi CV
     *   Advisor: Hazem Abusara & Khalid Eid.
 
 ## Awards and Distinctions
-*   **2024-Now:** Institut Courtois Funds. Via Andrea Bianchi, Université de Montréal.
+*   **2024-Now:** IVADO Grants. Via Andrea Bianchi, Université de Montréal.
 *   **2021-2023:** NSERC Scholarship. Via Tami Pereg-Barnea, McGill University.
 *   **2017-2021:** UNRWA Excellence Scholarship. By the United Nations.
 *   **2017-2021:** Honour Scholarship. By Birzeit University.
@@ -48,11 +51,11 @@ title: Muath Hamidi CV
 *   **2017-2021:** Science Faculty Scholarship. By Birzeit University.
 
 ## Skills
-*   **Subjects:** Condensed Matter, Topological Materials, Semimetals, Superconductors, Photonics, Nanomaterials, Computer Science, Programming, Physics, Mathematics, Artificial Intelligence, Quantum Materials.
-*   **Languages:** Python, Julia, C, C++, Java, SQL, HTML, Mathematica, MATLAB.
+*   **Subjects:** Condensed Matter, Topological Materials, Semimetals, Superconductors, Photonics, Nanomaterials, Computer Science, Programming, Physics, Mathematics, Chemistry, Artificial Intelligence, Quantum Materials.
+*   **Languages:** Python, Julia, C, C++, Java, SQL, HTML, Mathematica, MATLAB, Quantum ESPRESSO.
 *   **Programming:** Large-Scale Data Processing, Parallel Processing, Cloud Computing, Object-Oriented Programming (OOP), Data Analysis, Machine Learning, Optimization.
 *   **Operating Systems:** Windows, macOS, Linux.
-*   **Editors:** Visual Studio, Unreal Engine, LaTeX, Microsoft Office, LabVIEW.
+*   **Editors:** Visual Studio, Unreal Engine, LaTeX, Microsoft Office, LabVIEW, Jupyter, Spyder.
 
 ## Memberships
 *   **2024-Now:** Member of Andrea Bianchi Research Group, Université de Montréal.
