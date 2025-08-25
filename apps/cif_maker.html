@@ -5,25 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CIF File Builder with Auto-Symmetry</title>
     <style>
+        :root {
+            --bg-color: #1a1b26;
+            --surface-color: #2a2c37;
+            --input-bg-color: #1e1f29;
+            --primary-text-color: #e0e6f0;
+            --secondary-text-color: #b0b8c4;
+            --border-color: #4a4c5a;
+            --accent-color: #a6c1ff;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
             line-height: 1.6;
-            color: #333;
+            color: var(--primary-text-color);
             max-width: 900px;
             margin: 20px auto;
             padding: 0 20px;
-            background-color: #f9f9f9;
+            background-color: var(--bg-color);
         }
         .container {
-            background-color: #fff;
+            background-color: var(--surface-color);
             padding: 25px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
         }
         h1, h2, h3 {
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px solid var(--border-color);
             padding-bottom: 10px;
-            color: #2c3e50;
+            color: var(--accent-color);
         }
         .form-grid {
             display: grid;
@@ -37,18 +47,26 @@
         label {
             margin-bottom: 5px;
             font-weight: bold;
-            color: #555;
+            color: var(--secondary-text-color);
         }
-        input[type="text"], input[type="number"], select {
+        input[type="text"], 
+        input[type="number"], 
+        select, 
+        textarea {
             padding: 10px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             font-size: 1rem;
-            background-color: #fff;
+            background-color: var(--input-bg-color);
+            color: var(--primary-text-color);
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
         }
         #symmetryDisplay {
-            background-color: #f5f5f5;
-            border: 1px solid #ddd;
+            background-color: var(--input-bg-color);
+            border: 1px solid var(--border-color);
             border-radius: 4px;
             padding: 15px;
             margin-top: 10px;
@@ -57,6 +75,7 @@
             font-family: 'Courier New', Courier, monospace;
             font-size: 0.9rem;
             white-space: pre;
+            color: var(--secondary-text-color);
         }
         table {
             width: 100%;
@@ -64,17 +83,18 @@
             margin-top: 15px;
         }
         th, td {
-            border: 1px solid #ddd;
+            border: 1px solid var(--border-color);
             padding: 8px;
             text-align: left;
         }
         th {
-            background-color: #f2f2f2;
+            background-color: #3a3c4a;
+            color: var(--accent-color);
         }
         td input {
             width: 95%;
             padding: 5px;
-            border: 1px solid #ccc;
+            border: 1px solid var(--border-color);
             border-radius: 3px;
         }
         button {
@@ -86,6 +106,10 @@
             font-size: 1rem;
             margin-top: 10px;
             margin-right: 10px;
+            transition: filter 0.2s ease-in-out;
+        }
+        button:hover {
+            filter: brightness(1.15);
         }
         .btn-add { background-color: #28a745; }
         .btn-remove { background-color: #dc3545; padding: 5px 10px; font-size: 0.8rem; }
@@ -97,8 +121,6 @@
             margin-top: 20px;
             font-family: 'Courier New', Courier, monospace;
             font-size: 0.9rem;
-            border: 1px solid #ccc;
-            border-radius: 4px;
             white-space: pre;
             overflow-wrap: normal;
             overflow-x: scroll;
@@ -142,7 +164,7 @@
         <table id="atomTable">
             <thead>
                 <tr>
-                    <th>Label</th><th>Element</th><th>Fract x</th><th>Fract y</th><th>Fract z</th><th>Occupancy</th><th>Uiso</th><th>Action</th>
+                    <th>Label</th><th>Element</th><th>Fract x</th><th>Fract y</th><th>Fract z</th><th>Occupancy</th><th>Biso</th><th>Action</th>
                 </tr>
             </thead>
             <tbody id="atomTableBody"></tbody>
@@ -167,7 +189,6 @@
             const spaceGroupSelect = document.getElementById('spaceGroupSelect');
             const symmetryDisplay = document.getElementById('symmetryDisplay');
             
-            // This will hold the data fetched from the JSON file
             let spacegroupData = [];
 
             // --- Function to populate the space group dropdown ---
@@ -175,7 +196,6 @@
                 spacegroupData.forEach(sg => {
                     const option = document.createElement('option');
                     option.value = sg.number;
-                    // Use the `symbol` property from the new JSON structure
                     option.textContent = `${sg.number}: ${sg.symbol}`;
                     spaceGroupSelect.appendChild(option);
                 });
@@ -187,14 +207,13 @@
                 const selectedSg = spacegroupData.find(sg => sg.number === selectedSgNumber);
 
                 if (selectedSg) {
-                    // Use the `equivPosAsXyz` property from the new JSON structure
                     symmetryDisplay.textContent = selectedSg.equivPosAsXyz.join('\n');
                 } else {
                     symmetryDisplay.textContent = 'No symmetry data found for this selection.';
                 }
             };
 
-            // --- Function to add a new atom row to the table ---
+            // --- Function to add a new atom row to the table (Updated for Biso) ---
             const addAtomRow = () => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
@@ -204,7 +223,7 @@
                     <td><input type="number" step="any" class="atom-y" value="0.0"></td>
                     <td><input type="number" step="any" class="atom-z" value="0.0"></td>
                     <td><input type="number" step="any" class="atom-occ" value="1.0"></td>
-                    <td><input type="number" step="any" class="atom-uiso" value="0.025"></td>
+                    <td><input type="number" step="any" class="atom-biso" value="0.7"></td>
                     <td><button class="btn-remove">Remove</button></td>
                 `;
                 atomTableBody.appendChild(row);
@@ -223,51 +242,67 @@
                 const selectedSgNumber = parseInt(spaceGroupSelect.value, 10);
                 const selectedSg = spacegroupData.find(sg => sg.number === selectedSgNumber);
 
+                lines.push('#======================================================================');
+                lines.push('');
+                lines.push('# CRYSTAL DATA');
+                lines.push('');
+                lines.push('#----------------------------------------------------------------------');
+                lines.push('');
                 lines.push(`data_${getValue('dataBlockName', 'unnamed')}`);
                 lines.push('');
-                lines.push('_cell_length_a                  ' + getNum('cellA'));
-                lines.push('_cell_length_b                  ' + getNum('cellB'));
-                lines.push('_cell_length_c                  ' + getNum('cellC'));
-                lines.push('_cell_angle_alpha               ' + getNum('cellAlpha', 2));
-                lines.push('_cell_angle_beta                ' + getNum('cellBeta', 2));
-                lines.push('_cell_angle_gamma               ' + getNum('cellGamma', 2));
-                lines.push('');
-
+                lines.push(`_chemical_name_common                  ''`);
+                lines.push(`_cell_length_a                         ${getNum('cellA', 6)}`);
+                lines.push(`_cell_length_b                         ${getNum('cellB', 6)}`);
+                lines.push(`_cell_length_c                         ${getNum('cellC', 6)}`);
+                lines.push(`_cell_angle_alpha                      ${getNum('cellAlpha', 2)}`);
+                lines.push(`_cell_angle_beta                       ${getNum('cellBeta', 2)}`);
+                lines.push(`_cell_angle_gamma                      ${getNum('cellGamma', 2)}`);
+                
                 if (selectedSg) {
-                    // Use the `symbol` property from the new JSON structure
-                    lines.push(`_symmetry_space_group_name_H-M  '${selectedSg.symbol}'`);
-                    lines.push(`_symmetry_Int_Tables_number     ${selectedSg.number}`);
+                    lines.push(`_space_group_name_H-M_alt              '${selectedSg.symbol}'`);
+                    lines.push(`_space_group_IT_number                 ${selectedSg.number}`);
                     lines.push('');
                     lines.push('loop_');
-                    lines.push('  _symmetry_equiv_pos_as_xyz');
-                    // Use the `equivPosAsXyz` property from the new JSON structure
+                    lines.push('   _space_group_symop_operation_xyz');
                     selectedSg.equivPosAsXyz.forEach(op => {
-                        lines.push(`  '${op.replace(/'/g, "")}'`);
+                        lines.push(`   '${op.replace(/'/g, "")}'`);
                     });
-                    lines.push('');
                 } else {
                     lines.push("# WARNING: Space group data not found.");
                 }
+                lines.push('');
 
                 lines.push('loop_');
-                lines.push('  _atom_site_label');
-                lines.push('  _atom_site_type_symbol');
-                lines.push('  _atom_site_fract_x');
-                lines.push('  _atom_site_fract_y');
-                lines.push('  _atom_site_fract_z');
-                lines.push('  _atom_site_occupancy');
-                lines.push('  _atom_site_U_iso_or_equiv');
+                lines.push('   _atom_site_label');
+                lines.push('   _atom_site_occupancy');
+                lines.push('   _atom_site_fract_x');
+                lines.push('   _atom_site_fract_y');
+                lines.push('   _atom_site_fract_z');
+                lines.push('   _atom_site_adp_type');
+                lines.push('   _atom_site_B_iso_or_equiv');
+                lines.push('   _atom_site_type_symbol');
 
                 const atomRows = atomTableBody.querySelectorAll('tr');
                 atomRows.forEach(row => {
-                    const label = (row.querySelector('.atom-label').value || '?').padEnd(8);
-                    const element = (row.querySelector('.atom-element').value || '?').padEnd(4);
-                    const x = parseFloat(row.querySelector('.atom-x').value || 0).toFixed(5).padStart(10);
-                    const y = parseFloat(row.querySelector('.atom-y').value || 0).toFixed(5).padStart(10);
-                    const z = parseFloat(row.querySelector('.atom-z').value || 0).toFixed(5).padStart(10);
-                    const occ = parseFloat(row.querySelector('.atom-occ').value || 1).toFixed(3).padStart(8);
-                    const uiso = parseFloat(row.querySelector('.atom-uiso').value || 0).toFixed(4).padStart(8);
-                    lines.push(`  ${label} ${element} ${x} ${y} ${z} ${occ} ${uiso}`);
+                    const label = (row.querySelector('.atom-label').value || '?');
+                    const element = (row.querySelector('.atom-element').value || '?');
+                    const x = parseFloat(row.querySelector('.atom-x').value || 0);
+                    const y = parseFloat(row.querySelector('.atom-y').value || 0);
+                    const z = parseFloat(row.querySelector('.atom-z').value || 0);
+                    const occ = parseFloat(row.querySelector('.atom-occ').value || 1);
+                    const biso = parseFloat(row.querySelector('.atom-biso').value || 0.7);
+                    const adpType = 'Biso';
+
+                    const line = `   ${label.padEnd(11)}` +
+                                 `${occ.toFixed(1).padStart(7)}` +
+                                 `${x.toFixed(6).padStart(14)}` +
+                                 `${y.toFixed(6).padStart(14)}` +
+                                 `${z.toFixed(6).padStart(14)}` +
+                                 ` ${adpType.padEnd(6)}` +
+                                 `${biso.toFixed(6).padStart(9)}` +
+                                 ` ${element}`;
+
+                    lines.push(line);
                 });
                 
                 cifOutput.value = lines.join('\n');
@@ -307,7 +342,6 @@
                 .then(data => {
                     spacegroupData = data;
                     
-                    // Now that data is loaded, populate the UI
                     populateSpaceGroupSelect();
                     updateSymmetryInfo();
                     addAtomRow();
