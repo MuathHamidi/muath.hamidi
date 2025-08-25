@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interatomic Distance Calculator for Crystals</title>
+    <style>
+        /* Using a similar dark theme for consistency */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #1a1a1a;
+            color: #e0e0e0;
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        h1, h2 {
+            color: #8ac8ff;
+            text-align: center;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+        p, label {
+            color: #c0c0c0;
+        }
+
+        /* Controls and Status */
+        #controls, #settings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+            align-items: center;
+            background-color: #2c2c2c;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+        }
+        .button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.2s;
+        }
+        .button:hover {
+            background-color: #0056b3;
+        }
+        #file-input, #folder-input {
+            display: none;
+        }
+        #status-container {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #status {
+            font-style: italic;
+            color: #999;
+        }
+        #spinner {
+            border: 4px solid #333;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: none;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        input[type="number"] {
+            background-color: #3d3d3d;
+            color: #e0e0e0;
+            border: 1px solid #555;
+            padding: 8px;
+            border-radius: 4px;
+            width: 80px;
+        }
+        
+        /* Results Section */
+        #results-container {
+            margin-top: 20px;
+            display: none; /* Hidden by default */
+        }
+        textarea {
+            width: 100%;
+            height: 400px;
+            background-color: #252525;
+            color: #f0f0f0;
+            border: 1px solid #444;
+            border-radius: 5px;
+            padding: 10px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 0.9em;
+            box-sizing: border-box;
+        }
+        #error-log {
+            margin-top: 15px;
+            background-color: #58151c;
+            color: #fdd;
+            padding: 15px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interatomic Distance Calculator</h1>
+    <p>This tool processes one or more CIF files to calculate and aggregate all interatomic distances. The output is formatted for use with the Interatomic Distance Visualizer.</p>
+
+    <div id="controls">
+        <label for="file-input" class="button">Select CIF File(s)</label>
+        <input type="file" id="file-input" accept=".cif" multiple>
+        <label for="folder-input" class="button">Select Folder</label>
+        <input type="file" id="folder-input" webkitdirectory directory multiple>
+        <button class="button" id="process-btn">Process Files</button>
+        <div id="status-container">
+            <div id="spinner"></div>
+            <div id="status">Select files to begin.</div>
+        </div>
+    </div>
+
+    <div id="settings">
+        <label for="cutoff-dist">Max Distance Cutoff (Å):</label>
+        <input type="number" id="cutoff-dist" value="6.0" step="0.1" min="1.0">
+        <label for="precision">Distance Precision (decimal places):</label>
+        <input type="number" id="precision" value="3" step="1" min="1" max="6">
+    </div>
+
+    <div id="results-container">
+        <h2>Aggregated Interatomic Distances</h2>
+        <textarea id="output-textarea" readonly placeholder="Results will appear here..."></textarea>
+        <div style="margin-top:15px; display:flex; gap:15px;">
+            <button id="download-btn" class="button">Download as TXT</button>
+            <button id="clear-btn" class="button" style="background-color: #6c757d;">Clear</button>
+        </div>
+        <div id="error-log" style="display:none;"></div>
+    </div>
+
+<script>
+    const fileInput = document.getElementById('file-input');
+    const folderInput = document.getElementById('folder-input');
+    const processBtn = document.getElementById('process-btn');
+    const clearBtn = document.getElementById('clear-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const statusDiv = document.getElementById('status');
+    const spinner = document.getElementById('spinner');
+    const resultsContainer = document.getElementById('results-container');
+    const outputTextarea = document.getElementById('output-textarea');
+    const errorLog = document.getElementById('error-log');
+    
+    let selectedFiles = [];
+
+    fileInput.addEventListener('change', handleFileSelection);
+    folderInput.addEventListener('change', handleFileSelection);
+    processBtn.addEventListener('click', processAllFiles);
+    clearBtn.addEventListener('click', clearResults);
+    downloadBtn.addEventListener('click', downloadResults);
+    
+    function handleFileSelection(event) {
+        const newFiles = Array.from(event.target.files).filter(f => f.name.toLowerCase().endsWith('.cif'));
+        selectedFiles.push(...newFiles);
+        statusDiv.textContent = `${selectedFiles.length} file(s) selected. Ready to process.`;
+        // Reset file input to allow re-selection of the same files
+        event.target.value = '';
+    }
+
+    function clearResults() {
+        selectedFiles = [];
+        resultsContainer.style.display = 'none';
+        outputTextarea.value = '';
+        errorLog.innerHTML = '';
+        errorLog.style.display = 'none';
+        statusDiv.textContent = 'Select files to begin.';
+    }
+
+    async function processAllFiles() {
+        if (selectedFiles.length === 0) {
+            statusDiv.textContent = 'No files selected.';
+            return;
+        }
+
+        spinner.style.display = 'block';
+        statusDiv.textContent = 'Starting analysis...';
+        
+        const allDistances = {};
+        const errors = [];
+        
+        for (const [index, file] of selectedFiles.entries()) {
+            statusDiv.textContent = `Processing ${index + 1}/${selectedFiles.length}: ${file.name}`;
+            try {
+                const content = await file.text();
+                const { parsedData } = parseCIF(content);
+                const fullCellAtoms = generateSymmetricAtoms(parsedData.atoms, parsedData.symmOps);
+                const distances = calculateDistances(parsedData.cell, fullCellAtoms);
+
+                // Aggregate distances
+                distances.forEach(d => {
+                    if (!allDistances[d.pair]) {
+                        allDistances[d.pair] = [];
+                    }
+                    allDistances[d.pair].push(d.dist);
+                });
+            } catch (err) {
+                errors.push(`Error in ${file.name}: ${err.message}`);
+            }
+        }
+        
+        // Format the final output
+        const outputString = formatOutputData(allDistances);
+        outputTextarea.value = outputString;
+        resultsContainer.style.display = 'block';
+
+        const totalFiles = selectedFiles.length;
+        const failureCount = errors.length;
+        const successCount = totalFiles - failureCount;
+        const failurePercentage = totalFiles > 0 ? (failureCount / totalFiles) * 100 : 0;
+
+        if (failureCount > 0) {
+            const errorHeader = `<strong>${failureCount} of ${totalFiles} files failed (${failurePercentage.toFixed(1)}%).</strong><br><br>The following errors occurred:\n`;
+            errorLog.innerHTML = errorHeader + errors.join('\n');
+            errorLog.style.display = 'block';
+        } else {
+            errorLog.style.display = 'none';
+            errorLog.innerHTML = '';
+        }
+
+        spinner.style.display = 'none';
+        statusDiv.textContent = `Analysis complete. Succeeded: ${successCount}, Failed: ${failureCount} (${failurePercentage.toFixed(1)}%).`;
+    }
+
+    function formatOutputData(allDistances) {
+        const precision = parseInt(document.getElementById('precision').value) || 3;
+        const finalData = {};
+
+        for (const [pair, dists] of Object.entries(allDistances)) {
+            const counts = {};
+            dists.forEach(d => {
+                const rounded = d.toFixed(precision);
+                counts[rounded] = (counts[rounded] || 0) + 1;
+            });
+            
+            finalData[pair] = Object.entries(counts)
+                .map(([dist, count]) => ({ distance: parseFloat(dist), count }))
+                .sort((a, b) => a.distance - b.distance);
+        }
+
+        const sortedPairs = Object.keys(finalData).sort();
+
+        let outputLines = [];
+        for (const pair of sortedPairs) {
+            const [atom1, atom2] = pair.split('-');
+            const distsStr = finalData[pair].map(d => `${d.distance.toFixed(precision)} ${d.count}`).join(' ');
+            outputLines.push(`${atom1} ${atom2} ${distsStr}`);
+        }
+        
+        // Prepend the requested header to the final output string.
+        const header = "atom1 atom2 [distance_A count]...";
+        return header + '\n' + outputLines.join('\n');
+    }
+
+    function downloadResults() {
+        const text = outputTextarea.value;
+        if (!text) return;
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'interatomic_distances.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+    }
+    
+    // --- Core Crystallography Functions ---
+
+    function parseCIF(text) {
+        text = text.replace(/(\s)\?(\s|\n|$)/g, '$10$2');
+        text = text.replace(/'\?'/g, "'0'");
+
+        const lines = text.split('\n');
+        const data = { cell: {}, atoms: [], symmOps: [] };
+        let inAtomLoop = false, inSymmLoop = false, atomProps = [], symmProps = [];
+
+        const getValue = (key) => {
+            const line = lines.find(l => l.trim().startsWith(key));
+            return line ? parseFloat(line.split(/\s+/)[1].split('(')[0]) : null;
+        };
+
+        data.cell.a = getValue('_cell_length_a');
+        data.cell.b = getValue('_cell_length_b');
+        data.cell.c = getValue('_cell_length_c');
+        data.cell.alpha = (getValue('_cell_angle_alpha') || 90) * (Math.PI / 180);
+        data.cell.beta = (getValue('_cell_angle_beta') || 90) * (Math.PI / 180);
+        data.cell.gamma = (getValue('_cell_angle_gamma') || 90) * (Math.PI / 180);
+
+        if (!data.cell.a || !data.cell.b || !data.cell.c) {
+            throw new Error("Could not parse unit cell lengths.");
+        }
+
+        for (const line of lines) {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('loop_')) {
+                inAtomLoop = false;
+                inSymmLoop = false;
+            } else if (trimmed.startsWith('_atom_site_')) {
+                if (!inAtomLoop) { inAtomLoop = true; inSymmLoop = false; atomProps = []; }
+                atomProps.push(trimmed);
+            } else if (trimmed.startsWith('_space_group_symop_operation_xyz') || trimmed.startsWith('_symmetry_equiv_pos_as_xyz')) {
+                if (!inSymmLoop) { inSymmLoop = true; inAtomLoop = false; symmProps = []; }
+                symmProps.push(trimmed);
+            } else if (inAtomLoop && trimmed && !trimmed.startsWith('_')) {
+                const values = trimmed.match(/'[^']*'|\S+/g) || [];
+                const atom = {};
+                for (let i = 0; i < values.length && i < atomProps.length; i++) {
+                    const prop = atomProps[i];
+                    const val = values[i];
+                    if (prop === '_atom_site_label') atom.label = val;
+                    if (prop === '_atom_site_type_symbol') atom.symbol = val;
+                    if (prop === '_atom_site_fract_x') atom.fx = parseFloat(val.split('(')[0]);
+                    if (prop === '_atom_site_fract_y') atom.fy = parseFloat(val.split('(')[0]);
+                    if (prop === '_atom_site_fract_z') atom.fz = parseFloat(val.split('(')[0]);
+                }
+                if (!atom.symbol && atom.label) {
+                    atom.symbol = atom.label.replace(/[^A-Za-z]/g, '');
+                }
+                if (atom.symbol) {
+                    let cleanSymbol = atom.symbol.replace(/[^A-Za-z]/g, '');
+                    atom.symbol = cleanSymbol.charAt(0).toUpperCase() + cleanSymbol.slice(1).toLowerCase();
+                }
+                if (atom.label && atom.symbol && atom.fx !== undefined) {
+                    data.atoms.push(atom);
+                }
+            } else if (inSymmLoop && trimmed && !trimmed.startsWith('_')) {
+                const opString = trimmed.match(/'(.*?)'|(\S+)/);
+                if (opString) {
+                    const op = (opString[1] || opString[2]).toLowerCase();
+                    if (op.includes(',') && (op.includes('x') || op.includes('y') || op.includes('z'))) {
+                        data.symmOps.push(op);
+                    }
+                }
+            }
+        }
+
+        if (data.atoms.length === 0) throw new Error("No atoms found in the CIF file's atom loop.");
+        if (data.symmOps.length === 0) data.symmOps.push('x,y,z');
+
+        return { parsedData: data };
+    }
+
+    function parseSymOp(opStr) {
+        const parts = opStr.replace(/'/g, '').toLowerCase().split(',').map(s => s.trim());
+        
+        if (parts.length !== 3) {
+            throw new Error(`Invalid symmetry operation: "${opStr}". Expected 3 comma-separated values.`);
+        }
+
+        return (x, y, z) => {
+            const scope = { x, y, z };
+            const evalPart = part => {
+                let sanitized = part.replace(/([xyz])/g, 'scope.$1');
+                try {
+                    return new Function('scope', `return ${sanitized}`)(scope);
+                } catch (e) {
+                    throw new Error(`Could not parse symmetry op part: "${part}" from "${opStr}"`);
+                }
+            };
+            return { fx: evalPart(parts[0]), fy: evalPart(parts[1]), fz: evalPart(parts[2]) };
+        };
+    }
+    
+    function generateSymmetricAtoms(asymAtoms, symmOps) {
+        const fullCellAtoms = [];
+        const uniquePositions = new Set();
+        const symmFuncs = symmOps.map(op => parseSymOp(op));
+
+        asymAtoms.forEach(atom => {
+            symmFuncs.forEach((func) => {
+                let { fx, fy, fz } = func(atom.fx, atom.fy, atom.fz);
+                fx = (fx % 1 + 1) % 1; if (Math.abs(fx - 1) < 1e-5) fx = 0;
+                fy = (fy % 1 + 1) % 1; if (Math.abs(fy - 1) < 1e-5) fy = 0;
+                fz = (fz % 1 + 1) % 1; if (Math.abs(fz - 1) < 1e-5) fz = 0;
+                
+                const posKey = `${atom.symbol}-${fx.toFixed(4)},${fy.toFixed(4)},${fz.toFixed(4)}`;
+                if (!uniquePositions.has(posKey)) {
+                    uniquePositions.add(posKey);
+                    fullCellAtoms.push({ ...atom, fx, fy, fz });
+                }
+            });
+        });
+        return fullCellAtoms;
+    }
+
+    function calculateDistances(cell, atoms) {
+        const ca = Math.cos(cell.alpha), cb = Math.cos(cell.beta), cg = Math.cos(cell.gamma);
+        const volume = cell.a * cell.b * cell.c * Math.sqrt(1 - ca*ca - cb*cb - cg*cg + 2*ca*cb*cg);
+        const sin_g = Math.sin(cell.gamma);
+
+        const m = [
+            [cell.a, cell.b * cg, cell.c * cb],
+            [0,      cell.b * sin_g, cell.c * (ca - cb * cg) / sin_g],
+            [0,      0,            volume / (cell.a * cell.b * sin_g)]
+        ];
+        
+        const toCartesian = (fx, fy, fz) => ({
+            x: m[0][0] * fx + m[0][1] * fy + m[0][2] * fz,
+            y: m[1][1] * fy + m[1][2] * fz,
+            z: m[2][2] * fz
+        });
+
+        const distances = [];
+        const cutoff = parseFloat(document.getElementById('cutoff-dist').value) || 6.0;
+
+        for (let i = 0; i < atoms.length; i++) {
+            const atomA = atoms[i];
+            for (let j = i; j < atoms.length; j++) {
+                const atomB = atoms[j];
+                
+                for (let dx = -1; dx <= 1; dx++) {
+                    for (let dy = -1; dy <= 1; dy++) {
+                        for (let dz = -1; dz <= 1; dz++) {
+                            if (i === j && dx === 0 && dy === 0 && dz === 0) continue;
+                            
+                            let dfx = atomB.fx + dx - atomA.fx;
+                            let dfy = atomB.fy + dy - atomA.fy;
+                            let dfz = atomB.fz + dz - atomA.fz;
+
+                            const cartVec = toCartesian(dfx, dfy, dfz);
+                            const dist = Math.sqrt(cartVec.x**2 + cartVec.y**2 + cartVec.z**2);
+
+                            if (dist > 1e-4 && dist < cutoff) {
+                                const pairKey = [atomA.symbol, atomB.symbol].sort().join('-');
+                                distances.push({ pair: pairKey, dist: dist });
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return distances;
+    }
+</script>
+</body>
+</html>
