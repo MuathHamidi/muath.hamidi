@@ -185,7 +185,7 @@
                 // Assuming data file is in a 'data' folder relative to the HTML file's location.
                 // If the HTML is in the root, and data is in root/data/, path is 'data/...'
                 // If HTML is in a folder like 'pages/', path should be '../data/...'
-                const rawData = await fetch('data/interatomic_distances.txt').then(res => {
+                const rawData = await fetch('../data/interatomic_distances.txt').then(res => {
                     if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}.`);
                     return res.text();
                 });
