@@ -182,7 +182,10 @@
         // --- Initialization ---
         async function initializeApp() {
             try {
-                const rawData = await fetch('../data/interatomic_distances.txt').then(res => {
+                // Assuming data file is in a 'data' folder relative to the HTML file's location.
+                // If the HTML is in the root, and data is in root/data/, path is 'data/...'
+                // If HTML is in a folder like 'pages/', path should be '../data/...'
+                const rawData = await fetch('data/interatomic_distances.txt').then(res => {
                     if (!res.ok) throw new Error(`HTTP error! Status: ${res.status}.`);
                     return res.text();
                 });
@@ -193,7 +196,7 @@
 
             } catch (error) {
                 console.error('Initialization failed:', error);
-                statusMessage.textContent = `Error: ${error.message} Could not load or process data file.`;
+                statusMessage.textContent = `Error: ${error.message} Could not load or process data file. Please ensure 'data/interatomic_distances.txt' is accessible.`;
             }
         }
 
@@ -204,7 +207,7 @@
                 const parts = line.trim().split(/\s+/);
                 if (parts.length < 4 || parts.length % 2 !== 0) return;
 
-                const [atom1, atom2] = [parts[0], parts[1]];
+                const [atom1, atom2] = [parts[0], parts[1]].sort(); // Sort to handle O-C and C-O as the same key
                 const key = `${atom1}-${atom2}`;
                 if (!data[key]) data[key] = [];
 
@@ -276,11 +279,17 @@
             } else {
                 // Second element selection
                 if (clickedSymbol === firstElementSelected) {
-                    // Clicked same element, so deselect
-                    firstElementSelected = null;
-                    updateTableStyles();
-                    if (distanceChart) distanceChart.clear();
-                    statsOutput.style.display = 'none';
+                    // MODIFIED: User clicked the same element again. Treat this as selecting a pair with itself (e.g., O-O).
+                    // The `highlighted` class confirms that this is a valid pair according to our dataset.
+                    if (element.classList.contains('highlighted')) {
+                        const pairData = findPairData(firstElementSelected, clickedSymbol);
+                        if (pairData) {
+                            visualizeData(`${firstElementSelected}-${clickedSymbol}`, pairData);
+                            calculateAndDisplayStats(pairData);
+                        }
+                        firstElementSelected = null; // Reset for next selection
+                        updateTableStyles();
+                    }
                 } else if (element.classList.contains('highlighted')) {
                     // Clicked a valid partner
                     const pairData = findPairData(firstElementSelected, clickedSymbol);
@@ -291,8 +300,10 @@
                     firstElementSelected = null; // Reset for next selection
                     updateTableStyles();
                 } else {
-                    // Clicked a different, non-partner element
+                    // Clicked a different, non-partner element. Start a new selection.
                     firstElementSelected = clickedSymbol;
+                    if (distanceChart) distanceChart.destroy();
+                    statsOutput.style.display = 'none';
                     updateTableStyles();
                 }
             }
@@ -326,7 +337,8 @@
 
         // --- Charting and Stats ---
         function findPairData(el1, el2) {
-            return parsedData[`${el1}-${el2}`] || parsedData[`${el2}-${el1}`] || null;
+            const sortedPair = [el1, el2].sort();
+            return parsedData[`${sortedPair[0]}-${sortedPair[1]}`] || null;
         }
         
         function visualizeData(pair, data) {
@@ -375,7 +387,6 @@
             });
         }
         
-        // MODIFIED: This function is updated to include Standard Deviation.
         function calculateAndDisplayStats(data) {
             if (!data || data.length === 0) {
                 statsOutput.style.display = 'none';
