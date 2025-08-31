@@ -59,7 +59,6 @@ title: Muath Hamidi CV
 
 ## Memberships
 *   **2024-Now:** Member of Andrea Bianchi Research Group, Université de Montréal.
-*   **2023-2024:** Member of Sean Molesky Research Group, Polytechnique Montréal.
 *   **2021-Now:** Member of Regroupement québécois sur les matériaux de pointe (RQMP).
 *   **2021-Now:** Member of Institut Transdisciplinaire d'Information Quantique (INTRIQ).
 *   **2021-2024:** Member of Centre for the Physics of Materials (CPM), McGill University.
