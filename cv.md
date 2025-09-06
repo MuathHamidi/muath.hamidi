@@ -74,7 +74,7 @@ title: Muath Hamidi CV
 *   **2025:** RQMP Grand Conference, Montreal, Quebec.
 *   **2025:** Intersection of AI and Quantum - Joint Institut Courtois and Mila Conference, Montreal, Quebec.
 *   **2024:** RQMP Grand Conference, Montreal, Quebec.
-*   **2023:** IQT Canada, Montreal, Quebec.
+*   **2023:** Inside Quantum Technology (IQT) Conference, Montreal, Quebec.
 *   **2022:** Fall 2022 INTRIQ Meeting, Bromont, Quebec.
 *   **2022:** Spring 2022 INTRIQ Meeting, Bromont, Quebec.
 *   **2019:** Forschungszentrum Jülich Summer School - Quantum Optics, Electron microscopy, Cosmology, String Theory - Birzeit University.
