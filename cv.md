@@ -69,7 +69,7 @@ title: Muath Hamidi CV
 *   **2018-2019:** Chair of the Planning Committee of Astronomy Club, Birzeit University.
 *   **2017-2018:** Member of Astronomy Club, Birzeit University
 
-## Workshops Attended
+## Grand Conferences Attended
 *   **2025:** Conference on Strongly Correlated Electron Systems 2025 (SCES 2025), Montreal, Quebec.
 *   **2025:** RQMP Grand Conference, Montreal, Quebec.
 *   **2025:** Intersection of AI and Quantum - Joint Institut Courtois and Mila Conference, Montreal, Quebec.
