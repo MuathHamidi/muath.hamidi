@@ -82,7 +82,7 @@ title: Muath Hamidi CV
 *   **2017:** ICTP & CERN conference at Birzeit University.
 
 ## Other Activities
-*   **2019:** Helped organise the SCES 2025 conference (Student volunteer).
+*   **2025:** Helped organise the SCES 2025 conference (Student volunteer).
 *   **2019:** Accomplished 155 hours of scientific community work.
 *   **2016:** 2nd Place at the National Physics Olympics, Palestine. (Participant)
 *   **2015:** AMEDEAST Programme. (Participant)
