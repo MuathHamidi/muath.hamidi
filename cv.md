@@ -66,7 +66,7 @@ title: Muath Hamidi CV
 *   **2020-2021:** Member of Faculty of Science Council, Birzeit University.
 *   **2020-2021:** Member of Physics Club Council, Birzeit University.
 *   **2019-2020:** Chair of Astronomy Club, Birzeit University.
-*   **2018-2019:** Chair of the Planning Committee of Astronomy Club, Birzeit University.
+*   **2018-2019:** Chair of the Planning Committee of the Astronomy Club, Birzeit University.
 *   **2017-2018:** Member of Astronomy Club, Birzeit University
 
 ## Grand Conferences Attended
@@ -77,9 +77,9 @@ title: Muath Hamidi CV
 *   **2023:** Inside Quantum Technology (IQT) Conference, Montreal, Quebec.
 *   **2022:** Fall 2022 INTRIQ Meeting, Bromont, Quebec.
 *   **2022:** Spring 2022 INTRIQ Meeting, Bromont, Quebec.
-*   **2019:** Forschungszentrum Jülich Summer School - Quantum Optics, Electron microscopy, Cosmology, String Theory - Birzeit University.
-*   **2018:** German-Palestinian Science Bridge conference - Biophysics - Birzeit University.
-*   **2017:** ICTP & CERN conference at Birzeit University.
+*   **2019:** Forschungszentrum Jülich Summer School - Quantum Optics, Electron Microscopy, Cosmology, String Theory - Birzeit University, Palestine.
+*   **2018:** German-Palestinian Science Bridge conference - Biophysics - Birzeit University, Palestine.
+*   **2017:** ICTP & CERN conference at Birzeit University, Palestine.
 
 ## Other Activities
 *   **2025:** Helped organise the SCES 2025 conference (Student volunteer).
