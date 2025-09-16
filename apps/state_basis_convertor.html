@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum Superposition Calculator</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #42a5f5; /* A bright, accessible blue for dark themes */
+            --primary-color-dark: #1e88e5;
+            --accent-color: #00b0ff;
+            --success-color: #66bb6a; /* Green for success feedback */
+            --text-color: #eceff1; /* Off-white for readability */
+            --text-color-secondary: #90a4ae; /* Muted text for descriptions */
+            --background-color: #212121; /* Dark Grey */
+            --surface-color: #263238; /* Blue Grey 900 */
+            --border-color: rgba(255, 255, 255, 0.12);
+        }
+
+        body { font-family: 'Roboto', sans-serif; line-height: 1.6; color: var(--text-color); background-color: var(--background-color); margin: 0; padding: 20px; }
+        .main-container { max-width: 900px; margin: 0 auto; }
+        h1, h2 { font-weight: 400; color: var(--text-color); border-bottom: 1px solid var(--border-color); padding-bottom: 8px; }
+        h1 { font-size: 2.2em; margin-bottom: 10px; }
+        h2 { font-size: 1.5em; margin-top: 40px; }
+        p { color: var(--text-color-secondary); }
+
+        .card { background-color: var(--surface-color); padding: 25px 30px; border-radius: 12px; border: 1px solid var(--border-color); margin-bottom: 25px; }
+        .controls { display: flex; gap: 20px; align-items: flex-end; flex-wrap: wrap; }
+        .control-group { display: flex; flex-direction: column; }
+
+        label { font-weight: 500; font-size: 0.8em; margin-bottom: 8px; color: var(--primary-color); text-transform: uppercase; }
+
+        select, input[type="text"] {
+            padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); background-color: #37474f;
+            color: var(--text-color); font-size: 16px; transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        select:focus, input[type="text"]:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 2px rgba(66, 165, 245, 0.3); }
+
+        button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 20px; font-size: 14px; font-weight: 500;
+            border-radius: 6px; border: none; background-color: var(--primary-color); color: #000; cursor: pointer; text-transform: uppercase; transition: background-color 0.2s, width 0.2s; }
+        button:hover { background-color: var(--primary-color-dark); }
+        
+        #normalize-btn { background-color: #00897b; color: #fff; }
+        #normalize-btn:hover { background-color: #00695c; }
+        #normalize-btn.normalized { background-color: var(--success-color); }
+
+        #superposition-list { list-style-type: none; padding: 0; }
+        #superposition-list li { background-color: #37474f; margin-bottom: 8px; padding: 10px 15px; border-radius: 6px;
+            display: flex; justify-content: space-between; align-items: center; font-family: "Courier New", monospace; border: 1px solid var(--border-color); }
+        
+        .remove-btn { background-color: transparent; color: #ef5350; padding: 5px; min-width: auto; border-radius: 50%; }
+        .remove-btn:hover { background-color: rgba(239, 83, 80, 0.1); }
+        .remove-btn .material-icons { color: #ef5350; }
+        
+        .result-header, .mode-switcher { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+        #norm-display {
+            background-color: #37474f; border: 1px solid var(--border-color); border-radius: 8px;
+            padding: 10px 15px; text-align: center; font-size: 1.1em; font-family: "Courier New", monospace;
+        }
+        #norm-display strong { color: var(--primary-color); font-size: 1.2em; }
+        #norm-display small { display: block; margin-top: 5px; color: var(--text-color-secondary); font-family: 'Roboto', sans-serif; }
+        
+        .view-toggle button, .mode-switcher button {
+            background-color: transparent; border: 1px solid var(--border-color); color: var(--text-color-secondary);
+            padding: 8px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s;
+        }
+        .view-toggle button.active, .mode-switcher button.active { background-color: var(--primary-color); color: #000; border-color: var(--primary-color); }
+
+        #result-container { font-family: "Fira Code", "Courier New", monospace; font-size: 1.1em; background-color: var(--surface-color);
+            padding: 20px; border-radius: 8px; white-space: pre-wrap; word-wrap: break-word; }
+        
+        .term { display: inline-block; margin-right: 15px; margin-bottom: 10px; }
+        .coeff { color: #ffab40; }
+        .prob { color: #81c784; }
+        .prob-percent { color: var(--text-color-secondary); font-size: 0.9em; }
+        .orbital, .j-state { color: #4dd0e1; }
+        .spin { color: #b39ddb; font-weight: bold; }
+        .plus-sign { color: var(--text-color); font-weight: normal; margin: 0 0.5em; }
+        .material-icons { color: inherit; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    <h1>Quantum Superposition Calculator</h1>
+    
+    <div class="card">
+        <div class="mode-switcher">
+            <label>Conversion Mode</label>
+            <div>
+                <button id="mode-j-to-orb-btn" class="active">|J, m<sub>J</sub>⟩ → Orbitals</button>
+                <button id="mode-orb-to-j-btn">Orbitals → |J, m<sub>J</sub>⟩</button>
+            </div>
+        </div>
+        <div class="control-group">
+            <label for="l-select">Master Orbital Type (L)</label>
+            <select id="l-select">
+                <option value="0">s-orbital (L=0)</option>
+                <option value="1">p-orbital (L=1)</option>
+                <option value="2" selected>d-orbital (L=2)</option>
+                <option value="3">f-orbital (L=3)</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="card">
+        <h2>State Builder</h2>
+        <div id="state-builder-content">
+            <!-- Content will be injected by JavaScript based on mode -->
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Current Superposition: |Ψ⟩</h2>
+        <ul id="superposition-list"></ul>
+        <button id="normalize-btn">
+             <span class="material-icons" id="normalize-icon">architecture</span> <span id="normalize-text">Normalize</span>
+        </button>
+    </div>
+    
+    <div class="card">
+        <h2>Final Result</h2>
+        <div class="result-header">
+            <div id="norm-display"></div>
+            <div class="view-toggle">
+                <button id="view-wave-btn" class="active">Wavefunction</button>
+                <button id="view-prob-btn">Probabilities</button>
+            </div>
+        </div>
+        <div id="result-container">
+            Select a mode and add states to the superposition.
+        </div>
+    </div>
+</div>
+
+    <script src="quantum_data.js"></script>
+    <script>
+        class Complex {constructor(r=0,i=0){this.r=r;this.i=i}add(z){return new Complex(this.r+z.r,this.i+z.i)}multiply(z){return new Complex(this.r*z.r-this.i*z.i,this.r*z.i+this.i*z.r)}divide(z){const d=z.r*z.r+z.i*z.i;if(Math.abs(d)<1e-12)return new Complex(0,0);return new Complex((this.r*z.r+this.i*z.i)/d,(this.i*z.r-this.r*z.i)/d)}normSq(){return this.r*this.r+this.i*this.i}toString(p=3){if(Math.abs(this.r)<1e-9&&Math.abs(this.i)<1e-9)return"0";const r=Math.abs(this.r)>1e-9?this.r.toFixed(p):"",i=Math.abs(this.i)>1e-9;let s="";if(i){if(Math.abs(Math.abs(this.i)-1)<1e-9)s=this.i>0?"i":"-i";else s=`${this.i.toFixed(p)}i`}if(r&&i)return`(${r} ${this.i>0?"+":"-"} ${s.replace("-","")})`;return r||s}}
+        function parseComplex(s){s=s.replace(/\s/g,"");if(!s)return new Complex(0,0);if("i"===s)return new Complex(0,1);if("-i"===s)return new Complex(0,-1);let m=s.match(/^([+-]?\d*\.?\d*)([+-])?(\d*\.?\d*)i$/);if(m){const r=parseFloat(m[1]||"0"),s=m[2]?"-"===m[2]?-1:1:1,i=parseFloat(m[3]||"1");return new Complex(r,s*i)}return m=s.match(/^([+-]?\d*\.?\d*)i$/),m?new Complex(0,parseFloat(m[1].replace("i","")||"1")):(m=s.match(/^([+-]?\d*\.?\d*)$/),m?new Complex(parseFloat(m[1]),0):new Complex(NaN,NaN))}
+
+        let superpositionStates=[];
+        let currentMode = 'JToOrbital'; // 'JToOrbital' or 'OrbitalToJ'
+        let currentView = 'wavefunction'; // 'wavefunction' or 'probability'
+
+        const lSelect = document.getElementById("l-select");
+        const stateBuilderContent = document.getElementById("state-builder-content");
+        const superpositionList = document.getElementById("superposition-list");
+        const resultContainer = document.getElementById("result-container");
+        const normalizeBtn = document.getElementById("normalize-btn");
+        const normDisplay = document.getElementById("norm-display");
+        const viewWaveBtn = document.getElementById("view-wave-btn");
+        const viewProbBtn = document.getElementById("view-prob-btn");
+        const modeJToOrbBtn = document.getElementById("mode-j-to-orb-btn");
+        const modeOrbToJBtn = document.getElementById("mode-orb-to-j-btn");
+
+        function getFinalCoefficients() {
+            const finalCoeffs = new Map();
+            if (currentMode === 'JToOrbital') {
+                for (const state of superpositionStates) {
+                    const { L, J, mJ, coeff: userCoeff } = state;
+                    const jStr = `${2*J}/2`, mjStr = `${2*mJ}/2`;
+                    for (const cgTerm of cgCoeffs[L][jStr][mjStr]) {
+                        const { mL, mS, coeff: cgData } = cgTerm;
+                        const sign = cgData[0] < 0 ? -1 : 1;
+                        const cgVal = sign * Math.sqrt(Math.abs(cgData[0]) / cgData[1]);
+                        const cgCoeff = new Complex(cgVal, 0);
+                        const totalCoeff_mL = userCoeff.multiply(cgCoeff);
+                        for (const realTerm of mlToRealMap[L][mL]) {
+                            const { o: orbitalName, c: conversionCoeff } = realTerm;
+                            const finalCoeffForTerm = totalCoeff_mL.multiply(conversionCoeff);
+                            const spin = mS > 0 ? "↑" : "↓";
+                            const key = `${orbitalName}_${spin}`;
+                            const existingCoeff = finalCoeffs.get(key) || new Complex(0, 0);
+                            finalCoeffs.set(key, existingCoeff.add(finalCoeffForTerm));
+                        }
+                    }
+                }
+            } else { // OrbitalToJ mode
+                for (const state of superpositionStates) {
+                    const { L, orbital, spin, coeff: userCoeff } = state;
+                    const mS = spin === '↑' ? 0.5 : -0.5;
+                    const mlExpansion = realToMlMap[L][orbital];
+                    for (const mlTerm of mlExpansion) {
+                        const { mL, c: conversionCoeff } = mlTerm;
+                        const mJ = mL + mS;
+                        const coeff_ml = userCoeff.multiply(conversionCoeff);
+                        
+                        for (const jStr in cgCoeffs[L]) {
+                            for (const mjStr in cgCoeffs[L][jStr]) {
+                                for (const cgTerm of cgCoeffs[L][jStr][mjStr]) {
+                                    if (cgTerm.mL === mL && cgTerm.mS === mS) {
+                                        const sign = cgTerm.coeff[0] < 0 ? -1 : 1;
+                                        const cgVal = sign * Math.sqrt(Math.abs(cgTerm.coeff[0]) / cgTerm.coeff[1]);
+                                        const cgCoeff = new Complex(cgVal, 0);
+                                        const finalCoeffForTerm = coeff_ml.multiply(cgCoeff);
+                                        const key = `${jStr}_${mjStr}`;
+                                        const existingCoeff = finalCoeffs.get(key) || new Complex(0, 0);
+                                        finalCoeffs.set(key, existingCoeff.add(finalCoeffForTerm));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            let totalNormSq = 0;
+            for (const coeff of finalCoeffs.values()) { totalNormSq += coeff.normSq(); }
+            return { finalCoeffs, totalNormSq };
+        }
+
+        function addState() {
+            const coeff = parseComplex(document.getElementById("coeff-input").value);
+            if (isNaN(coeff.r) || isNaN(coeff.i)) return alert("Invalid coefficient format.");
+            const L = parseInt(lSelect.value);
+            if (currentMode === 'JToOrbital') {
+                const J = parseFloat(document.getElementById("j-select").value);
+                const mJ = parseFloat(document.getElementById("mj-select").value);
+                superpositionStates.push({ type: 'J', L, J, mJ, coeff });
+            } else {
+                const orbital = document.getElementById("orbital-select").value;
+                const spin = document.getElementById("spin-select").value;
+                superpositionStates.push({ type: 'Orbital', L, orbital, spin, coeff });
+            }
+            updateUI();
+        }
+        function removeState(i) { superpositionStates.splice(i, 1); updateUI(); }
+        function normalizeCoeffs() {
+            if (superpositionStates.length === 0) return;
+            const { totalNormSq } = getFinalCoefficients();
+            if (totalNormSq > 1e-9 && Math.abs(totalNormSq - 1.0) > 1e-9) {
+                const norm = Math.sqrt(totalNormSq);
+                superpositionStates = superpositionStates.map(state => ({ ...state, coeff: state.coeff.divide(new Complex(norm, 0)) }));
+                
+                const normalizeText = document.getElementById('normalize-text'), normalizeIcon = document.getElementById('normalize-icon');
+                const originalText = normalizeText.textContent, originalIcon = normalizeIcon.textContent;
+                normalizeBtn.classList.add('normalized'); normalizeText.textContent = "Normalized!"; normalizeIcon.textContent = "done";
+                setTimeout(() => { normalizeBtn.classList.remove('normalized'); normalizeText.textContent = originalText; normalizeIcon.textContent = originalIcon; }, 1500);
+            }
+            updateUI();
+        }
+        function setView(view) { currentView = view; updateUI(); }
+        
+        function setMode(mode) {
+            currentMode = mode;
+            superpositionStates = [];
+            modeJToOrbBtn.classList.toggle('active', mode === 'JToOrbital');
+            modeOrbToJBtn.classList.toggle('active', mode === 'OrbitalToJ');
+            renderStateBuilder();
+            updateUI();
+        }
+
+        function updateUI() {
+            renderSuperpositionList();
+            renderFinalResult();
+            viewWaveBtn.classList.toggle('active', currentView === 'wavefunction');
+            viewProbBtn.classList.toggle('active', currentView === 'probability');
+        }
+
+        function renderSuperpositionList() {
+            superpositionList.innerHTML = "";
+            if (superpositionStates.length === 0) {
+                superpositionList.innerHTML = "<li>No states added yet.</li>";
+                return;
+            }
+            superpositionStates.forEach((s, i) => {
+                const li = document.createElement("li");
+                let stateHTML;
+                if (s.type === 'J') {
+                    const jStr = `${2*s.J}/2`, mjStr = `${s.mJ>0?"+":""}${2*s.mJ}/2`;
+                    stateHTML = `|J=${jStr}, m<sub>J</sub>=${mjStr}⟩`;
+                } else {
+                    stateHTML = `|${s.orbital}⟩<span class="spin">|${s.spin}⟩</span>`;
+                }
+                const coeffStr = s.coeff.toString();
+                li.innerHTML = `<span>(<span class="coeff">${coeffStr}</span>) ${stateHTML}</span><button class="remove-btn" onclick="removeState(${i})"><span class="material-icons">delete</span></button>`;
+                superpositionList.appendChild(li);
+            });
+        }
+        
+        function renderFinalResult() {
+            const { finalCoeffs, totalNormSq } = getFinalCoefficients();
+            if (superpositionStates.length === 0) {
+                resultContainer.innerHTML = "Add states to the superposition.";
+                normDisplay.innerHTML = "";
+                return;
+            }
+
+            if (currentView === 'wavefunction') {
+                normDisplay.innerHTML = `<strong>⟨Ψ|Ψ⟩ = ${totalNormSq.toFixed(5)}</strong><small>Total Norm (Should be 1)</small>`;
+            } else {
+                normDisplay.innerHTML = `<strong>Σ P(φᵢ) = ${totalNormSq.toFixed(5)}</strong><small>Sum of Probabilities</small>`;
+            }
+            
+            let resultHTML = "", isFirstTerm = true;
+            const sortedTerms = Array.from(finalCoeffs.entries()).sort((a,b) => {
+                if (currentMode === 'JToOrbital') return a[0].localeCompare(b[0]);
+                const [jA, mjA] = a[0].split('_').map(s => parseFloat(s.replace('/2','')));
+                const [jB, mjB] = b[0].split('_').map(s => parseFloat(s.replace('/2','')));
+                return jB - jA || mjB - mjA;
+            });
+
+            for (const [key, coeff] of sortedTerms) {
+                if (coeff.normSq() < 1e-9) continue;
+                !isFirstTerm && (resultHTML += `<span class="plus-sign">+</span>`);
+                isFirstTerm = false;
+                
+                let stateHTML;
+                if (currentMode === 'JToOrbital') {
+                    const [orbital, spin] = key.split("_");
+                    stateHTML = `<span class="orbital">|${orbital}⟩</span><span class="spin">|${spin}⟩</span>`;
+                } else {
+                    const [jStr, mjStr] = key.split("_");
+                    stateHTML = `<span class="j-state">|J=${jStr}, m<sub>J</sub>=${mjStr}⟩</span>`;
+                }
+                
+                if (currentView === 'wavefunction') {
+                    resultHTML += `<div class="term"><span class="coeff">${coeff.toString()}</span> ${stateHTML}</div>`;
+                } else {
+                    const prob = coeff.normSq();
+                    const percentage = totalNormSq > 1e-9 ? (prob / totalNormSq) * 100 : 0;
+                    resultHTML += `<div class="term"><span class="prob">${prob.toFixed(4)}</span> <span class="prob-percent">(${percentage.toFixed(2)}%)</span> ${stateHTML}</div>`;
+                }
+            }
+            resultContainer.innerHTML = "" === resultHTML ? "The superposition resulted in a null state." : resultHTML;
+        }
+
+        function renderStateBuilder() {
+            let html = '';
+            if (currentMode === 'JToOrbital') {
+                html = `
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="j-select">Total Ang. Momentum (J)</label>
+                        <select id="j-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label for="mj-select">Projection (m<sub>J</sub>)</label>
+                        <select id="mj-select"></select>
+                    </div>
+                    <div class="control-group">
+                        <label for="coeff-input">Coefficient</label>
+                        <input type="text" id="coeff-input" value="1">
+                    </div>
+                    <button id="add-state-btn">
+                        <span class="material-icons">add</span> Add State
+                    </button>
+                </div>`;
+            } else { // OrbitalToJ
+                const L = parseInt(lSelect.value);
+                const orbitalOptions = Object.keys(realToMlMap[L]).map(orb => `<option value="${orb}">${orb.replace(/<sub>/g, '_').replace(/<\/sub>/g,'')}</option>`).join('');
+                html = `
+                <div class="controls">
+                    <div class="control-group">
+                        <label for="orbital-select">Orbital</label>
+                        <select id="orbital-select">${orbitalOptions}</select>
+                    </div>
+                    <div class="control-group">
+                        <label for="spin-select">Spin</label>
+                        <select id="spin-select"><option value="↑">↑ (Up)</option><option value="↓">↓ (Down)</option></select>
+                    </div>
+                    <div class="control-group">
+                        <label for="coeff-input">Coefficient</label>
+                        <input type="text" id="coeff-input" value="1">
+                    </div>
+                    <button id="add-state-btn">
+                        <span class="material-icons">add</span> Add State
+                    </button>
+                </div>`;
+            }
+            stateBuilderContent.innerHTML = html;
+            document.getElementById("add-state-btn").addEventListener("click", addState);
+            if (currentMode === 'JToOrbital') {
+                document.getElementById("j-select").addEventListener("change", updateMjOptions);
+                updateJOptions();
+            }
+        }
+
+        function updateJOptions(){const L=parseInt(lSelect.value);const jSelect = document.getElementById("j-select");jSelect.innerHTML="";const jP=L+.5,jM=L-.5;let oP=document.createElement("option");oP.value=jP,oP.textContent=`${2*jP}/2`,jSelect.appendChild(oP);if(L>0&&jM>=.5){let oM=document.createElement("option");oM.value=jM,oM.textContent=`${2*jM}/2`,jSelect.appendChild(oM)}updateMjOptions()}
+        function updateMjOptions(){const jSelect = document.getElementById("j-select");const mjSelect = document.getElementById("mj-select");if(!jSelect || !mjSelect) return; const J=parseFloat(jSelect.value);mjSelect.innerHTML="";for(let mJ=J;mJ>=-J;mJ--){let o=document.createElement("option");o.value=mJ,o.textContent=`${mJ>0?"+":""}${2*mJ}/2`,mjSelect.appendChild(o)}}
+
+        // --- Initial Setup ---
+        lSelect.addEventListener("change",() => {
+            superpositionStates=[];
+            renderStateBuilder();
+            updateUI();
+        });
+        normalizeBtn.addEventListener("click", normalizeCoeffs);
+        viewWaveBtn.addEventListener("click", () => setView('wavefunction'));
+        viewProbBtn.addEventListener("click", () => setView('probability'));
+        modeJToOrbBtn.addEventListener("click", () => setMode('JToOrbital'));
+        modeOrbToJBtn.addEventListener("click", () => setMode('OrbitalToJ'));
+        
+        window.onload=()=>{
+            setMode('JToOrbital');
+        };
+    </script>
+</body>
+</html>
