@@ -139,7 +139,7 @@
     </div>
 </div>
 
-    <script src="quantum_data.js"></script>
+    <script src="../data/quantum_data.js"></script>
     <script>
         class Complex {constructor(r=0,i=0){this.r=r;this.i=i}add(z){return new Complex(this.r+z.r,this.i+z.i)}multiply(z){return new Complex(this.r*z.r-this.i*z.i,this.r*z.i+this.i*z.r)}divide(z){const d=z.r*z.r+z.i*z.i;if(Math.abs(d)<1e-12)return new Complex(0,0);return new Complex((this.r*z.r+this.i*z.i)/d,(this.i*z.r-this.r*z.i)/d)}normSq(){return this.r*this.r+this.i*this.i}toString(p=3){if(Math.abs(this.r)<1e-9&&Math.abs(this.i)<1e-9)return"0";const r=Math.abs(this.r)>1e-9?this.r.toFixed(p):"",i=Math.abs(this.i)>1e-9;let s="";if(i){if(Math.abs(Math.abs(this.i)-1)<1e-9)s=this.i>0?"i":"-i";else s=`${this.i.toFixed(p)}i`}if(r&&i)return`(${r} ${this.i>0?"+":"-"} ${s.replace("-","")})`;return r||s}}
         function parseComplex(s){s=s.replace(/\s/g,"");if(!s)return new Complex(0,0);if("i"===s)return new Complex(0,1);if("-i"===s)return new Complex(0,-1);let m=s.match(/^([+-]?\d*\.?\d*)([+-])?(\d*\.?\d*)i$/);if(m){const r=parseFloat(m[1]||"0"),s=m[2]?"-"===m[2]?-1:1:1,i=parseFloat(m[3]||"1");return new Complex(r,s*i)}return m=s.match(/^([+-]?\d*\.?\d*)i$/),m?new Complex(0,parseFloat(m[1].replace("i","")||"1")):(m=s.match(/^([+-]?\d*\.?\d*)$/),m?new Complex(parseFloat(m[1]),0):new Complex(NaN,NaN))}
