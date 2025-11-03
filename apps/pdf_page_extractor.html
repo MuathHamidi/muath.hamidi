@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Page Extractor Pro</title>
+    
+    <!-- PDF.js & JSZip Libraries from CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;</script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #121212; --surface-color: #1e1e1e; --primary-color: #bb86fc;
+            --secondary-color: #03dac6; --error-color: #cf6679; --text-on-bg: #e0e0e0;
+            --text-on-surface: #ffffff; --border-color: #333; --font-family: 'Segoe UI', 'Roboto', sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); background-color: var(--bg-color); color: var(--text-on-bg); line-height: 1.6; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 1.5rem; }
+        header { text-align: center; margin-bottom: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 1.5rem; }
+        h1 { color: var(--text-on-surface); font-size: 2.5rem; margin-bottom: 0.5rem; }
+        header p { font-size: 1.1rem; color: #b0b0b0; }
+
+        .controls {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem;
+            align-items: end; background-color: var(--surface-color); padding: 2rem;
+            border-radius: 12px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); margin-bottom: 2.5rem;
+            border: 2px dashed transparent; transition: border-color 0.3s;
+        }
+        .controls.drag-over { border-color: var(--primary-color); }
+        .control-group { display: flex; flex-direction: column; gap: 0.5rem; }
+        label { font-weight: 500; color: #b0b0b0; font-size: 0.9rem; }
+        input[type="file"] { display: none; }
+
+        .file-label {
+            background-color: var(--surface-color); color: var(--secondary-color); border: 2px dashed var(--secondary-color);
+            padding: 10px 20px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s, color 0.3s;
+            text-align: center;
+        }
+        .file-label:hover { background-color: var(--secondary-color); color: var(--surface-color); }
+        #file-name { margin-top: 8px; font-style: italic; color: #888; font-size: 0.9em; text-align: center; }
+
+        input, select {
+            background-color: var(--bg-color); border: 1px solid var(--border-color);
+            color: var(--text-on-bg); padding: 10px; border-radius: 8px; font-size: 1rem;
+        }
+        input[type="number"] { width: 100px; text-align: center; }
+        input.invalid { border-color: var(--error-color); box-shadow: 0 0 0 2px rgba(207, 102, 121, 0.5); }
+        select { width: 100%; }
+        input:focus, select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(187, 134, 252, 0.5); }
+        input[type="range"] { padding: 0; }
+
+        .action-button {
+            background-color: var(--primary-color); color: var(--bg-color); font-weight: bold;
+            font-size: 1rem; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        .action-button.cancel { background-color: var(--error-color); }
+        .action-button:hover:not(:disabled) { transform: translateY(-2px); }
+        .action-button:disabled { background-color: #555; cursor: not-allowed; color: #888; transform: none; }
+        
+        #status { text-align: center; margin: 2rem 0; font-size: 1.1rem; min-height: 25px; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .spinner { width: 20px; height: 20px; border: 3px solid var(--border-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .output-container { text-align: center; }
+        #download-all-btn { display: none; margin-bottom: 2rem; }
+
+        .output-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2rem; }
+        .image-card { background-color: var(--surface-color); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2); display: flex; flex-direction: column; transition: transform 0.3s, box-shadow 0.3s; }
+        .image-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .image-card h3 { padding: 1rem; background-color: rgba(0,0,0,0.2); text-align: center; }
+        .image-container { padding: 1rem; }
+        .image-card img { width: 100%; height: auto; display: block; border-radius: 8px; background-color: #fff; }
+        .card-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; padding: 0 1rem 1rem 1rem; margin-top: auto; }
+        .card-btn { padding: 10px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: background-color 0.3s; }
+        .copy-btn { background-color: var(--secondary-color); color: var(--bg-color); }
+        .download-btn { background-color: transparent; color: var(--secondary-color); border: 2px solid var(--secondary-color); }
+        .remove-btn { background: transparent; color: #aaa; border: 2px solid #555; }
+        .copy-btn:hover { background-color: #02b3a1; }
+        .download-btn:hover { background-color: var(--secondary-color); color: var(--bg-color); }
+        .remove-btn:hover { background-color: #555; color: #fff; }
+    </style>
+</head>
+<body>
+
+    <main class="container">
+        <header>
+            <h1>PDF Page Extractor Pro</h1>
+            <p>Select or drop a PDF, choose pages & format, and get high-quality images. Fast, private, and secure.</p>
+        </header>
+
+        <section class="controls" id="controls-area">
+            <div class="control-group">
+                <label for="pdf-upload">1. Choose PDF (or Drop Here)</label>
+                <label for="pdf-upload" class="file-label">Select PDF</label>
+                <input type="file" id="pdf-upload" accept="application/pdf">
+                <div id="file-name">No file selected</div>
+            </div>
+            <div class="control-group">
+                <label for="start-page">2. Page Range</label>
+                <div style="display: flex; gap: 10px;">
+                    <input type="number" id="start-page" value="1" min="1" disabled aria-label="Starting page">
+                    <input type="number" id="end-page" value="1" min="1" disabled aria-label="Ending page">
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="output-format">3. Output Format</label>
+                <select id="output-format">
+                    <option value="png">PNG (Best Quality)</option>
+                    <option value="jpeg">JPEG (Smaller Size)</option>
+                </select>
+            </div>
+            <div class="control-group" id="quality-control" style="display: none;">
+                <label for="jpeg-quality">Quality (<span id="quality-value">92</span>%)</label>
+                <input type="range" id="jpeg-quality" min="10" max="100" value="92" aria-label="JPEG quality slider">
+            </div>
+            <button id="process-btn" class="action-button" disabled>4. Extract</button>
+        </section>
+
+        <div id="status" aria-live="polite"></div>
+        <section class="output-container">
+            <button id="download-all-btn" class="action-button">Download All as ZIP</button>
+            <div class="output-grid" id="output-grid"></div>
+        </section>
+    </main>
+
+    <template id="image-card-template">
+        <div class="image-card">
+            <h3></h3><div class="image-container"><img src="" alt=""></div>
+            <div class="card-actions">
+                <button class="card-btn copy-btn">Copy</button>
+                <button class="card-btn download-btn">Download</button>
+                <button class="card-btn remove-btn">Remove</button>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        // DOM Elements
+        const controlsArea = document.getElementById('controls-area');
+        const pdfUpload = document.getElementById('pdf-upload');
+        const fileNameDisplay = document.getElementById('file-name');
+        const startPageInput = document.getElementById('start-page');
+        const endPageInput = document.getElementById('end-page');
+        const outputFormatSelect = document.getElementById('output-format');
+        const qualityControl = document.getElementById('quality-control');
+        const jpegQualitySlider = document.getElementById('jpeg-quality');
+        const qualityValue = document.getElementById('quality-value');
+        const processBtn = document.getElementById('process-btn');
+        const statusDiv = document.getElementById('status');
+        const outputGrid = document.getElementById('output-grid');
+        const downloadAllBtn = document.getElementById('download-all-btn');
+        const imageCardTemplate = document.getElementById('image-card-template');
+
+        // State Management
+        let pdfFile = null, pdfDoc = null, generatedBlobs = [];
+        let isProcessing = false, shouldCancel = false;
+
+        // --- Event Listeners ---
+        pdfUpload.addEventListener('change', (e) => handleFile(e.target.files[0]));
+        controlsArea.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); controlsArea.classList.add('drag-over'); });
+        controlsArea.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); controlsArea.classList.remove('drag-over'); });
+        controlsArea.addEventListener('drop', (e) => {
+            e.preventDefault(); e.stopPropagation(); controlsArea.classList.remove('drag-over');
+            if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+        });
+        
+        [startPageInput, endPageInput].forEach(input => input.addEventListener('input', validatePageRange));
+        outputFormatSelect.addEventListener('change', () => {
+            qualityControl.style.display = outputFormatSelect.value === 'jpeg' ? 'flex' : 'none';
+        });
+        jpegQualitySlider.addEventListener('input', () => qualityValue.textContent = jpegQualitySlider.value);
+        
+        processBtn.addEventListener('click', processPDF);
+        downloadAllBtn.addEventListener('click', downloadAllAsZip);
+
+        async function handleFile(file) {
+            if (!file || !file.type.includes('pdf')) {
+                statusDiv.textContent = 'Please select a valid PDF file.';
+                return;
+            }
+            pdfFile = file;
+            fileNameDisplay.textContent = pdfFile.name;
+            statusDiv.innerHTML = '<div class="spinner"></div><span>Analyzing PDF...</span>';
+            resetOutput();
+
+            try {
+                const arrayBuffer = await pdfFile.arrayBuffer();
+                pdfDoc = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
+                const maxPage = pdfDoc.numPages;
+                startPageInput.max = maxPage; endPageInput.max = maxPage;
+                startPageInput.value = 1; endPageInput.value = maxPage;
+                startPageInput.disabled = false; endPageInput.disabled = false;
+                validatePageRange(); // This will enable the process button
+                statusDiv.textContent = `PDF loaded with ${maxPage} pages. Ready to extract.`;
+            } catch (error) {
+                let message = 'Could not read the PDF. It might be corrupted.';
+                if (error?.message?.toLowerCase().includes('password')) message = 'This PDF is password-protected.';
+                statusDiv.textContent = `Error: ${message}`;
+                resetUI();
+            }
+        }
+
+        async function processPDF() {
+            if (isProcessing) {
+                shouldCancel = true; statusDiv.textContent = 'Cancellation requested...'; processBtn.disabled = true;
+                return;
+            }
+            if (!pdfDoc) { alert('Please select a PDF file first!'); return; }
+            if (!validatePageRange()) return;
+
+            resetOutput();
+            isProcessing = true; shouldCancel = false;
+            processBtn.textContent = 'Cancel'; processBtn.classList.add('cancel'); processBtn.disabled = false;
+
+            const startPage = parseInt(startPageInput.value, 10), endPage = parseInt(endPageInput.value, 10);
+            const format = outputFormatSelect.value; const ext = format === 'jpeg' ? 'jpg' : 'png';
+            const quality = parseInt(jpegQualitySlider.value, 10) / 100;
+
+            try {
+                for (let i = startPage; i <= endPage; i++) {
+                    if (shouldCancel) { statusDiv.textContent = `Processing cancelled.`; break; }
+                    statusDiv.innerHTML = `<div class="spinner"></div><span>Rendering page ${i} of ${endPage}...</span>`;
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas'), context = canvas.getContext('2d');
+                    canvas.width = viewport.width; canvas.height = viewport.height;
+                    context.fillStyle = '#fff'; context.fillRect(0, 0, canvas.width, canvas.height);
+                    await page.render({ canvasContext: context, viewport }).promise;
+
+                    const blob = await new Promise(res => canvas.toBlob(res, `image/${format}`, quality));
+                    if (!shouldCancel) {
+                        const blobData = { name: `page_${i}.${ext}`, blob };
+                        generatedBlobs.push(blobData);
+                        createImageCard(blobData, i);
+                    }
+                    await new Promise(res => setTimeout(res, 0)); // Yield to main thread
+                }
+                if (!shouldCancel) statusDiv.textContent = `Successfully extracted ${generatedBlobs.length} page(s).`;
+                if (generatedBlobs.length > 1) downloadAllBtn.style.display = 'inline-block';
+            } catch (error) {
+                statusDiv.textContent = `Error: ${error.message || error.toString()}`;
+            } finally {
+                isProcessing = false; shouldCancel = false;
+                processBtn.textContent = '4. Extract'; processBtn.classList.remove('cancel');
+                validatePageRange(); // Re-validate to set button state correctly
+            }
+        }
+        
+        function createImageCard(blobData, pageNum) {
+            const imageUrl = URL.createObjectURL(blobData.blob);
+            const cardClone = imageCardTemplate.content.cloneNode(true);
+            const card = cardClone.querySelector('.image-card');
+            card.querySelector('h3').textContent = `Page ${pageNum}`;
+            const img = card.querySelector('img');
+            img.src = imageUrl; img.alt = `Preview of Page ${pageNum}`;
+
+            const safeFileName = pdfFile.name.replace(/\.pdf$/i, '').replace(/[<>:"/\\|?*]+/g, '_');
+            const downloadFileName = `${safeFileName}_${blobData.name}`;
+
+            const copyBtn = card.querySelector('.copy-btn');
+            copyBtn.addEventListener('click', async () => {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    try {
+                        await navigator.clipboard.write([new ClipboardItem({ [blobData.blob.type]: blobData.blob })]);
+                        copyBtn.textContent = 'Copied!'; setTimeout(() => copyBtn.textContent = 'Copy', 2000);
+                    } catch (err) { showToast('Copy failed. Opened image in new tab.'); window.open(imageUrl, '_blank'); }
+                } else { showToast('Clipboard not available. Opened in new tab.'); window.open(imageUrl, '_blank'); }
+            });
+
+            card.querySelector('.download-btn').addEventListener('click', () => {
+                const a = document.createElement('a'); a.href = imageUrl; a.download = downloadFileName;
+                document.body.appendChild(a); a.click(); a.remove();
+            });
+            
+            card.querySelector('.remove-btn').addEventListener('click', () => {
+                URL.revokeObjectURL(imageUrl);
+                generatedBlobs = generatedBlobs.filter(item => item.name !== blobData.name);
+                card.remove();
+                if (generatedBlobs.length <= 1) downloadAllBtn.style.display = 'none';
+            });
+            outputGrid.appendChild(card);
+        }
+
+        async function downloadAllAsZip() {
+            if (generatedBlobs.length === 0) return;
+            statusDiv.innerHTML = `<div class="spinner"></div><span>Creating ZIP file...</span>`;
+            const zip = new JSZip();
+            generatedBlobs.forEach(item => zip.file(item.name, item.blob));
+            const zipBlob = await zip.generateAsync({type:"blob"});
+            const safeFileName = pdfFile.name.replace(/\.pdf$/i, '').replace(/[<>:"/\\|?*]+/g, '_');
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(zipBlob); a.download = `${safeFileName}_pages.zip`;
+            document.body.appendChild(a); a.click(); a.remove();
+            URL.revokeObjectURL(a.href);
+            statusDiv.textContent = 'ZIP file download started.';
+        }
+
+        // --- Helper Functions ---
+        function validatePageRange() {
+            const start = parseInt(startPageInput.value, 10), end = parseInt(endPageInput.value, 10);
+            const max = parseInt(endPageInput.max, 10);
+            const isValid = !isNaN(start) && !isNaN(end) && start >= 1 && start <= end && end <= max;
+            processBtn.disabled = !isValid || isProcessing;
+            [startPageInput, endPageInput].forEach(el => el.classList.toggle('invalid', !isValid));
+            return isValid;
+        }
+        function resetUI() {
+            fileNameDisplay.textContent = 'No file selected';
+            [startPageInput, endPageInput].forEach(input => { input.disabled = true; input.value = 1; });
+            processBtn.disabled = true; pdfFile = null; pdfDoc = null; resetOutput();
+        }
+        function resetOutput() {
+            outputGrid.querySelectorAll('img').forEach(img => URL.revokeObjectURL(img.src));
+            outputGrid.innerHTML = ''; downloadAllBtn.style.display = 'none'; generatedBlobs = [];
+            if (!isProcessing) statusDiv.textContent = '';
+        }
+        function showToast(msg) {
+            const t = document.createElement('div'); t.textContent = msg;
+            Object.assign(t.style, { position: 'fixed', bottom: '20px', left: '50%', transform: 'translateX(-50%)', background: '#282828', color: '#fff', padding: '12px 20px', borderRadius: '8px', zIndex: 9999, boxShadow: '0 4px 10px rgba(0,0,0,0.5)' });
+            document.body.appendChild(t); setTimeout(() => t.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
