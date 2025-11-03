@@ -6,6 +6,8 @@ title: Apps
 
 Here you can find a collection of web tools I have created.
 
+## Physics Applications
+
 - **[Periodic Table](./apps/periodic_table.html)**: The periodic table and some information about the elements.
 - **[VSEPR Calculator](./apps/vsepr_calculator.html)**: A tool to predict the molecular geometry of a molecule based on the VSEPR theory.
 - **[Oxidation Number](./apps/oxidation_number.html)**: A tool to assign oxidation numbers to elements in any formula.
@@ -15,3 +17,7 @@ Here you can find a collection of web tools I have created.
 - **[Interatomic Distances Visualizer](./apps/interatomic_distances_visualizer.html)**: A tool to visualize the interatomic distances distribution.
 - **[CIF Maker](./apps/cif_maker.html)**: A tool to create CIF files from input data.
 - **[State Basis Convertor](./apps/state_basis_convertor.html)**: A tool to convert the quantum states from the coupled basis to the chemical atomic orbitals basis.
+
+## Utility Applications
+
+- **[PDF Page Extractor](./apps/pdf_page_extractor.html)**: This tool allows users to select a PDF, specify a page range, convert those pages to high-quality PNG or JPEG images, and download them individually or as a ZIP file.
