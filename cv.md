@@ -70,6 +70,7 @@ title: Muath Hamidi CV
 *   **2017-2018:** Member of Astronomy Club, Birzeit University
 
 ## Grand Conferences Attended
+*   **2025:** RQMP dual axis meeting: Emerging Quantum Phenomena and Targeted Design of New Materials, Sherbrooke, Quebec.
 *   **2025:** Conference on Strongly Correlated Electron Systems 2025 (SCES 2025), Montreal, Quebec.
 *   **2025:** RQMP Grand Conference, Montreal, Quebec.
 *   **2025:** Intersection of AI and Quantum - Joint Institut Courtois and Mila Conference, Montreal, Quebec.
