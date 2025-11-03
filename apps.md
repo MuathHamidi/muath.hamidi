@@ -20,4 +20,5 @@ Here you can find a collection of web tools I have created.
 
 ## Utility Applications
 
+- **[Audio Cutter](./apps/audio_cutter.html)**: This tool allows users to precisely trim an uploaded audio file using an interactive waveform editor and export the selected segment as a WAV or MP3 file.
 - **[PDF Page Extractor](./apps/pdf_page_extractor.html)**: This tool allows users to select a PDF, specify a page range, convert those pages to high-quality PNG or JPEG images, and download them individually or as a ZIP file.
