@@ -28,10 +28,9 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            position: relative; /* For pseudo-element */
+            position: relative;
         }
         
-        /* Subtle noise texture for the entire app background */
         body::before {
             content: "";
             position: fixed;
@@ -262,7 +261,7 @@
             <div class="control-group">
                 <h3>Main Text</h3>
                 <label for="text-content">Text Content</label>
-                <textarea id="text-content" placeholder="Your main text here...">Hello World!</textarea>
+                <textarea id="text-content" placeholder="This text will automatically wrap if it is too long to fit on a single line.">Hello World!</textarea>
                 <div class="inline-controls" style="margin-top:15px;">
                     <div><label for="font-size">Font Size</label><input type="number" id="font-size" value="48"></div>
                     <div><label for="text-color">Color</label><input type="color" id="text-color" value="#ffffff"></div>
@@ -328,7 +327,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageNumberInput = document.getElementById('image-number-text');
     const autoNumberBtn = document.getElementById('auto-number-btn');
 
-
     // --- UI Event Listeners ---
     logoUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
@@ -340,16 +338,11 @@ document.addEventListener('DOMContentLoaded', () => {
     opacitySlider.addEventListener('input', () => { opacityValueSpan.textContent = opacitySlider.value; });
     bgTextureSelect.addEventListener('change', () => { textureIntensityControl.style.display = bgTextureSelect.value !== 'none' ? 'block' : 'none'; });
     textureIntensitySlider.addEventListener('input', () => { textureIntensityValueSpan.textContent = textureIntensitySlider.value; });
-
-    addImageNumberCheckbox.addEventListener('change', () => {
-        imageNumberControls.style.display = addImageNumberCheckbox.checked ? 'block' : 'none';
-    });
-
+    addImageNumberCheckbox.addEventListener('change', () => { imageNumberControls.style.display = addImageNumberCheckbox.checked ? 'block' : 'none'; });
     autoNumberBtn.addEventListener('click', () => {
         const currentImageCount = gallery.getElementsByClassName('image-card').length;
         imageNumberInput.value = currentImageCount + 1;
     });
-
 
     // --- Core Functionality ---
     createBtn.addEventListener('click', () => {
@@ -387,14 +380,50 @@ document.addEventListener('DOMContentLoaded', () => {
                 const logoPadding = Math.min(config.width, config.height) * 0.05; const logoHeight = Math.min(config.height * 0.15, 80); const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
                 ctx.drawImage(logoImg, logoPadding, logoPadding, logoWidth, logoHeight);
             }
-            drawText(ctx, config);
+
+            // ** NEW: Calculate safe area for main text **
+            const generalPadding = Math.min(config.width, config.height) * 0.05;
+            let availableArea = {
+                top: generalPadding,
+                height: config.height - (generalPadding * 2)
+            };
+
+            if (config.titleText) {
+                const titleSpacing = config.titleFontSize * 1.5; // Font size + breathing room
+                availableArea.top += titleSpacing;
+                availableArea.height -= titleSpacing;
+            }
+            if (config.addImageNumber && config.imageNumberText) {
+                const numberSpacing = config.numberFontSize * 1.5;
+                availableArea.height -= numberSpacing;
+            }
+
+            // Draw main text within the calculated safe area
+            drawText(ctx, config, availableArea);
+
+            // Draw meta text last, on top of everything
             drawMetaText(ctx, config);
+            
             addImageToGallery(canvas.toDataURL('image/png'));
         };
         if (logoDataURL) { const logoImg = new Image(); logoImg.onload = () => drawContentAndFinalize(logoImg); logoImg.src = logoDataURL; } else { drawContentAndFinalize(null); }
     });
 
     // --- Drawing Helpers ---
+    function wrapText(context, text, maxWidth) {
+        const finalLines = [];
+        const paragraphs = text.split('\n');
+        for (let i = 0; i < paragraphs.length; i++) {
+            const words = paragraphs[i].split(' '); let currentLine = words[0] || '';
+            for (let j = 1; j < words.length; j++) {
+                const testLine = currentLine + ' ' + words[j]; const testWidth = context.measureText(testLine).width;
+                if (testWidth > maxWidth && j > 0) { finalLines.push(currentLine); currentLine = words[j]; } else { currentLine = testLine; }
+            }
+            finalLines.push(currentLine);
+        }
+        return finalLines;
+    }
+    
     function drawNoiseTexture(ctx, w, h, intensity) {
         const iD = ctx.getImageData(0, 0, w, h); const d = iD.data;
         for (let i = 0; i < d.length; i += 4) { const r = (Math.random() - 0.5) * 255 * intensity; d[i] += r; d[i + 1] += r; d[i + 2] += r; }
@@ -405,15 +434,41 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let y = 0; y < h; y += img.height) { for (let x = 0; x < w; x += img.width) ctx.drawImage(img, x, y); }
         ctx.restore();
     }
-    function drawText(ctx, config) {
-        ctx.font = `${config.isItalic ? 'italic' : 'normal'} ${config.isBold ? 'bold' : 'normal'} ${config.fontSize}px sans-serif`;
+    
+    // ** MODIFIED: Accepts an availableArea object **
+    function drawText(ctx, config, availableArea) {
+        const fontStyle = config.isItalic ? 'italic' : 'normal';
+        const fontWeight = config.isBold ? 'bold' : 'normal';
+        ctx.font = `${fontStyle} ${fontWeight} ${config.fontSize}px sans-serif`;
         ctx.fillStyle = config.textColor; ctx.textAlign = config.textAlign; ctx.textBaseline = 'middle';
-        const p = config.width * 0.05; let x;
-        if (config.textAlign === 'left') x = p; else if (config.textAlign === 'right') x = config.width - p; else x = config.width / 2;
-        const ls = config.text.split('\n'); const lH = config.fontSize * 1.2; const tH = (ls.length - 1) * lH; let sY;
-        if (config.verticalAlign === 'top') sY = p; else if (config.verticalAlign === 'bottom') sY = config.height - p - tH; else sY = (config.height / 2) - (tH / 2);
-        ls.forEach((l, i) => ctx.fillText(l, x, sY + (i * lH)));
+        
+        const horizontalPadding = config.width * 0.05;
+        const maxWidth = config.width - (horizontalPadding * 2);
+
+        const lines = wrapText(ctx, config.text, maxWidth);
+        
+        const lineHeight = config.fontSize * 1.2;
+        const totalTextHeight = (lines.length * lineHeight) - (config.fontSize * 0.2); // Adjust for better visual centering
+
+        let startY;
+        if (config.verticalAlign === 'top') {
+            startY = availableArea.top + (lineHeight / 2);
+        } else if (config.verticalAlign === 'bottom') {
+            startY = (availableArea.top + availableArea.height) - totalTextHeight + (lineHeight / 2);
+        } else { // middle
+            startY = availableArea.top + (availableArea.height / 2) - (totalTextHeight / 2) + (lineHeight / 2);
+        }
+
+        let x;
+        if (config.textAlign === 'left') x = horizontalPadding;
+        else if (config.textAlign === 'right') x = config.width - horizontalPadding;
+        else x = config.width / 2;
+        
+        lines.forEach((line, i) => {
+            ctx.fillText(line, x, startY + (i * lineHeight));
+        });
     }
+
     function drawMetaText(ctx, config) {
         const p = Math.min(config.width, config.height) * 0.025;
         if (config.titleText) {
