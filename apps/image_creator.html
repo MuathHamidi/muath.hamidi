@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image & Text Creator</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --panel-bg: #1E1E1E;
+            --border-color: #333333;
+            --text-color: #e1e1e1;
+            --text-muted: #888888;
+            --input-bg: #101010;
+            --primary-color: #3a86ff;
+            --primary-hover: #2c75f2;
+            --danger-color: #dc3545;
+            --danger-hover: #c82333;
+            --success-color: #28a745;
+            --success-hover: #218838;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            position: relative; /* For pseudo-element */
+        }
+        
+        /* Subtle noise texture for the entire app background */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            opacity: 0.03;
+        }
+
+        .container {
+            display: flex;
+            flex-grow: 1;
+            gap: 20px;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--panel-bg);
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .controls {
+            width: 350px;
+            flex-shrink: 0;
+            background-color: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            align-self: flex-start;
+        }
+
+        .control-group {
+            margin-bottom: 25px;
+        }
+
+        .control-group h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        
+        .sub-group {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9em;
+            color: var(--text-muted);
+        }
+
+        input,
+        textarea,
+        select {
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            transition: border-color 0.2s;
+        }
+        
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        input[type="number"],
+        input[type="text"],
+        input[type="color"],
+        textarea,
+        select,
+        input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 0.9em;
+        }
+        
+        input[type="color"] {
+             padding: 5px;
+             min-height: 40px;
+        }
+        
+        input[type="range"] { padding: 0; }
+        input[type="file"] { padding: 0; border: none; background: none;}
+        
+        textarea { resize: vertical; min-height: 100px; }
+        textarea::placeholder { color: var(--text-muted); }
+
+        .inline-controls { display: flex; gap: 10px; align-items: center; }
+        .inline-controls > div { flex: 1; }
+        .format-controls, .logo-bg-controls { display: flex; gap: 10px; align-items: center; margin-top: 15px; }
+        .format-controls label, .logo-bg-controls label { color: var(--text-color); }
+
+        #logo-preview {
+            max-width: 50px;
+            max-height: 50px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+        
+        .hidden-control { display: none; }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.8em;
+            background-color: var(--border-color);
+            font-weight: normal;
+            width: auto;
+            margin-left: auto;
+        }
+        .btn-small:hover {
+            background-color: #555c69;
+        }
+
+
+        #create-btn { background-color: var(--primary-color); }
+        #create-btn:hover { background-color: var(--primary-hover); }
+
+        .workspace {
+            flex-grow: 1;
+            padding: 20px;
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        #image-gallery { display: flex; flex-wrap: wrap; gap: 20px; }
+        .image-card {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            background-color: var(--bg-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            max-width: 300px;
+        }
+        .image-card img { max-width: 100%; border-radius: 4px; margin-bottom: 10px; }
+        .card-actions { display: flex; gap: 8px; width: 100%; }
+        .card-actions button { flex: 1; font-size: 0.8em; padding: 8px; }
+        .btn-copy { background-color: var(--success-color); }
+        .btn-copy:hover { background-color: var(--success-hover); }
+        .btn-save { background-color: var(--primary-color); }
+        .btn-save:hover { background-color: var(--primary-hover); }
+        .btn-delete { background-color: var(--danger-color); }
+        .btn-delete:hover { background-color: var(--danger-hover); }
+
+        #gallery-placeholder {
+            width: 100%;
+            text-align: center;
+            color: var(--text-muted);
+            padding: 40px 0;
+            border: 2px dashed var(--border-color);
+            border-radius: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .container { flex-direction: column; }
+            .controls { width: 100%; box-sizing: border-box; }
+        }
+    </style>
+</head>
+<body>
+    <header><h1>Image & Text Creator</h1></header>
+    <div class="container">
+        <aside class="controls">
+            <div class="control-group">
+                <h3>Image Settings</h3>
+                <div class="inline-controls">
+                    <div><label for="img-width">Width (px)</label><input type="number" id="img-width" value="800"></div>
+                    <div><label for="img-height">Height (px)</label><input type="number" id="img-height" value="400"></div>
+                </div>
+                <div style="margin-top:15px;"><label for="bg-color">Background Color</label><input type="color" id="bg-color" value="#343a40"></div>
+                <div style="margin-top:15px;">
+                    <label for="bg-texture">Background Texture</label>
+                    <select id="bg-texture"><option value="none" selected>None</option><option value="noise">Subtle Noise</option></select>
+                </div>
+                <div id="texture-intensity-control" class="hidden-control" style="margin-top:10px;">
+                    <label for="texture-intensity">Texture Intensity (<span id="texture-intensity-value">10</span>%)</label>
+                    <input type="range" id="texture-intensity" min="1" max="100" value="10">
+                </div>
+            </div>
+            <div class="control-group">
+                <h3>Logo (Optional)</h3>
+                <label for="logo-upload">Upload Logo</label><input type="file" id="logo-upload" accept="image/*">
+                <img id="logo-preview" alt="Logo Preview"/>
+                <div class="logo-bg-controls"><input type="checkbox" id="logo-as-bg"><label for="logo-as-bg" style="margin:0;">Use logo as background</label></div>
+                <div id="logo-bg-opacity-control" class="hidden-control">
+                     <label for="logo-bg-opacity">Transparency (<span id="opacity-value">20</span>%)</label>
+                     <input type="range" id="logo-bg-opacity" min="0" max="100" value="20">
+                </div>
+            </div>
+            <div class="control-group">
+                <h3>Main Text</h3>
+                <label for="text-content">Text Content</label>
+                <textarea id="text-content" placeholder="Your main text here...">Hello World!</textarea>
+                <div class="inline-controls" style="margin-top:15px;">
+                    <div><label for="font-size">Font Size</label><input type="number" id="font-size" value="48"></div>
+                    <div><label for="text-color">Color</label><input type="color" id="text-color" value="#ffffff"></div>
+                </div>
+                <div class="inline-controls" style="margin-top:15px;">
+                    <div><label for="text-align">Horizontal Align</label><select id="text-align"><option value="center" selected>Center</option><option value="left">Left</option><option value="right">Right</option></select></div>
+                    <div><label for="vertical-align">Vertical Align</label><select id="vertical-align"><option value="middle" selected>Middle</option><option value="top">Top</option><option value="bottom">Bottom</option></select></div>
+                </div>
+                <div class="format-controls"><input type="checkbox" id="font-bold"><label for="font-bold" style="margin:0;">Bold</label><input type="checkbox" id="font-italic"><label for="font-italic" style="margin:0;">Italic</label></div>
+            </div>
+            <div class="control-group">
+                <h3>Meta Information</h3>
+                <div>
+                    <label for="title-text">Title (optional)</label><input type="text" id="title-text" placeholder="Your Title Here">
+                    <div class="inline-controls" style="margin-top:10px;">
+                        <div><label for="title-font-size">Font Size</label><input type="number" id="title-font-size" value="20"></div>
+                        <div><label for="title-text-color">Color</label><input type="color" id="title-text-color" value="#bbbbbb"></div>
+                    </div>
+                </div>
+                <div class="sub-group">
+                    <div class="format-controls" style="margin-top: 0; margin-bottom: 10px;">
+                        <input type="checkbox" id="add-image-number"><label for="add-image-number" style="margin: 0;">Add Image Number</label>
+                        <button id="auto-number-btn" class="btn-small">Next #</button>
+                    </div>
+                    <div id="image-number-controls" class="hidden-control" style="margin-top:0;">
+                        <label for="image-number-text">Image Number Text</label><input type="text" id="image-number-text" placeholder="e.g., 1 or Page 5">
+                        <div class="inline-controls" style="margin-top:10px;">
+                            <div><label for="number-font-size">Font Size</label><input type="number" id="number-font-size" value="18"></div>
+                            <div><label for="number-text-color">Color</label><input type="color" id="number-text-color" value="#bbbbbb"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button id="create-btn">Create Image</button>
+        </aside>
+        <main class="workspace">
+            <h2>Generated Images</h2>
+            <div id="image-gallery"><div id="gallery-placeholder">Your created images will appear here.</div></div>
+        </main>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // --- Global State ---
+    let logoDataURL = null;
+
+    // --- Element References ---
+    const createBtn = document.getElementById('create-btn');
+    const gallery = document.getElementById('image-gallery');
+    const placeholder = document.getElementById('gallery-placeholder');
+    const logoUpload = document.getElementById('logo-upload');
+    const logoPreview = document.getElementById('logo-preview');
+    const useLogoAsBgCheckbox = document.getElementById('logo-as-bg');
+    const opacityControl = document.getElementById('logo-bg-opacity-control');
+    const opacitySlider = document.getElementById('logo-bg-opacity');
+    const opacityValueSpan = document.getElementById('opacity-value');
+    const bgTextureSelect = document.getElementById('bg-texture');
+    const textureIntensityControl = document.getElementById('texture-intensity-control');
+    const textureIntensitySlider = document.getElementById('texture-intensity');
+    const textureIntensityValueSpan = document.getElementById('texture-intensity-value');
+    const addImageNumberCheckbox = document.getElementById('add-image-number');
+    const imageNumberControls = document.getElementById('image-number-controls');
+    const imageNumberInput = document.getElementById('image-number-text');
+    const autoNumberBtn = document.getElementById('auto-number-btn');
+
+
+    // --- UI Event Listeners ---
+    logoUpload.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader(); reader.onload = (event) => { logoDataURL = event.target.result; logoPreview.src = logoDataURL; logoPreview.style.display = 'block'; }; reader.readAsDataURL(file);
+        } else { logoDataURL = null; logoPreview.style.display = 'none'; }
+    });
+    useLogoAsBgCheckbox.addEventListener('change', () => { opacityControl.style.display = useLogoAsBgCheckbox.checked ? 'block' : 'none'; });
+    opacitySlider.addEventListener('input', () => { opacityValueSpan.textContent = opacitySlider.value; });
+    bgTextureSelect.addEventListener('change', () => { textureIntensityControl.style.display = bgTextureSelect.value !== 'none' ? 'block' : 'none'; });
+    textureIntensitySlider.addEventListener('input', () => { textureIntensityValueSpan.textContent = textureIntensitySlider.value; });
+
+    addImageNumberCheckbox.addEventListener('change', () => {
+        imageNumberControls.style.display = addImageNumberCheckbox.checked ? 'block' : 'none';
+    });
+
+    autoNumberBtn.addEventListener('click', () => {
+        const currentImageCount = gallery.getElementsByClassName('image-card').length;
+        imageNumberInput.value = currentImageCount + 1;
+    });
+
+
+    // --- Core Functionality ---
+    createBtn.addEventListener('click', () => {
+        const config = {
+            width: parseInt(document.getElementById('img-width').value) || 800,
+            height: parseInt(document.getElementById('img-height').value) || 400,
+            bgColor: document.getElementById('bg-color').value,
+            text: document.getElementById('text-content').value,
+            fontSize: parseInt(document.getElementById('font-size').value) || 48,
+            textColor: document.getElementById('text-color').value,
+            textAlign: document.getElementById('text-align').value,
+            verticalAlign: document.getElementById('vertical-align').value,
+            isBold: document.getElementById('font-bold').checked,
+            isItalic: document.getElementById('font-italic').checked,
+            useLogoAsBg: useLogoAsBgCheckbox.checked,
+            logoBgOpacity: parseInt(opacitySlider.value) / 100,
+            textureType: bgTextureSelect.value,
+            textureIntensity: parseInt(textureIntensitySlider.value) / 100,
+            titleText: document.getElementById('title-text').value,
+            titleFontSize: parseInt(document.getElementById('title-font-size').value) || 20,
+            titleTextColor: document.getElementById('title-text-color').value,
+            addImageNumber: addImageNumberCheckbox.checked,
+            imageNumberText: imageNumberInput.value,
+            numberFontSize: parseInt(document.getElementById('number-font-size').value) || 18,
+            numberTextColor: document.getElementById('number-text-color').value,
+        };
+
+        const canvas = document.createElement('canvas'); canvas.width = config.width; canvas.height = config.height; const ctx = canvas.getContext('2d');
+        
+        const drawContentAndFinalize = (logoImg) => {
+            ctx.fillStyle = config.bgColor; ctx.fillRect(0, 0, config.width, config.height);
+            if (logoImg && config.useLogoAsBg) drawTiledLogoBackground(ctx, logoImg, config.width, config.height, config.logoBgOpacity);
+            if (config.textureType === 'noise') drawNoiseTexture(ctx, config.width, config.height, config.textureIntensity);
+            if (logoImg && !config.useLogoAsBg) {
+                const logoPadding = Math.min(config.width, config.height) * 0.05; const logoHeight = Math.min(config.height * 0.15, 80); const logoWidth = (logoImg.width / logoImg.height) * logoHeight;
+                ctx.drawImage(logoImg, logoPadding, logoPadding, logoWidth, logoHeight);
+            }
+            drawText(ctx, config);
+            drawMetaText(ctx, config);
+            addImageToGallery(canvas.toDataURL('image/png'));
+        };
+        if (logoDataURL) { const logoImg = new Image(); logoImg.onload = () => drawContentAndFinalize(logoImg); logoImg.src = logoDataURL; } else { drawContentAndFinalize(null); }
+    });
+
+    // --- Drawing Helpers ---
+    function drawNoiseTexture(ctx, w, h, intensity) {
+        const iD = ctx.getImageData(0, 0, w, h); const d = iD.data;
+        for (let i = 0; i < d.length; i += 4) { const r = (Math.random() - 0.5) * 255 * intensity; d[i] += r; d[i + 1] += r; d[i + 2] += r; }
+        ctx.putImageData(iD, 0, 0);
+    }
+    function drawTiledLogoBackground(ctx, img, w, h, opacity) {
+        ctx.save(); ctx.globalAlpha = opacity;
+        for (let y = 0; y < h; y += img.height) { for (let x = 0; x < w; x += img.width) ctx.drawImage(img, x, y); }
+        ctx.restore();
+    }
+    function drawText(ctx, config) {
+        ctx.font = `${config.isItalic ? 'italic' : 'normal'} ${config.isBold ? 'bold' : 'normal'} ${config.fontSize}px sans-serif`;
+        ctx.fillStyle = config.textColor; ctx.textAlign = config.textAlign; ctx.textBaseline = 'middle';
+        const p = config.width * 0.05; let x;
+        if (config.textAlign === 'left') x = p; else if (config.textAlign === 'right') x = config.width - p; else x = config.width / 2;
+        const ls = config.text.split('\n'); const lH = config.fontSize * 1.2; const tH = (ls.length - 1) * lH; let sY;
+        if (config.verticalAlign === 'top') sY = p; else if (config.verticalAlign === 'bottom') sY = config.height - p - tH; else sY = (config.height / 2) - (tH / 2);
+        ls.forEach((l, i) => ctx.fillText(l, x, sY + (i * lH)));
+    }
+    function drawMetaText(ctx, config) {
+        const p = Math.min(config.width, config.height) * 0.025;
+        if (config.titleText) {
+            ctx.font = `${config.titleFontSize}px sans-serif`; ctx.fillStyle = config.titleTextColor;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+            ctx.fillText(config.titleText, config.width / 2, p);
+        }
+        if (config.addImageNumber && config.imageNumberText) {
+            ctx.font = `${config.numberFontSize}px sans-serif`; ctx.fillStyle = config.numberTextColor;
+            ctx.textAlign = 'right'; ctx.textBaseline = 'bottom';
+            ctx.fillText(config.imageNumberText, config.width - p, config.height - p);
+        }
+    }
+
+    // --- Gallery Management ---
+    function addImageToGallery(dataURL) {
+        if (placeholder) placeholder.style.display = 'none';
+        const card = document.createElement('div'); card.className = 'image-card';
+        const img = document.createElement('img'); img.src = dataURL;
+        const actions = document.createElement('div'); actions.className = 'card-actions';
+        const copyBtn = document.createElement('button'); copyBtn.textContent = 'Copy'; copyBtn.className = 'btn-copy';
+        copyBtn.onclick = async () => {
+            try { const b = await (await fetch(dataURL)).blob(); await navigator.clipboard.write([ new ClipboardItem({ 'image/png': b }) ]);
+                copyBtn.textContent = 'Copied!'; setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+            } catch (err) { alert('Failed to copy image. Your browser may not support this feature.'); }
+        };
+        const saveBtn = document.createElement('button'); saveBtn.textContent = 'Save'; saveBtn.className = 'btn-save';
+        saveBtn.onclick = () => { const l = document.createElement('a'); l.href = dataURL; l.download = `generated-image-${Date.now()}.png`; document.body.appendChild(l); l.click(); document.body.removeChild(l); };
+        const deleteBtn = document.createElement('button'); deleteBtn.textContent = 'Delete'; deleteBtn.className = 'btn-delete';
+        deleteBtn.onclick = () => { card.remove(); if (gallery.getElementsByClassName('image-card').length === 0) placeholder.style.display = 'block'; };
+        actions.appendChild(copyBtn); actions.appendChild(saveBtn); actions.appendChild(deleteBtn);
+        card.appendChild(img); card.appendChild(actions); gallery.appendChild(card);
+    }
+});
+</script>
+</body>
+</html>
