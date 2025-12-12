@@ -274,13 +274,13 @@
 
                 lines.push('loop_');
                 lines.push('   _atom_site_label');
+                lines.push('   _atom_site_type_symbol'); // <--- MOVED TO 2ND POSITION
                 lines.push('   _atom_site_occupancy');
                 lines.push('   _atom_site_fract_x');
                 lines.push('   _atom_site_fract_y');
                 lines.push('   _atom_site_fract_z');
                 lines.push('   _atom_site_adp_type');
                 lines.push('   _atom_site_B_iso_or_equiv');
-                lines.push('   _atom_site_type_symbol');
 
                 const atomRows = atomTableBody.querySelectorAll('tr');
                 atomRows.forEach(row => {
@@ -293,14 +293,15 @@
                     const biso = parseFloat(row.querySelector('.atom-biso').value || 0.7);
                     const adpType = 'Biso';
 
-                    const line = `   ${label.padEnd(11)}` +
-                                 `${occ.toFixed(1).padStart(7)}` +
-                                 `${x.toFixed(6).padStart(14)}` +
-                                 `${y.toFixed(6).padStart(14)}` +
-                                 `${z.toFixed(6).padStart(14)}` +
-                                 ` ${adpType.padEnd(6)}` +
-                                 `${biso.toFixed(6).padStart(9)}` +
-                                 ` ${element}`;
+                    // I adjusted the padding/spacing below to keep columns aligned nicely
+                    const line = `   ${label.padEnd(8)}` +                 // Label
+                                 ` ${element.padEnd(4)}` +                 // Element (Now 2nd)
+                                 `${occ.toFixed(1).padStart(7)}` +         // Occupancy
+                                 `${x.toFixed(6).padStart(14)}` +          // X
+                                 `${y.toFixed(6).padStart(14)}` +          // Y
+                                 `${z.toFixed(6).padStart(14)}` +          // Z
+                                 ` ${adpType.padEnd(6)}` +                 // Type
+                                 `${biso.toFixed(6).padStart(9)}`;         // Biso (Now last)
 
                     lines.push(line);
                 });
