@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BibTeX Studio Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        slate: { 850: '#151e32', 900: '#0f172a', 950: '#020617' }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Merriweather', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Merriweather:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-200 h-screen flex flex-col overflow-hidden transition-colors duration-200">
+
+    <!-- Header -->
+    <header class="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 py-3 flex items-center justify-between shadow-sm z-20">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-gradient-to-br from-indigo-600 to-violet-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                <i class="fa-solid fa-book-bookmark text-lg"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-lg leading-tight text-slate-800 dark:text-white tracking-tight">BibTeX Studio <span class="text-indigo-500">Pro</span></h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Citation Engine</p>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="flex items-center gap-3">
+            <!-- Citation Style Selector -->
+            <div class="relative group">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-graduation-cap text-slate-400 text-xs"></i>
+                </div>
+                <select id="citationStyle" class="pl-9 pr-8 py-2 bg-slate-100 dark:bg-slate-800 border-none rounded-lg text-sm font-medium text-slate-700 dark:text-slate-200 focus:ring-2 focus:ring-indigo-500 cursor-pointer appearance-none">
+                    <option value="apa">APA 7th Ed.</option>
+                    <option value="mla">MLA 9th Ed.</option>
+                    <option value="chicago">Chicago (Author-Date)</option>
+                    <option value="harvard">Harvard</option>
+                    <option value="ieee">IEEE</option>
+                    <option value="aps">APS (Physics)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <i class="fa-solid fa-chevron-down text-slate-400 text-xs"></i>
+                </div>
+            </div>
+
+            <div class="h-6 w-px bg-slate-200 dark:bg-slate-700 mx-1"></div>
+
+            <button id="themeToggle" class="w-9 h-9 flex items-center justify-center text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors" title="Toggle Theme">
+                <i class="fa-solid fa-sun text-lg"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col md:flex-row overflow-hidden">
+        
+        <!-- Left Panel: Input -->
+        <div class="flex-1 flex flex-col min-h-[45%] md:min-h-0 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 relative">
+            
+            <!-- Input Toolbar -->
+            <div class="px-4 py-2 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/80 dark:bg-slate-900/80 backdrop-blur-sm">
+                <div class="flex items-center gap-3">
+                    <input type="file" id="fileImport" class="hidden" accept=".bib,.txt">
+                    <button onclick="document.getElementById('fileImport').click()" class="text-xs font-medium text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-upload"></i> Import .bib
+                    </button>
+                    <span id="entryCount" class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hidden">0 entries</span>
+                </div>
+                
+                <div class="flex gap-2 items-center">
+                    <label class="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400 mr-2 cursor-pointer select-none group" title="Remove abstract, keywords, and other metadata">
+                        <div class="relative flex items-center">
+                            <!-- REMOVED 'checked' ATTRIBUTE HERE -->
+                            <input type="checkbox" id="stripFields" class="peer h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 transition-all cursor-pointer">
+                        </div>
+                        <span class="group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">Strip Extra</span>
+                    </label>
+
+                    <button id="btnDemo" class="text-xs px-3 py-1.5 rounded-md bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 dark:hover:border-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-medium shadow-sm">
+                        Demo
+                    </button>
+                    <button id="btnClear" class="text-xs px-3 py-1.5 rounded-md text-slate-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors font-medium">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex-1 relative group bg-white dark:bg-slate-900">
+                <textarea id="bibInput" spellcheck="false" 
+                    class="w-full h-full p-5 resize-none focus:outline-none code-font text-sm leading-relaxed text-slate-700 dark:text-slate-300 bg-transparent selection:bg-indigo-100 dark:selection:bg-indigo-900/50 placeholder-slate-300 dark:placeholder-slate-600"
+                    placeholder="@article{key1, ...}&#10;&#10;@book{key2, ...}"></textarea>
+            </div>
+        </div>
+
+        <!-- Right Panel: Output -->
+        <div class="flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-950 overflow-y-auto scroll-smooth">
+            
+            <!-- Result 1: Formatted Source -->
+            <div class="p-4 pb-0">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col transition-all hover:shadow-md">
+                    <div class="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <h3 class="font-semibold text-slate-700 dark:text-slate-300 text-xs uppercase tracking-wide flex items-center gap-2">
+                            <i class="fa-solid fa-code text-indigo-500"></i> Cleaned BibTeX
+                        </h3>
+                        <div class="flex gap-2">
+                            <button id="btnDownload" class="text-xs text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition-colors" title="Download .bib file">
+                                <i class="fa-solid fa-download"></i> Export
+                            </button>
+                            <div class="w-px h-4 bg-slate-200 dark:bg-slate-700"></div>
+                            <button id="btnCopySource" class="text-xs text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 flex items-center gap-1 transition-colors" title="Copy to Clipboard">
+                                <i class="fa-regular fa-copy"></i> Copy
+                            </button>
+                        </div>
+                    </div>
+                    <pre class="p-4 overflow-x-auto text-xs code-font bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 min-h-[100px] max-h-[300px]" id="formattedOutput"><span class="text-slate-400 dark:text-slate-600 italic">// Valid formatted entries will appear here...</span></pre>
+                </div>
+            </div>
+
+            <!-- Result 2: Rendered Preview -->
+            <div class="p-4 flex-1 flex flex-col min-h-[300px]">
+                <div class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden h-full flex flex-col transition-all hover:shadow-md">
+                    <div class="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center sticky top-0 z-10">
+                        <h3 class="font-semibold text-slate-700 dark:text-slate-300 text-sm flex items-center gap-2">
+                            <i class="fa-solid fa-eye text-emerald-500"></i> 
+                            <span id="previewTitle">Citation Preview</span>
+                        </h3>
+                        <button id="btnCopyPreview" class="text-xs px-2.5 py-1.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-indigo-400 hover:text-indigo-600 transition-all shadow-sm flex items-center gap-1.5">
+                            <i class="fa-regular fa-clipboard"></i> Copy Citations
+                        </button>
+                    </div>
+                    
+                    <!-- Paper-like preview area -->
+                    <div id="renderPreview" class="flex-1 p-8 text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-serif bg-white dark:bg-slate-900 overflow-y-auto">
+                        <div class="h-full flex flex-col items-center justify-center text-slate-400 dark:text-slate-600 italic font-sans gap-2">
+                            <i class="fa-solid fa-arrow-left text-xl opacity-50"></i>
+                            <p>Paste BibTeX to generate citations</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result 3: LaTeX Command (Compact) -->
+            <div class="px-4 pb-4">
+                 <div class="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 flex items-center justify-between group">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <span class="text-[10px] font-bold text-pink-500 uppercase tracking-wider flex-none">LaTeX</span>
+                        <code id="cmdCite" class="text-xs code-font text-slate-600 dark:text-slate-400 truncate">\cite{...}</code>
+                    </div>
+                    <button id="btnCopyCmd" class="text-slate-400 hover:text-pink-500 transition-colors" title="Copy Command">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Notification -->
+    <div id="toast" class="fixed bottom-6 right-6 transform translate-y-24 opacity-0 transition-all duration-300 bg-slate-900 dark:bg-indigo-600 text-white px-4 py-3 rounded-lg shadow-xl shadow-slate-900/20 flex items-center gap-3 z-50">
+        <i class="fa-solid fa-circle-check text-emerald-400 dark:text-white"></i>
+        <span class="text-sm font-medium" id="toastMsg">Copied to clipboard!</span>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/utils.js"></script>
+    <script src="js/theme.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/formatter.js"></script>
+    <script src="js/renderer.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>
