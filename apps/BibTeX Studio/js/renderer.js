@@ -1,48 +1,17 @@
 /**
  * js/renderer.js
  * Strictly formatted Citation Engines.
- * 
- * Verified against:
- * - APA 7th Edition
- * - MLA 9th Edition
- * - Chicago Manual of Style 17th Ed (Author-Date)
- * - IEEE Reference Guide
- * - APS (Physical Review Style)
+ * Updated: ALL styles now use numbered lists [1], [2], etc.
  */
 
 const CitationEngine = {
     
     // --- APA 7th Edition ---
-    // Rules: List up to 20 authors. & before last.
-    // Article: Title (plain), Journal (italic) Vol(italic)(Issue), pp-pp.
-    // Book: Title (italic) (Publisher).
-    apa: (e) => {
+    apa: (e, index) => {
         const { authors, title, year, journal, publisher, doi, url, vol, num, pages } = parseCommonFields(e);
         
-        // Author Formatting
-        let authHtml = "";
-        const limit = 20;
-        const count = authors.length;
+        let authHtml = formatAuthorsAPA(authors);
 
-        if (count === 0) {
-            authHtml = "Unknown.";
-        } else if (count <= limit) {
-            // List all
-            const formatted = authors.map(a => `${a.last}, ${getInitials(a.first)}`);
-            if (count === 1) authHtml = `${formatted[0]}.`;
-            else if (count === 2) authHtml = `${formatted[0]}, & ${formatted[1]}.`;
-            else {
-                const last = formatted.pop();
-                authHtml = `${formatted.join(', ')}, & ${last}.`;
-            }
-        } else {
-            // > 20 authors: First 19 ... Last
-            const first19 = authors.slice(0, 19).map(a => `${a.last}, ${getInitials(a.first)}`).join(', ');
-            const last = authors[count - 1];
-            authHtml = `${first19}, ... ${last.last}, ${getInitials(last.first)}.`;
-        }
-
-        // Source Formatting
         let sourceHtml = "";
         if (e.type === 'article') {
             sourceHtml = `<i>${journal}</i>`;
@@ -56,19 +25,12 @@ const CitationEngine = {
         }
         if (sourceHtml && !sourceHtml.endsWith('.')) sourceHtml += '.';
 
-        return `
-            <div class="hanging-indent">
-                ${authHtml} (${year}). 
-                ${e.type === 'article' ? title : `<i>${title}</i>`}. 
-                ${sourceHtml}
-                ${formatLink(doi, url, 'apa')}
-            </div>`;
+        const content = `${authHtml} (${year}). ${e.type === 'article' ? title : `<i>${title}</i>`}. ${sourceHtml} ${formatLink(doi, url, 'apa')}`;
+        return wrapNumbered(index, content);
     },
 
     // --- MLA 9th Edition ---
-    // Rules: 1-2 authors listed. 3+ use "et al."
-    // Article: "Title." Journal (italic) vol, no, Date, pp.
-    mla: (e) => {
+    mla: (e, index) => {
         const { authors, title, year, journal, publisher, doi, url, vol, num, pages } = parseCommonFields(e);
         
         let authHtml = "";
@@ -91,21 +53,15 @@ const CitationEngine = {
             if(pages) container += `, pp. ${pages}`;
             container += `.`;
         } else {
-            // Books
             container = `${publisher}, ${year}.`;
         }
 
-        return `
-            <div class="hanging-indent">
-                ${authHtml} "${title}." ${container} ${formatLink(doi, url, 'mla')}
-            </div>`;
+        const content = `${authHtml} "${title}." ${container} ${formatLink(doi, url, 'mla')}`;
+        return wrapNumbered(index, content);
     },
 
     // --- Chicago 17th (Author-Date) ---
-    // Rules: 1-3 authors listed. 4+ use "et al."
-    // Year immediately follows author.
-    // No "p." or "pp." for articles, colon used.
-    chicago: (e) => {
+    chicago: (e, index) => {
         const { authors, title, year, journal, publisher, doi, url, vol, num, pages } = parseCommonFields(e);
 
         let authHtml = "";
@@ -113,13 +69,11 @@ const CitationEngine = {
         else if (authors.length === 1) {
             authHtml = `${authors[0].last}, ${authors[0].first}`;
         } else if (authors.length <= 3) {
-            // List all: Last, First, First Last, and First Last
             authHtml = `${authors[0].last}, ${authors[0].first}`;
             for(let i=1; i<authors.length; i++) {
                 authHtml += `, and ${authors[i].first} ${authors[i].last}`;
             }
         } else {
-            // 4+ authors: First et al.
             authHtml = `${authors[0].last}, ${authors[0].first}, et al.`;
         }
 
@@ -133,15 +87,12 @@ const CitationEngine = {
             body = `<i>${title}</i>. ${publisher}.`;
         }
 
-        return `
-            <div class="hanging-indent">
-                ${authHtml}. ${year}. ${body} ${formatLink(doi, url, 'text')}
-            </div>`;
+        const content = `${authHtml}. ${year}. ${body} ${formatLink(doi, url, 'text')}`;
+        return wrapNumbered(index, content);
     },
 
     // --- Harvard ---
-    // Standard format: Last, Initials. (Year) 'Title'. Journal.
-    harvard: (e) => {
+    harvard: (e, index) => {
         const { authors, title, year, journal, publisher, doi, url, vol, num, pages } = parseCommonFields(e);
         
         let authHtml = "";
@@ -163,15 +114,11 @@ const CitationEngine = {
             body = `<i>${title}</i>. ${publisher}.`;
         }
 
-        return `
-            <div class="hanging-indent">
-                ${authHtml} (${year}) ${body} ${doi ? 'Available at: doi:'+doi : ''}
-            </div>`;
+        const content = `${authHtml} (${year}) ${body} ${doi ? 'Available at: doi:'+doi : ''}`;
+        return wrapNumbered(index, content);
     },
 
     // --- IEEE ---
-    // Rules: Initials First. 
-    // > 6 authors: list first + et al.
     ieee: (e, index) => {
         const { authors, title, year, journal, publisher, doi, url, vol, num, pages } = parseCommonFields(e);
         
@@ -193,16 +140,11 @@ const CitationEngine = {
             body = `<i>${title}</i>, ${publisher}, ${year}.`;
         }
 
-        return `
-            <div class="numbered-list">
-                <span class="font-bold text-xs pt-1 select-none text-slate-500">[${index + 1}]</span>
-                <div>${authHtml}, ${body} ${formatLink(doi, url, 'text')}</div>
-            </div>`;
+        const content = `${authHtml}, ${body} ${formatLink(doi, url, 'text')}`;
+        return wrapNumbered(index, content);
     },
 
     // --- APS (Physics) ---
-    // Rules: Initials First. Journal Abbrev (we use full if not known).
-    // Volume is BOLD. Year in Parens at end.
     aps: (e, index) => {
         const { authors, title, year, journal, publisher, doi, url, vol, num, pages } = parseCommonFields(e);
 
@@ -215,31 +157,32 @@ const CitationEngine = {
 
         let body = "";
         if (e.type === 'article') {
-            // Phys. Rev. Lett. 99, 123 (2007).
             body = `${journal} <b>${vol || ''}</b>, ${pages || ''} (${year}).`;
         } else {
             body = `<i>${title}</i> (${publisher}, ${year}).`;
         }
 
-        return `
-            <div class="numbered-list">
-                <span class="font-bold text-xs pt-1 select-none text-slate-500">[${index + 1}]</span>
-                <div>${authHtml}, ${body} ${formatLink(doi, url, 'text')}</div>
-            </div>`;
+        const content = `${authHtml}, ${body} ${formatLink(doi, url, 'text')}`;
+        return wrapNumbered(index, content);
     }
 };
 
-// --- Utilities for Renderer ---
+// --- Helper Functions ---
+
+function wrapNumbered(index, content) {
+    return `
+        <div class="numbered-list">
+            <span class="font-bold text-xs pt-1 select-none text-slate-500 min-w-[24px] text-right mr-2">[${index + 1}]</span>
+            <div>${content}</div>
+        </div>`;
+}
 
 function parseCommonFields(e) {
     const f = e.fields;
     
-    // Safety sanitizer
     const clean = (str) => {
         if(!str) return "";
-        // Remove TeX commands
         let s = str.replace(/[\{\}]/g, '').replace(/\\/g, '');
-        // Escape HTML
         return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     };
 
@@ -258,21 +201,14 @@ function parseCommonFields(e) {
 }
 
 function parseAuthors(authorStr) {
-    // Sanitize invisible chars
     authorStr = authorStr.replace(/\u00A0/g, ' ');
-    
-    // Split by 'and'
     const parts = authorStr.split(/\s+and\s+/i);
-    
     return parts.map(p => {
-        // Clean
         p = p.trim();
         if (p.includes(',')) {
-            // "Einstein, Albert"
             const [last, first] = p.split(',').map(s => s.trim());
             return { first: first || '', last: last || '' };
         } else {
-            // "Albert Einstein"
             const words = p.split(/\s+/);
             const last = words.pop() || "";
             const first = words.join(' ');
@@ -288,15 +224,30 @@ function getInitials(name) {
                .join(" ");
 }
 
+function formatAuthorsAPA(authors) {
+    const limit = 20;
+    const count = authors.length;
+    if (count === 0) return "Unknown.";
+    
+    if (count <= limit) {
+        const formatted = authors.map(a => `${a.last}, ${getInitials(a.first)}`);
+        if (count === 1) return `${formatted[0]}.`;
+        if (count === 2) return `${formatted[0]}, & ${formatted[1]}.`;
+        const last = formatted.pop();
+        return `${formatted.join(', ')}, & ${last}.`;
+    } else {
+        const first19 = authors.slice(0, 19).map(a => `${a.last}, ${getInitials(a.first)}`).join(', ');
+        const last = authors[count - 1];
+        return `${first19}, ... ${last.last}, ${getInitials(last.first)}.`;
+    }
+}
+
 function formatLink(doi, url, style) {
     if (!doi && !url) return "";
-    
-    // Clean DOI
     const cleanDoi = doi.replace(/^https?:\/\/doi\.org\//, '');
     const doiLink = `https://doi.org/${cleanDoi}`;
     
     if (doi) {
-        // APA requires full URL. MLA often just DOI.
         return `<span class="break-all text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" onclick="window.open('${doiLink}')">${doiLink}</span>`;
     }
     return `<span class="break-all text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer" onclick="window.open('${url}')">${url}</span>`;
