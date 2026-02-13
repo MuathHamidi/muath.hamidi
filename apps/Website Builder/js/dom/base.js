@@ -4,7 +4,7 @@ const UI = {
 
     init: function() {
         try {
-            // 1. Modal Injection
+            // 1. Confirm Modal Injection
             if(!document.getElementById('appModal')) {
                 const modal = document.createElement('div');
                 modal.id = 'appModal';
@@ -25,7 +25,30 @@ const UI = {
                 document.body.appendChild(modal);
             }
 
-            // 2. Settings Population
+            // 2. Input Modal Injection (New Page / Rename)
+            if(!document.getElementById('appInputModal')) {
+                const inputModal = document.createElement('div');
+                inputModal.id = 'appInputModal';
+                inputModal.className = 'modal-overlay';
+                inputModal.innerHTML = `
+                    <div class="modal-box">
+                        <div class="modal-title">
+                            <span class="material-icons-round" style="color:var(--accent)">edit</span>
+                            <span id="inputModalTitle">Enter Value</span>
+                        </div>
+                        <div class="form-group" style="margin:0">
+                            <input type="text" id="inputModalValue" class="form-control" placeholder="Type here..." style="width:100%">
+                        </div>
+                        <div class="modal-actions">
+                            <button class="btn btn-outline" id="inputModalCancel">Cancel</button>
+                            <button class="btn btn-primary" id="inputModalConfirm">Save</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(inputModal);
+            }
+
+            // 3. Settings Population
             const s = Data.state.settings || {};
             const setVal = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
             
@@ -36,20 +59,19 @@ const UI = {
             setVal('profileImg', s.profileImg);
             setVal('footerText', s.footerText);
 
-            // 3. Render Lists (with safety checks)
+            // 4. Render Lists (with safety checks)
             if(typeof this.renderPagesList === 'function') this.renderPagesList();
             
-            // Fix: Use correct CV init function
             if(typeof this.initCV === 'function') {
                 this.initCV();
             } else if(typeof this.renderCVList === 'function') {
                 this.renderCVList();
             }
             
-            // 4. Apply Theme
+            // 5. Apply Theme
             document.documentElement.style.setProperty('--accent', s.accent || '#6c5ce7');
             
-            // 5. Force Tab Switch
+            // 6. Force Tab Switch
             this.switchTab('pages');
 
         } catch (err) {
@@ -86,6 +108,53 @@ const UI = {
         
         newYes.onclick = () => { modal.classList.remove('active'); onConfirm(); };
         newNo.onclick = () => { modal.classList.remove('active'); };
+    },
+
+    prompt: function(title, defaultValue, onConfirm) {
+        const modal = document.getElementById('appInputModal');
+        const titleEl = document.getElementById('inputModalTitle');
+        const inputEl = document.getElementById('inputModalValue');
+        const btnConfirm = document.getElementById('inputModalConfirm');
+        const btnCancel = document.getElementById('inputModalCancel');
+
+        if(!modal) {
+            const val = prompt(title, defaultValue);
+            if(val) onConfirm(val);
+            return;
+        }
+
+        titleEl.innerText = title;
+        inputEl.value = defaultValue || '';
+        
+        const newConfirm = btnConfirm.cloneNode(true);
+        const newCancel = btnCancel.cloneNode(true);
+        btnConfirm.parentNode.replaceChild(newConfirm, btnConfirm);
+        btnCancel.parentNode.replaceChild(newCancel, btnCancel);
+
+        const close = () => {
+            modal.classList.remove('active');
+            inputEl.value = '';
+        };
+
+        newConfirm.onclick = () => {
+            if(inputEl.value.trim().length > 0) {
+                onConfirm(inputEl.value.trim());
+                close();
+            } else {
+                inputEl.focus();
+            }
+        };
+        
+        newCancel.onclick = close;
+
+        // Enter key support
+        inputEl.onkeydown = (e) => {
+            if(e.key === 'Enter') newConfirm.click();
+            if(e.key === 'Escape') close();
+        };
+
+        modal.classList.add('active');
+        setTimeout(() => inputEl.focus(), 100);
     },
 
     switchTab: function(tabName) {

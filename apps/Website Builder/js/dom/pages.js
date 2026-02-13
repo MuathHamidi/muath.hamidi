@@ -25,12 +25,22 @@ UI.renderPagesList = function() {
         // Click to Load
         div.onclick = () => Editor.loadPage(index);
         
+        // Controls HTML
+        const controls = `
+            <div style="display:flex; gap:4px; align-items:center;">
+                <span class="material-icons-round action-icon" style="font-size:1rem; opacity:0.5; padding:4px;" 
+                    onclick="event.stopPropagation(); UI.renamePage(${index})" title="Rename">edit</span>
+                ${index !== 0 ? `<span class="material-icons-round action-icon delete" style="font-size:1rem; opacity:0.5; padding:4px;" 
+                    onclick="event.stopPropagation(); UI.deletePage(${index})" title="Delete">close</span>` : ''}
+            </div>
+        `;
+
         div.innerHTML = `
-            <div style="display:flex; align-items:center; gap:8px; overflow:hidden;">
+            <div style="display:flex; align-items:center; gap:8px; overflow:hidden; flex:1;">
                 <span class="material-icons-round" style="font-size:16px; opacity:0.3; cursor:grab;">drag_indicator</span>
                 <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${page.title}</span>
             </div>
-            ${index !== 0 ? `<span class="material-icons-round" style="font-size:1rem; opacity:0.5; padding:4px;" onclick="event.stopPropagation(); UI.deletePage(${index})">close</span>` : ''}
+            ${controls}
         `;
         container.appendChild(div);
     });
@@ -91,15 +101,26 @@ UI.handlePageDragEnd = function(e) {
     draggedPageIndex = null;
 };
 
-/* --- Existing Actions --- */
+/* --- Actions --- */
 
 UI.addPage = function() {
-    const title = prompt("Page Title:");
-    if(!title) return;
-    Data.state.pages.push({ id: Date.now(), title: title, blocks: [] });
-    Data.save();
-    this.renderPagesList();
-    Editor.loadPage(Data.state.pages.length - 1);
+    UI.prompt("Page Title", "New Page", (title) => {
+        Data.state.pages.push({ id: Date.now(), title: title, blocks: [] });
+        Data.save();
+        this.renderPagesList();
+        Editor.loadPage(Data.state.pages.length - 1);
+        UI.notify("Page Added");
+    });
+};
+
+UI.renamePage = function(index) {
+    const currentTitle = Data.state.pages[index].title;
+    UI.prompt("Rename Page", currentTitle, (newTitle) => {
+        Data.state.pages[index].title = newTitle;
+        Data.save();
+        this.renderPagesList();
+        UI.notify("Page Renamed");
+    });
 };
 
 UI.deletePage = function(index) {
