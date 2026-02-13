@@ -1,0 +1,136 @@
+/* Website Builder/css/editor/sidebar.css */
+
+/* --- Left Sidebar: Pages --- */
+.page-sidebar {
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 10;
+    width: 100%; height: 100%;
+}
+
+.page-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--bg-tertiary);
+}
+.page-header h3 {
+    font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-secondary); font-weight: 700; margin: 0;
+}
+#pagesList { padding: 10px; overflow-y: auto; flex: 1; }
+
+.page-item {
+    padding: 10px 14px; margin-bottom: 4px; cursor: pointer;
+    border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 500;
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--text-secondary); border: 1px solid transparent; transition: 0.2s;
+    user-select: none;
+}
+.page-item:hover { background: var(--bg-primary); color: var(--text-primary); border-color: var(--border); }
+.page-item.active { background: var(--bg-primary); color: var(--accent); border-color: var(--accent); }
+
+/* Dragging State */
+.page-item.dragging {
+    opacity: 0.5;
+    background: var(--bg-tertiary);
+    border: 1px dashed var(--accent);
+}
+
+/* --- Properties Sidebar (Right) --- */
+.properties-sidebar {
+    background: var(--bg-secondary);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    z-index: 20; width: 100%; height: 100%; overflow: hidden;
+}
+
+/* Tabs */
+.sidebar-tabs {
+    display: flex; background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border); padding: 0;
+}
+.sidebar-tab {
+    flex: 1; text-align: center; padding: 14px 0; cursor: pointer;
+    font-size: 0.8rem; font-weight: 600; color: var(--text-secondary);
+    border-bottom: 2px solid transparent; transition: all 0.2s;
+}
+.sidebar-tab:hover { background: rgba(255,255,255,0.02); color: var(--text-primary); }
+.sidebar-tab.active { background: var(--bg-secondary); color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Content Area */
+#propertiesContent { padding: 0; overflow-y: auto; flex: 1; height: 100%; }
+
+/* Sections */
+.prop-section { padding: 24px 20px; border-bottom: 1px solid var(--border); }
+.prop-section-title {
+    font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary);
+    font-weight: 700; margin-bottom: 16px; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 8px;
+}
+.prop-section-title .material-icons-round { color: var(--accent); font-size: 18px; }
+
+/* Form Controls */
+.form-group { margin-bottom: 18px; }
+.form-group label {
+    display: block; font-size: 0.75rem; font-weight: 600;
+    color: var(--text-secondary); margin-bottom: 8px;
+}
+
+input[type="text"], input[type="number"], select, textarea {
+    background: var(--bg-primary); border: 1px solid var(--border);
+    color: var(--text-primary); font-size: 0.9rem; padding: 10px 12px;
+    border-radius: var(--radius-sm); width: 100%; transition: border-color 0.2s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; }
+
+/* MEDIA CONTROL WIDGET */
+.media-control-wrapper {
+    background: var(--bg-primary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm); overflow: hidden;
+}
+
+.media-upload-area {
+    height: 120px; position: relative; cursor: pointer;
+    background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;
+    border-bottom: 1px solid var(--border); transition: 0.2s;
+}
+.media-upload-area:hover { filter: brightness(1.1); }
+
+.placeholder-content {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: var(--text-secondary);
+}
+.placeholder-content .icon { font-size: 32px; opacity: 0.5; }
+.placeholder-content .label { font-size: 0.8rem; font-weight: 500; }
+
+.hover-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.5);
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0; transition: 0.2s;
+}
+.media-upload-area:hover .hover-overlay { opacity: 1; }
+.hover-overlay span { color: white; font-size: 24px; }
+
+.media-url-input {
+    display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+}
+.media-url-input span { color: var(--text-secondary); font-size: 18px; }
+.media-url-input input { border: none; padding: 0; background: transparent; font-size: 0.85rem; }
+.media-url-input input:focus { border: none; box-shadow: none; }
+
+/* Range Sliders */
+.range-group { display: flex; align-items: center; gap: 10px; }
+.range-value { font-family: monospace; font-size: 0.8rem; width: 40px; text-align: right; }
+
+/* Segmented Control */
+.segmented-control { background: var(--bg-primary); padding: 4px; border-radius: 6px; }
+.segmented-btn.active { background: var(--bg-tertiary); box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+
+/* Empty State */
+.empty-selection {
+    height: 100%; display: flex; flex-direction: column; align-items: center; 
+    justify-content: center; color: var(--text-secondary); opacity: 0.6; gap: 10px;
+}

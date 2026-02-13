@@ -1,0 +1,23 @@
+/* Editor Toolbar */
+.editor-toolbar {
+    height: 50px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 15px;
+    gap: 15px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    z-index: 50;
+    flex-shrink: 0;
+}
+
+.tool-group { display: flex; align-items: center; gap: 5px; }
+.tool-btn {
+    background: transparent; border: 1px solid transparent; color: var(--text-secondary);
+    border-radius: 4px; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: 0.2s;
+}
+.tool-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+.tool-btn.active { background: var(--bg-tertiary); color: var(--accent); }
+.tool-divider { width: 1px; height: 20px; background: var(--border); margin: 0 5px; }

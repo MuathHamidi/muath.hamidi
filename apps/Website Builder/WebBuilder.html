@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebBuilder Pro</title>
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/style.css">
+    <!-- Google Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+</head>
+<body data-theme="dark">
+
+    <!-- App Container -->
+    <div id="app"></div>
+
+    <!-- Notification -->
+    <div id="notification">Action Successful</div>
+
+    <!-- =========================================
+       DATA LAYER
+    ========================================= -->
+    <script src="js/data/state.js"></script>
+    <script src="js/data/history.js"></script>
+    <script src="js/data/storage.js"></script>
+
+    <!-- =========================================
+       DOM / UI LOGIC
+    ========================================= -->
+    <script src="js/dom/base.js"></script>
+    <script src="js/dom/theme.js"></script>
+    <script src="js/dom/nav.js"></script>
+    <script src="js/dom/pages.js"></script>
+    <script src="js/dom/project.js"></script>
+    
+    <!-- DOM CV Modules -->
+    <script src="js/dom/cv/index.js"></script>
+    <script src="js/dom/cv/experience.js"></script>
+    <script src="js/dom/cv/projects.js"></script>
+    <script src="js/dom/cv/education.js"></script>
+    <script src="js/dom/cv/skills.js"></script>
+    <!-- NEW: Custom CV Logic -->
+    <script src="js/dom/cv/custom.js"></script>
+
+    <!-- =========================================
+       GENERATOR (HTML/EXPORT)
+    ========================================= -->
+    <script src="js/generator/base.js"></script>
+    <script src="js/generator/html/styles.js"></script>
+    
+    <!-- Block Renderers (Export/Preview) -->
+    <script src="js/generator/html/blocks/helpers.js"></script>
+
+    <script src="js/generator/html/blocks/basic/typography.js"></script>
+    <script src="js/generator/html/blocks/basic/media.js"></script>
+    <script src="js/generator/html/blocks/basic/elements.js"></script>
+    <script src="js/generator/html/blocks/basic/table.js"></script>
+
+    <script src="js/generator/html/blocks/layout/hero.js"></script>
+    <script src="js/generator/html/blocks/layout/features.js"></script>
+    <script src="js/generator/html/blocks/layout/list.js"></script>
+    <script src="js/generator/html/blocks/layout/text-media.js"></script>
+
+    <script src="js/generator/html/blocks/advanced.js"></script>
+    <script src="js/generator/html/blocks/contact.js"></script>
+    <script src="js/generator/html/blocks/main.js"></script>
+
+    <script src="js/generator/html/render.js"></script>
+
+    <!-- Export Components -->
+    <script src="js/generator/export/components/nav.js"></script>
+    
+    <!-- CV Export Components -->
+    <script src="js/generator/export/components/cv/elements.js"></script>
+    
+    <!-- CV Layouts -->
+    <script src="js/generator/export/components/cv/layouts/modern/css.js"></script>
+    <script src="js/generator/export/components/cv/layouts/modern/sidebar.js"></script>
+    <script src="js/generator/export/components/cv/layouts/modern/main.js"></script>
+    
+    <script src="js/generator/export/components/cv/layouts/minimal.js"></script>
+    <script src="js/generator/export/components/cv/layouts/creative.js"></script>
+    <script src="js/generator/export/components/cv/main.js"></script>
+
+    <script src="js/generator/export/components/pages.js"></script>
+    <script src="js/generator/export/components/index.js"></script>
+    
+    <!-- Template Assemblers -->
+    <script src="js/generator/export/template/css.js"></script>
+    <script src="js/generator/export/template/scripts.js"></script>
+    <script src="js/generator/export/template/main.js"></script>
+    <script src="js/generator/export/main.js"></script>
+    <script src="js/generator/import.js"></script>
+
+    <!-- =========================================
+       EDITOR CORE
+    ========================================= -->
+    <script src="js/editor/base.js"></script>
+    <script src="js/editor/render/helpers.js"></script>
+    <script src="js/editor/render/dispatcher.js"></script>
+    <script src="js/editor/render/core/canvas.js"></script>
+
+    <!-- Editor Block Templates -->
+    <script src="js/editor/render/templates/basic.js"></script>
+    <script src="js/editor/render/templates/media.js"></script>
+    <script src="js/editor/render/templates/layout/hero.js"></script>
+    <script src="js/editor/render/templates/layout/features.js"></script>
+    <script src="js/editor/render/templates/layout/list.js"></script>
+    <script src="js/editor/render/templates/layout/elements.js"></script>
+    <script src="js/editor/render/templates/advanced/pricing.js"></script>
+    <script src="js/editor/render/templates/advanced/testimonials.js"></script>
+    <script src="js/editor/render/templates/advanced/faq.js"></script>
+    <script src="js/editor/render/templates/advanced/contact.js"></script>
+
+    <script src="js/editor/render/core/properties/ui.js"></script>
+    <script src="js/editor/render/core/properties/styles/layout.js"></script>
+    <script src="js/editor/render/core/properties/styles/spacing.js"></script>
+    <script src="js/editor/render/core/properties/styles/typography.js"></script>
+    <script src="js/editor/render/core/properties/styles/appearance/background.js"></script>
+    <script src="js/editor/render/core/properties/styles/appearance/effects.js"></script>
+    <script src="js/editor/render/core/properties/styles/appearance/shape.js"></script>
+    <script src="js/editor/render/core/properties/styles/appearance/index.js"></script>
+    <script src="js/editor/render/core/properties/styles/main.js"></script>
+    <script src="js/editor/render/core/properties/main.js"></script>
+
+    <script src="js/editor/actions/create/definitions.js"></script>
+    <script src="js/editor/actions/create/main.js"></script>
+    <script src="js/editor/actions/update/general.js"></script>
+    <script src="js/editor/actions/update/styling.js"></script>
+    <script src="js/editor/actions/update/media.js"></script>
+    <script src="js/editor/actions/update/inline.js"></script>
+    <script src="js/editor/actions/manage.js"></script>
+    <script src="js/editor/actions/items.js"></script>
+    <script src="js/editor/preview/ui.js"></script>
+    <script src="js/editor/preview/render.js"></script>
+    <script src="js/editor/dnd.js"></script>
+
+    <!-- =========================================
+       VIEWS & INITIALIZATION
+    ========================================= -->
+    <script src="js/partials/header.js"></script>
+    <script src="js/partials/settings.js"></script>
+    <script src="js/partials/editor/sidebar.js"></script>
+    <script src="js/partials/editor/toolbar.js"></script>
+    <script src="js/partials/editor/canvas.js"></script>
+    <script src="js/partials/editor/properties.js"></script>
+    <script src="js/partials/editor/empty.js"></script>
+    <script src="js/partials/editor/index.js"></script>
+
+    <script src="js/partials/cv/styles.js"></script>
+    
+    <!-- Split CV Sections -->
+    <script src="js/partials/cv/sections/base.js"></script>
+    
+    <script src="js/partials/cv/sections/settings.js"></script>
+    <script src="js/partials/cv/sections/personal.js"></script>
+    <script src="js/partials/cv/sections/contact.js"></script>
+    <script src="js/partials/cv/sections/experience.js"></script>
+    <script src="js/partials/cv/sections/projects.js"></script>
+    <script src="js/partials/cv/sections/education.js"></script>
+    <script src="js/partials/cv/sections/skills.js"></script>
+    <script src="js/partials/cv/sections/custom.js"></script>
+    
+    <script src="js/partials/cv/index.js"></script>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

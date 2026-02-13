@@ -1,0 +1,67 @@
+/* Website Builder/css/components/buttons.css */
+
+/* Buttons */
+.btn { 
+    padding: 8px 16px; border-radius: var(--radius-sm); cursor: pointer; border: none; 
+    font-weight: 600; display: flex; align-items: center; justify-content: center; 
+    gap: 8px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); font-size: 0.85rem; 
+    user-select: none;
+}
+
+/* Universal Click Effect */
+.btn:active {
+    transform: scale(0.96); 
+}
+
+.btn-primary { 
+    background: var(--accent); 
+    color: white; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.btn-primary:hover { 
+    background: var(--accent-hover); 
+    box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    transform: translateY(-1px);
+}
+.btn-primary:active {
+    transform: translateY(0) scale(0.96);
+    box-shadow: none;
+}
+
+.btn-outline { 
+    background: transparent; 
+    border: 1px solid var(--border); 
+    color: var(--text-primary); 
+}
+.btn-outline:hover { 
+    border-color: var(--text-secondary); 
+    background: var(--bg-tertiary); 
+    color: var(--text-primary);
+}
+.btn-outline:active {
+    background: var(--bg-secondary);
+}
+
+/* Icon Buttons */
+.btn-icon { 
+    background: transparent; border: 1px solid transparent; color: var(--text-secondary); cursor: pointer; 
+    width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; 
+    border-radius: var(--radius-sm); transition: 0.2s; 
+}
+.btn-icon:hover { 
+    background: var(--bg-tertiary); 
+    color: var(--text-primary); 
+    border-color: var(--border);
+}
+.btn-icon:active {
+    transform: scale(0.9);
+    background: var(--bg-secondary);
+}
+.btn-icon.active { 
+    background: rgba(139, 92, 246, 0.15); 
+    color: var(--accent); 
+    border-color: rgba(139, 92, 246, 0.3);
+}
+
+.btn-sm { padding: 4px 10px; font-size: 0.75rem; }
+.btn-full { width: 100%; }

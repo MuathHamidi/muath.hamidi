@@ -1,0 +1,117 @@
+/* Website Builder/css/layout.css */
+
+/* App Container */
+#app {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* HEADER STYLES */
+.app-header {
+    height: 55px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    flex-shrink: 0;
+    z-index: 100;
+}
+
+/* 1. Left: Brand */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+}
+.brand span.material-icons-round { 
+    color: var(--accent); 
+    font-size: 1.4rem; 
+}
+
+/* 2. Center: Navigation Tabs */
+.main-nav {
+    display: flex;
+    background: var(--bg-tertiary);
+    padding: 4px;
+    border-radius: 8px;
+    gap: 2px;
+}
+
+.nav-tab {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 6px 16px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-tab:hover { color: var(--text-primary); }
+.nav-tab.active { 
+    background: var(--bg-primary); 
+    color: var(--text-primary); 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.nav-tab span.material-icons-round { font-size: 16px; }
+
+/* 3. Right: Global Actions */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.separator {
+    width: 1px;
+    height: 20px;
+    background: var(--border);
+}
+
+/* MAIN CONTENT */
+main { 
+    flex: 1; 
+    position: relative; 
+    overflow: hidden; 
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary);
+}
+
+/* Added: Ensures tabs take full height so internal scrolling works */
+.tab-content {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.content-wrapper {
+    padding: 40px;
+    overflow-y: auto;
+    height: 100%;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    /* Added: Smooth scrolling */
+    scroll-behavior: smooth;
+}
+
+h2 { margin: 0 0 25px 0; font-weight: 700; font-size: 1.8rem; letter-spacing: -0.5px; }
+h3 { margin: 0; font-weight: 600; color: var(--text-secondary); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.2px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }

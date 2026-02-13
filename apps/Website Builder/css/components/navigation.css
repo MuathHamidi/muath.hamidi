@@ -1,0 +1,78 @@
+/* Website Builder/css/components/navigation.css */
+
+/* Segmented Control (Toggle Group) */
+.segmented-control {
+    display: flex;
+    background: var(--bg-tertiary); /* Darker track */
+    padding: 4px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    gap: 4px; /* Space between buttons */
+}
+
+.segmented-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-secondary);
+    padding: 6px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 16px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.segmented-btn:hover { 
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary); 
+}
+
+.segmented-btn:active {
+    transform: scale(0.95); /* Click press effect */
+}
+
+.segmented-btn.active { 
+    background: var(--bg-secondary);
+    color: var(--accent); 
+    font-weight: bold; 
+    border-color: var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
+}
+
+/* Tabs in Sidebar */
+.sidebar-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-tertiary);
+}
+
+.sidebar-tab {
+    flex: 1;
+    text-align: center;
+    padding: 12px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.sidebar-tab:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.02);
+}
+
+.sidebar-tab:active {
+    background: rgba(255,255,255,0.05);
+}
+
+.sidebar-tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--bg-secondary);
+}

@@ -1,0 +1,38 @@
+/* Website Builder/css/editor/layout.css */
+
+/* Editor Grid Layout */
+.editor-layout {
+    display: grid;
+    /* Fixed: Updated columns to match new sidebar widths (260px | Auto | 320px) */
+    grid-template-columns: 260px 1fr 320px;
+    grid-template-rows: 1fr;
+    height: 100%;
+    width: 100%;
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+.editor-center-col {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-primary); 
+    position: relative;
+    overflow: hidden;
+    grid-column: 2;
+    z-index: 1; /* Ensure it stays on its layer */
+}
+
+/* Empty States */
+.block-header { display: none; }
+
+.empty-state {
+    grid-column: 2 / -1; 
+    grid-row: 1; 
+    display: flex; 
+    flex-direction: column; 
+    align-items: center; 
+    justify-content: center;
+    background: var(--bg-primary); 
+    z-index: 50; 
+    border-left: 1px solid var(--border);
+}

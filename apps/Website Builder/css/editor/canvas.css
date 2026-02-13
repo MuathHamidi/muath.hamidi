@@ -1,0 +1,101 @@
+/* Canvas Scroll Wrapper */
+#canvasContainer {
+    flex: 1;
+    padding: 0; 
+    overflow-y: auto;
+    display: block; 
+    background: var(--bg-primary); 
+    position: relative;
+}
+
+/* The Page Visual - Updated for Flex Layout */
+.canvas-page {
+    background: var(--bg-primary); 
+    width: 100%;
+    min-height: 100%; 
+    box-shadow: none; 
+    padding: 20px; 
+    transition: width 0.3s ease;
+    font-family: var(--font-body);
+    padding-bottom: 150px;
+    
+    /* Flex Container for Side-by-Side Blocks */
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 0; /* Gaps handled by padding inside elements */
+}
+
+/* ... (Keep existing Theme styles) ... */
+
+[data-theme="dark"] .canvas-page { background: #121212; color: #e0e0e0; }
+[data-theme="light"] .canvas-page { background: #ffffff; color: #212529; }
+
+.canvas-page img, .canvas-page video, .canvas-page iframe {
+    max-width: 100%; height: auto; display: block;
+}
+
+/* Element Interaction */
+.canvas-element {
+    position: relative;
+    border: 1px solid transparent; 
+    transition: all 0.2s;
+    overflow-wrap: break-word; 
+    word-wrap: break-word;
+    padding: 2px;
+    /* Default width, overridden by inline styles */
+    width: 100%; 
+    box-sizing: border-box;
+}
+
+/* Hover Effect */
+.canvas-element:hover { 
+    border-color: var(--accent); 
+    box-shadow: inset 0 0 0 1px var(--accent);
+    z-index: 5;
+}
+
+/* Selected State */
+.canvas-element.selected { 
+    border: 2px solid var(--accent); 
+    z-index: 10; 
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+/* Fix Media Selection Overlay */
+.media-overlay {
+    position: absolute; top:0; left:0; width:100%; height:100%; 
+    z-index: 2; cursor: pointer;
+}
+
+/* Drop Indicator (New) */
+.drop-zone {
+    height: 4px;
+    background: var(--success);
+    margin: 4px 0;
+    border-radius: 2px;
+    position: relative;
+    display: none;
+    pointer-events: none;
+    width: 100%;
+}
+.drop-zone.active { display: block; }
+.canvas-element.drag-over-top { border-top: 2px solid var(--success); }
+.canvas-element.drag-over-bottom { border-bottom: 2px solid var(--success); }
+
+/* ... (Keep ContentEditable and Element Tools styles) ... */
+[contenteditable="true"]:hover { outline: 1px dashed var(--accent); cursor: text; }
+[contenteditable="true"]:focus { outline: 2px solid var(--accent); background: rgba(255, 255, 255, 0.05); min-height: 1em; }
+
+.element-tools {
+    position: absolute; right: 10px; top: -30px; background: var(--accent); border-radius: 4px 4px 0 0;
+    display: flex; padding: 4px; gap: 4px; opacity: 0; pointer-events: none; transition: 0.2s; z-index: 100;
+}
+.canvas-element:first-child .element-tools { top: 10px; right: 10px; }
+.canvas-element:first-child.selected .element-tools { top: 10px; }
+.canvas-element.selected .element-tools { opacity: 1; pointer-events: all; top: -32px; }
+
+.element-tool-btn {
+    color: white; cursor: pointer; font-size: 16px; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+}
+.element-tool-btn:hover { background: rgba(0,0,0,0.2); border-radius: 2px; }
