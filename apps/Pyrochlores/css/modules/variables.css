@@ -1,0 +1,12 @@
+:root {
+    --bg-dark: #0f1014;
+    --bg-panel: #1b1d24;
+    --bg-hover: #252830;
+    --primary: #4cc9f0;
+    --secondary: #f72585;
+    --border: #333842;
+    --text-main: #e0e0e0;
+    --text-muted: #8b949e;
+    --font-ui: 'Inter', sans-serif;
+    --font-code: 'JetBrains Mono', monospace;
+}

@@ -17,6 +17,7 @@ Here you can find a collection of web tools I have created.
 - **[Interatomic Distances Visualizer](./apps/interatomic_distances_visualizer.html)**: A tool to visualize the interatomic distances distribution.
 - **[CIF Maker](./apps/cif_maker.html)**: A tool to create CIF files from input data.
 - **[State Basis Convertor](./apps/state_basis_convertor.html)**: A tool to convert the quantum states from the coupled basis to the chemical atomic orbitals basis.
+- **[Pyrochlores](./apps/Pyrochlores/Pyrochlores.html)**: This tool analyzes and visualizes Rare Earth Pyrochlores (A2B2O7) simulations.
 
 ## Utility Applications
 

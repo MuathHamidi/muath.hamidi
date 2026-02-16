@@ -1,0 +1,177 @@
+:root {
+    /* Category Colors */
+    --cat-alkali: #ff6666;
+    --cat-alkaline: #ffdead;
+    --cat-transition: #ffc0c0;
+    --cat-lanthanide: #ffbfff;
+    --cat-actinide: #f8a5f8;
+    --cat-post: #cccccc;
+    --cat-metalloid: #cccc99;
+    --cat-diatomic: #e0e0e0;
+    --cat-polyatomic: #d3d3d3;
+    --cat-noble: #c0ffff;
+    --cat-unknown: #eeeeee;
+}
+
+.periodic-section { 
+    flex: 0 0 auto; 
+    overflow-x: auto; 
+    padding-bottom: 5px; 
+    user-select: none;
+}
+
+.ptable-wrapper {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(38px, 1fr));
+    gap: 3px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 10px;
+}
+
+/* Base Element Style */
+.element {
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    border-radius: 4px;
+    position: relative;
+    background: var(--bg-panel);
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    color: #888;
+}
+
+/* Text Content */
+.element .number { 
+    font-size: 0.55em; 
+    position: absolute; 
+    top: 2px; 
+    left: 4px; 
+    opacity: 0.7; 
+}
+
+.element .symbol { 
+    font-weight: 700; 
+    font-size: 1.1em; 
+    color: var(--text-main);
+}
+
+.element .mass {
+    font-size: 0.45em;
+    opacity: 0.5;
+    margin-top: 2px;
+    display: none; /* Show on larger screens or zoom */
+}
+
+/* Category Indicators (Small colored bar at bottom) */
+.element::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: currentColor;
+    opacity: 0.3;
+}
+
+/* Hover Effects */
+.element:hover { 
+    transform: scale(1.2); 
+    z-index: 10; 
+    border-color: #fff; 
+    box-shadow: 0 6px 15px rgba(0,0,0,0.5);
+    background: var(--bg-hover);
+}
+
+/* Empty / Spacers */
+.element.empty { border: none; background: transparent; pointer-events: none; }
+.element.empty::after { display: none; }
+
+/* Placeholders (La-Lu blocks in main grid) */
+.element.placeholder {
+    border: 1px dashed var(--border);
+    opacity: 0.5;
+    font-size: 0.7em;
+    pointer-events: none;
+}
+
+/* --- STATE STYLES --- */
+
+/* Data Available (from Log) */
+.element.has-data { 
+    border-color: #555; 
+    background: #20232a; 
+}
+.element.has-data .symbol { color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.2); }
+
+/* Selected States */
+.element.selected-a { 
+    background: var(--primary) !important; 
+    color: #000 !important; 
+    border-color: var(--primary); 
+    box-shadow: 0 0 15px var(--primary); 
+    transform: scale(1.1);
+    z-index: 5;
+}
+.element.selected-a .symbol { color: #000; }
+
+.element.selected-b { 
+    background: var(--secondary) !important; 
+    color: #fff !important; 
+    border-color: var(--secondary); 
+    box-shadow: 0 0 15px var(--secondary); 
+    transform: scale(1.1);
+    z-index: 5;
+}
+
+/* --- LAYOUT SPACERS --- */
+.row-spacer { 
+    height: 20px; 
+    grid-column: 1 / -1; 
+    pointer-events: none; 
+}
+
+.lanthanide-spacer {
+    grid-column: 1 / 4; /* Shift lanthanides to align with Group 3 */
+    pointer-events: none;
+}
+
+/* --- LEGEND --- */
+.legend { 
+    display: flex; 
+    align-items: center; 
+    justify-content: space-between; 
+    font-size: 0.8em; 
+    color: var(--text-muted); 
+    margin-top: 8px; 
+    max-width: 1100px; 
+    margin-left: auto; 
+    margin-right: auto;
+    padding: 0 10px;
+}
+.legend-group { display: flex; align-items: center; gap: 15px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+/* --- TOOLTIPS --- */
+.element[data-tooltip]:hover::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.9);
+    color: #fff;
+    padding: 5px 8px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    white-space: nowrap;
+    margin-bottom: 8px;
+    border: 1px solid var(--border);
+    pointer-events: none;
+    z-index: 20;
+}

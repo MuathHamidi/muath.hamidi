@@ -1,0 +1,233 @@
+.sidebar {
+    background-color: var(--bg-panel);
+    border-right: 1px solid var(--border);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    overflow-y: auto;
+    height: 100vh;
+}
+
+.brand h2 { margin: 0; color: var(--primary); font-weight: 300; letter-spacing: -0.5px; }
+.brand h2 span { font-weight: 700; }
+.brand p { margin: 5px 0 0; color: var(--text-muted); font-size: 0.8em; letter-spacing: 1px; text-transform: uppercase; }
+
+.section-title {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-weight: 600;
+}
+
+/* Status Badges */
+.system-status { padding: 5px 0; }
+.status-badge { 
+    font-size: 0.85em; 
+    font-weight: 500; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    background: var(--bg-hover);
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+}
+.status-badge .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.loading { color: #ebc034; } .loading .dot { background: #ebc034; animation: blink 1s infinite; }
+.success { color: #4cd964; border-color: rgba(76, 217, 100, 0.2); } .success .dot { background: #4cd964; }
+.error { color: #f72585; border-color: rgba(247, 37, 133, 0.2); } .error .dot { background: #f72585; }
+@keyframes blink { 50% { opacity: 0.5; } }
+
+/* Atom Selection */
+.atom-selectors { display: flex; gap: 12px; }
+.atom-box {
+    flex: 1;
+    background: var(--bg-dark);
+    padding: 12px 5px;
+    border-radius: 8px;
+    text-align: center;
+    border: 2px solid var(--border);
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.atom-box:hover { background: #222; }
+.atom-box.active-focus { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.1); transform: translateY(-2px); }
+.atom-box.filled-a { border-color: var(--primary); }
+.atom-box.filled-b { border-color: var(--secondary); }
+.atom-box .label { display: block; font-size: 0.65em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+.atom-box .symbol { display: block; font-size: 1.8em; font-weight: 700; margin: 4px 0; }
+.atom-box .full-name { display: block; font-size: 0.7em; color: var(--text-muted); height: 1em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#atom-a-display .symbol { color: var(--primary); }
+#atom-b-display .symbol { color: var(--secondary); }
+
+.formula-preview {
+    text-align: center;
+    background: var(--bg-hover);
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 15px;
+    font-family: var(--font-code);
+    font-weight: 700;
+    font-size: 1.1em;
+    color: #666; 
+    letter-spacing: 1px;
+    transition: color 0.3s;
+}
+
+/* FILTERS & SEARCH */
+.filter-box {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+}
+.filter-box label {
+    display: block;
+    font-size: 0.75em;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+.range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.range-inputs span { color: var(--text-muted); }
+
+.search-container { margin-bottom: 10px; }
+#file-search {
+    width: 100%;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    padding: 8px 10px;
+    border-radius: 6px;
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    font-size: 0.9em;
+}
+#file-search:focus { outline: none; border-color: var(--primary); }
+#file-search:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.list-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 5px;
+}
+#match-count { font-size: 0.7em; color: var(--text-muted); }
+
+.file-list { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 4px; 
+    flex: 1; 
+    overflow-y: auto; 
+    padding-right: 5px;
+    min-height: 200px;
+}
+.file-item {
+    padding: 10px 12px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.85em;
+    border-radius: 6px;
+    border-left: 3px solid transparent;
+    transition: 0.1s;
+    color: var(--text-main);
+    display: flex;
+    justify-content: space-between;
+}
+.file-item:hover { background: var(--bg-hover); }
+.file-item.active { background: var(--bg-hover); border-left-color: var(--primary); color: #fff; font-weight: 600; }
+.file-gap-badge { font-size: 0.85em; font-family: var(--font-code); opacity: 0.7; color: var(--primary); }
+
+.empty-state { font-style: italic; color: var(--text-muted); font-size: 0.85em; padding: 10px; text-align: center; border: 1px dashed var(--border); border-radius: 6px; }
+
+.copy-btn-small {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.7em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+.copy-btn-small:hover { border-color: var(--primary); color: var(--primary); }
+
+/* MINI PERIODIC TABLE */
+.sidebar-ptable-container {
+    margin-bottom: 15px;
+}
+
+.sidebar-ptable {
+    display: grid;
+    grid-template-columns: repeat(18, 1fr);
+    gap: 1px;
+    padding: 4px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+
+/* Sidebar elements override generic .element styles */
+.sidebar-ptable .element {
+    width: auto;
+    height: auto;
+    aspect-ratio: 1;
+    border: none;
+    background: transparent;
+    padding: 0;
+    min-height: 12px;
+}
+
+.sidebar-ptable .element:hover {
+    transform: scale(2);
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+}
+
+.sidebar-ptable .element .number,
+.sidebar-ptable .element .mass {
+    display: none; /* Hide clutter */
+}
+
+.sidebar-ptable .element .symbol {
+    font-size: 7px; /* Very small font */
+    font-weight: 500;
+}
+
+/* Reuse spacer classes but tailored for mini if needed, 
+   or just use same grid-column logic via JS */
+.sidebar-ptable .row-spacer-mini { 
+    grid-column: 1 / -1; 
+    height: 5px; 
+    pointer-events: none;
+}
+.sidebar-ptable .lanthanide-spacer-mini {
+    grid-column: 1 / 4; 
+    pointer-events: none;
+}
+
+/* Highlight states */
+.sidebar-ptable .element.has-data {
+    background: #20232a;
+    border: 1px solid #333;
+}
+.sidebar-ptable .element.selected-a {
+    background: var(--primary) !important;
+    box-shadow: none; /* Reduce glow in mini */
+    transform: none;
+    border: 1px solid var(--primary);
+}
+.sidebar-ptable .element.selected-b {
+    background: var(--secondary) !important;
+    box-shadow: none;
+    transform: none;
+    border: 1px solid var(--secondary);
+}
