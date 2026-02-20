@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIF to XYZ Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Include JSZip for bundling multiple files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .drop-zone {
+            transition: all 0.2s ease;
+        }
+
+        .drop-zone.dragover {
+            background-color: rgba(59, 130, 246, 0.1); /* blue-500 with low opacity */
+            border-color: #3b82f6;
+            transform: scale(1.02);
+        }
+
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b; /* slate-800 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #475569; /* slate-600 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; /* slate-500 */
+        }
+
+        /* Subtle noise overlay for texture */
+        .noise-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: none;
+            z-index: 50;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-900 text-slate-200">
+    
+    <!-- Noise texture overlay -->
+    <div class="noise-overlay"></div>
+
+    <main class="w-full max-w-3xl bg-slate-800 rounded-2xl shadow-2xl overflow-hidden border border-slate-700 relative z-10">
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-blue-700 to-indigo-900 p-6 text-white text-center border-b border-slate-700">
+            <h1 class="text-3xl font-bold flex items-center justify-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+                CIF to XYZ Converter
+            </h1>
+            <p class="text-blue-200 mt-2 text-sm">Convert crystallographic coordinates to Cartesian format.</p>
+        </header>
+
+        <div class="p-8">
+            <!-- Upload Area -->
+            <div id="dropZone" class="drop-zone border-2 border-dashed border-slate-600 rounded-xl p-10 text-center cursor-pointer hover:bg-slate-800 hover:border-slate-500 group relative">
+                <!-- Two inputs: one for standard files, one specifically forcing folder selection -->
+                <input type="file" id="fileInput" accept=".cif" multiple class="hidden" />
+                <input type="file" id="folderInput" accept=".cif" webkitdirectory directory multiple class="hidden" />
+                
+                <div class="flex flex-col items-center justify-center gap-4">
+                    <div class="p-4 bg-slate-900 rounded-full text-blue-400 group-hover:bg-slate-700 group-hover:text-blue-300 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    </div>
+                    <div>
+                        <p class="text-lg font-medium text-slate-200">Drag & drop files or folders here</p>
+                        <p class="text-sm text-slate-400 mt-1">We'll automatically extract all .cif files</p>
+                    </div>
+                    
+                    <div class="flex gap-3 mt-2 pointer-events-auto">
+                        <button id="browseFilesBtn" class="px-5 py-2 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-lg text-sm font-medium transition-colors border border-slate-600 shadow-sm">
+                            Select Files
+                        </button>
+                        <button id="browseFolderBtn" class="px-5 py-2 bg-blue-900/50 hover:bg-blue-800 text-blue-200 rounded-lg text-sm font-medium transition-colors border border-blue-800 shadow-sm">
+                            Select Folder
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Error Message -->
+            <div id="errorMessage" class="hidden mt-4 p-4 bg-red-900/30 text-red-400 rounded-lg text-sm flex items-start gap-2 border border-red-800/50">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mt-0.5 shrink-0"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                <span id="errorText">An error occurred during conversion.</span>
+            </div>
+
+            <!-- Results Area (Hidden initially) -->
+            <div id="resultsArea" class="hidden mt-8 space-y-4 animate-fade-in">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-slate-100 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        Conversion Summary
+                    </h2>
+                    <span id="metaCount" class="text-sm bg-slate-700 text-slate-300 px-3 py-1 rounded-full font-medium">0 atoms</span>
+                </div>
+                
+                <!-- Single File View -->
+                <div id="singleFileView" class="relative group hidden">
+                    <textarea id="outputData" readonly class="w-full h-64 bg-slate-900 border border-slate-700 rounded-lg p-4 font-mono text-sm text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"></textarea>
+                    <button id="copyBtn" class="absolute top-3 right-3 p-2 bg-slate-800 border border-slate-600 rounded-md shadow-sm text-slate-400 hover:text-blue-400 hover:border-blue-500 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Copy to clipboard">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Multi File View -->
+                <div id="multiFileView" class="hidden w-full h-64 bg-slate-900 border border-slate-700 rounded-lg p-4 overflow-y-auto">
+                    <!-- File list will be injected here -->
+                </div>
+
+                <div class="flex gap-4">
+                    <button id="downloadBtn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm shadow-blue-900/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <!-- Icon injected via JS based on state -->
+                    </button>
+                    <button id="resetBtn" class="bg-slate-700 hover:bg-slate-600 text-slate-200 font-medium py-3 px-6 rounded-lg transition-colors border border-slate-600">
+                        Convert More
+                    </button>
+                </div>
+                
+                <p class="text-xs text-slate-500 text-center mt-4">
+                    Note: Symmetry operations found in the files are automatically applied to generate full unit cell positions.
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements
+        const dropZone = document.getElementById('dropZone');
+        const fileInput = document.getElementById('fileInput');
+        const folderInput = document.getElementById('folderInput');
+        
+        const browseFilesBtn = document.getElementById('browseFilesBtn');
+        const browseFolderBtn = document.getElementById('browseFolderBtn');
+        
+        const resultsArea = document.getElementById('resultsArea');
+        const singleFileView = document.getElementById('singleFileView');
+        const multiFileView = document.getElementById('multiFileView');
+        
+        const outputData = document.getElementById('outputData');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        
+        const errorMessage = document.getElementById('errorMessage');
+        const errorText = document.getElementById('errorText');
+        const metaCount = document.getElementById('metaCount');
+
+        let convertedFiles = []; // Array to hold { name, content, atoms }
+
+        // --- Event Listeners ---
+
+        // File/Folder selection via buttons
+        browseFilesBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            fileInput.click();
+        });
+
+        browseFolderBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            folderInput.click();
+        });
+        
+        // Prevent programmatic clicks on inputs from bubbling up and triggering dropZone
+        fileInput.addEventListener('click', (e) => e.stopPropagation());
+        folderInput.addEventListener('click', (e) => e.stopPropagation());
+        
+        // General dropzone click falls back to file input
+        dropZone.addEventListener('click', () => fileInput.click());
+        
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        
+        dropZone.addEventListener('dragleave', () => {
+            dropZone.classList.remove('dragover');
+        });
+        
+        dropZone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            
+            // Handle dropped folders and files
+            const files = await getAllDroppedFiles(e.dataTransfer);
+            if (files.length > 0) {
+                handleFiles(files);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+        folderInput.addEventListener('change', (e) => handleFiles(Array.from(e.target.files)));
+
+        // Actions
+        resetBtn.addEventListener('click', () => {
+            resultsArea.classList.add('hidden');
+            dropZone.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            fileInput.value = '';
+            folderInput.value = '';
+            convertedFiles = [];
+        });
+
+        downloadBtn.addEventListener('click', async () => {
+            if (convertedFiles.length === 0) return;
+
+            // Update button state to show processing
+            const originalHtml = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = `
+                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> 
+                Preparing Download...
+            `;
+            downloadBtn.disabled = true;
+
+            try {
+                if (convertedFiles.length === 1) {
+                    // Single file download
+                    const blob = new Blob([convertedFiles[0].content], { type: 'text/plain' });
+                    triggerDownload(blob, convertedFiles[0].name);
+                } else {
+                    // Multi-file ZIP download
+                    const zip = new JSZip();
+                    convertedFiles.forEach(f => {
+                        zip.file(f.name, f.content);
+                    });
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    triggerDownload(blob, 'converted_xyz_files.zip');
+                }
+            } finally {
+                downloadBtn.innerHTML = originalHtml;
+                downloadBtn.disabled = false;
+            }
+        });
+
+        copyBtn.addEventListener('click', () => {
+            if (convertedFiles.length !== 1) return;
+            outputData.select();
+            document.execCommand('copy');
+            
+            // Visual feedback
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+            setTimeout(() => { copyBtn.innerHTML = originalHTML; }, 2000);
+        });
+
+        // --- Core Application Logic ---
+
+        // Recursive directory traversal for drag-and-drop
+        async function getAllDroppedFiles(dataTransfer) {
+            if (!dataTransfer.items) return Array.from(dataTransfer.files);
+
+            const promises = [];
+            for (let i = 0; i < dataTransfer.items.length; i++) {
+                const item = dataTransfer.items[i];
+                if (item.kind === 'file') {
+                    const entry = item.webkitGetAsEntry();
+                    if (entry) {
+                        promises.push(traverseFileTree(entry));
+                    }
+                }
+            }
+            const nestedFiles = await Promise.all(promises);
+            return nestedFiles.flat();
+        }
+
+        function traverseFileTree(item) {
+            return new Promise((resolve) => {
+                if (item.isFile) {
+                    item.file((file) => resolve([file]));
+                } else if (item.isDirectory) {
+                    const dirReader = item.createReader();
+                    const entries = [];
+                    // readEntries only returns batches, need to read until empty
+                    const readEntries = () => {
+                        dirReader.readEntries(async (results) => {
+                            if (!results.length) {
+                                const promises = entries.map(entry => traverseFileTree(entry));
+                                const nestedFiles = await Promise.all(promises);
+                                resolve(nestedFiles.flat());
+                            } else {
+                                entries.push(...results);
+                                readEntries();
+                            }
+                        });
+                    };
+                    readEntries();
+                } else {
+                    resolve([]);
+                }
+            });
+        }
+
+        async function handleFiles(filesArray) {
+            errorMessage.classList.add('hidden');
+            
+            const cifFiles = filesArray.filter(f => f.name.toLowerCase().endsWith('.cif'));
+            
+            if (cifFiles.length === 0) {
+                showError('No valid .cif files found. Please provide .cif files or a folder containing them.');
+                return;
+            }
+
+            convertedFiles = [];
+            let errorCount = 0;
+
+            // UI Transitions
+            dropZone.classList.add('hidden');
+            resultsArea.classList.remove('hidden');
+            
+            singleFileView.classList.add('hidden');
+            multiFileView.classList.remove('hidden');
+            multiFileView.innerHTML = '<div class="flex items-center justify-center h-full text-blue-400 font-medium animate-pulse">Processing files...</div>';
+
+            // Process all selected files
+            for (const file of cifFiles) {
+                try {
+                    const text = await file.text();
+                    const xyzData = processCifToXyz(text, file.name);
+                    const newName = file.name.replace(/\.cif$/i, '.xyz');
+                    convertedFiles.push({ name: newName, content: xyzData.content, atoms: xyzData.atomCount });
+                } catch (err) {
+                    console.error("Error processing " + file.name, err);
+                    errorCount++;
+                }
+            }
+
+            renderResults(cifFiles.length, errorCount);
+        }
+
+        function renderResults(totalAttempted, errorCount) {
+            if (convertedFiles.length === 0) {
+                showError(`Failed to convert any files. (${errorCount} errors check console)`);
+                resultsArea.classList.add('hidden');
+                dropZone.classList.remove('hidden');
+                return;
+            }
+
+            const downloadIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+
+            if (convertedFiles.length === 1 && totalAttempted === 1) {
+                // Render Single File View
+                singleFileView.classList.remove('hidden');
+                multiFileView.classList.add('hidden');
+                
+                outputData.value = convertedFiles[0].content;
+                metaCount.textContent = `${convertedFiles[0].atoms} atoms`;
+                downloadBtn.innerHTML = `${downloadIcon} Download .xyz File`;
+            } else {
+                // Render Multi-File View
+                singleFileView.classList.add('hidden');
+                multiFileView.classList.remove('hidden');
+                
+                metaCount.textContent = `${convertedFiles.length} files processed`;
+                downloadBtn.innerHTML = `${downloadIcon} Download All (ZIP)`;
+
+                let html = '<div class="space-y-2">';
+                convertedFiles.forEach(f => {
+                    html += `
+                        <div class="flex justify-between items-center bg-slate-800 p-3 rounded-lg border border-slate-700 text-sm hover:border-slate-600 transition-colors">
+                            <span class="text-slate-200 font-medium truncate pr-4">${f.name}</span>
+                            <span class="text-slate-400 text-xs shrink-0 bg-slate-900 px-2 py-1 rounded border border-slate-700">${f.atoms} atoms</span>
+                        </div>`;
+                });
+                if (errorCount > 0) {
+                    html += `
+                        <div class="p-3 bg-red-900/30 border border-red-800 text-red-400 text-sm rounded-lg mt-2 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                            Failed to convert ${errorCount} file(s).
+                        </div>`;
+                }
+                html += '</div>';
+                multiFileView.innerHTML = html;
+            }
+        }
+
+        function triggerDownload(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function showError(msg) {
+            errorText.textContent = msg;
+            errorMessage.classList.remove('hidden');
+        }
+
+        // --- Parsing & Math Helpers ---
+
+        const cleanNumber = (str) => {
+            if (!str) return 0;
+            return parseFloat(str.replace(/\(\d+\)/, ''));
+        };
+
+        const splitCifLine = (line) => {
+            const regex = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
+            const result = [];
+            let match;
+            while ((match = regex.exec(line))) {
+                result.push(match[1] || match[2] || match[0]);
+            }
+            return result;
+        };
+
+        const compileSymop = (symopStr) => {
+            const cleanStr = symopStr.replace(/['"\s]/g, '').toLowerCase();
+            const parts = cleanStr.split(',');
+            if (parts.length !== 3) return null;
+
+            const parseAxis = (expr) => {
+                let safeExpr = expr.replace(/(\d+)\/(\d+)/g, '($1/$2)');
+                if (!/^[xyz\d\.\+\-\/\(\)]+$/.test(safeExpr)) return '0';
+                return safeExpr;
+            };
+
+            try {
+                const fx = new Function('x', 'y', 'z', `return ${parseAxis(parts[0])};`);
+                const fy = new Function('x', 'y', 'z', `return ${parseAxis(parts[1])};`);
+                const fz = new Function('x', 'y', 'z', `return ${parseAxis(parts[2])};`);
+                return (x, y, z) => [fx(x,y,z), fy(x,y,z), fz(x,y,z)];
+            } catch (e) {
+                console.warn("Failed to compile symop:", symopStr, e);
+                return null;
+            }
+        };
+
+        function processCifToXyz(cifString, originalName) {
+            const lines = cifString.split(/\r?\n/);
+            
+            // 1. Extract Unit Cell Parameters
+            let a = 1, b = 1, c = 1, alpha = 90, beta = 90, gamma = 90;
+            let foundCell = false;
+
+            for (const line of lines) {
+                const trimmed = line.trim();
+                if (trimmed.startsWith('_cell_length_a')) { a = cleanNumber(splitCifLine(trimmed)[1]); foundCell = true; }
+                if (trimmed.startsWith('_cell_length_b')) b = cleanNumber(splitCifLine(trimmed)[1]);
+                if (trimmed.startsWith('_cell_length_c')) c = cleanNumber(splitCifLine(trimmed)[1]);
+                if (trimmed.startsWith('_cell_angle_alpha')) alpha = cleanNumber(splitCifLine(trimmed)[1]);
+                if (trimmed.startsWith('_cell_angle_beta')) beta = cleanNumber(splitCifLine(trimmed)[1]);
+                if (trimmed.startsWith('_cell_angle_gamma')) gamma = cleanNumber(splitCifLine(trimmed)[1]);
+            }
+
+            if (!foundCell) {
+                throw new Error("Could not find unit cell parameters (_cell_length_...) in the CIF file.");
+            }
+
+            // 2. Compute Fractional to Cartesian Matrix (M)
+            const deg2rad = Math.PI / 180.0;
+            const ca = Math.cos(alpha * deg2rad);
+            const cb = Math.cos(beta * deg2rad);
+            const cg = Math.cos(gamma * deg2rad);
+            const sg = Math.sin(gamma * deg2rad);
+            
+            const v = Math.sqrt(1 - ca*ca - cb*cb - cg*cg + 2*ca*cb*cg);
+            
+            const M = [
+                [a,  b * cg,  c * cb],
+                [0,  b * sg,  c * (ca - cb*cg) / sg],
+                [0,  0,       c * v / sg]
+            ];
+
+            // 3. Extract Atoms and Symmetry Operations
+            const explicitAtoms = [];
+            const symopsRaw = [];
+            
+            let inLoop = false;
+            let loopHeaders = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+                if (!line || line.startsWith('#')) continue;
+
+                if (line.toLowerCase() === 'loop_') {
+                    inLoop = true;
+                    loopHeaders = [];
+                    continue;
+                }
+
+                if (inLoop) {
+                    if (line.startsWith('_')) {
+                        loopHeaders.push(line.toLowerCase());
+                    } else {
+                        const isSymopLoop = loopHeaders.includes('_space_group_symop_operation_xyz') || loopHeaders.includes('_symmetry_equiv_pos_as_xyz');
+                        const idX = loopHeaders.indexOf('_atom_site_fract_x');
+                        const idY = loopHeaders.indexOf('_atom_site_fract_y');
+                        const idZ = loopHeaders.indexOf('_atom_site_fract_z');
+                        let idSym = loopHeaders.indexOf('_atom_site_type_symbol');
+                        
+                        if (idSym === -1) idSym = loopHeaders.indexOf('_atom_site_label');
+                        const isAtomLoop = (idX !== -1 && idY !== -1 && idZ !== -1);
+
+                        while (i < lines.length) {
+                            let dataLine = lines[i].trim();
+                            if (!dataLine || dataLine.startsWith('loop_') || dataLine.startsWith('_')) {
+                                i--; 
+                                break;
+                            }
+
+                            const parts = splitCifLine(dataLine);
+
+                            if (isSymopLoop) {
+                                const symopStr = parts.find(p => p.includes(','));
+                                if (symopStr) symopsRaw.push(symopStr);
+                            } else if (isAtomLoop && parts.length >= Math.max(idX, idY, idZ)) {
+                                const fX = cleanNumber(parts[idX]);
+                                const fY = cleanNumber(parts[idY]);
+                                const fZ = cleanNumber(parts[idZ]);
+                                
+                                let symbol = idSym !== -1 && parts[idSym] ? parts[idSym] : 'X';
+                                symbol = symbol.replace(/[^A-Za-z]/g, '');
+                                symbol = symbol.charAt(0).toUpperCase() + symbol.slice(1).toLowerCase();
+                                
+                                explicitAtoms.push({ symbol, fX, fY, fZ });
+                            }
+                            i++;
+                        }
+                        inLoop = false;
+                    }
+                }
+            }
+
+            if (explicitAtoms.length === 0) {
+                throw new Error("No valid atomic coordinates (_atom_site_fract_...) found.");
+            }
+
+            // 4. Apply Symmetry Operations
+            let symopFuncs = symopsRaw.map(compileSymop).filter(f => f !== null);
+            if (symopFuncs.length === 0) {
+                symopFuncs = [(x, y, z) => [x, y, z]]; 
+            }
+
+            const generatedAtoms = [];
+            const wrap = (val) => ((val % 1) + 1) % 1;
+            const wrapDist = (d) => Math.min(d, 1 - d);
+
+            for (const explicitAtom of explicitAtoms) {
+                for (const symop of symopFuncs) {
+                    let [nx, ny, nz] = symop(explicitAtom.fX, explicitAtom.fY, explicitAtom.fZ);
+                    
+                    nx = wrap(nx);
+                    ny = wrap(ny);
+                    nz = wrap(nz);
+
+                    let isDuplicate = false;
+                    for (const existing of generatedAtoms) {
+                        if (existing.symbol === explicitAtom.symbol) {
+                            const dx = Math.abs(existing.fX - nx);
+                            const dy = Math.abs(existing.fY - ny);
+                            const dz = Math.abs(existing.fZ - nz);
+                            
+                            if (wrapDist(dx) < 1e-4 && wrapDist(dy) < 1e-4 && wrapDist(dz) < 1e-4) {
+                                isDuplicate = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!isDuplicate) {
+                        generatedAtoms.push({ symbol: explicitAtom.symbol, fX: nx, fY: ny, fZ: nz });
+                    }
+                }
+            }
+
+            // 5. Format to Cartesian XYZ
+            let xyzStr = `${generatedAtoms.length}\n`;
+            xyzStr += `Generated from ${originalName} | a=${a}, b=${b}, c=${c}, alpha=${alpha}, beta=${beta}, gamma=${gamma} | ${symopFuncs.length} symops applied\n`;
+            
+            generatedAtoms.forEach(atom => {
+                const cX = M[0][0]*atom.fX + M[0][1]*atom.fY + M[0][2]*atom.fZ;
+                const cY = M[1][0]*atom.fX + M[1][1]*atom.fY + M[1][2]*atom.fZ;
+                const cZ = M[2][0]*atom.fX + M[2][1]*atom.fY + M[2][2]*atom.fZ;
+
+                const px = cX.toFixed(5).padStart(12, ' ');
+                const py = cY.toFixed(5).padStart(12, ' ');
+                const pz = cZ.toFixed(5).padStart(12, ' ');
+                xyzStr += `${atom.symbol.padEnd(4, ' ')} ${px} ${py} ${pz}\n`;
+            });
+
+            return {
+                content: xyzStr,
+                atomCount: generatedAtoms.length
+            };
+        }
+    </script>
+</body>
+</html>
