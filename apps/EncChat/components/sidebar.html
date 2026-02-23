@@ -1,0 +1,31 @@
+<!-- SECONDARY SIDEBAR (Channels or DMs) -->
+<aside class="w-60 bg-gray-800/95 flex flex-col z-10 border-r border-gray-700/80 backdrop-blur-sm">
+    <!-- Sidebar Header -->
+    <header id="sidebar-header" class="h-14 border-b border-gray-900/50 flex items-center px-4 font-bold text-gray-100 shadow-sm transition-colors group cursor-default">
+        <span id="sidebar-title" class="truncate flex-1 tracking-tight">Home</span>
+        <div id="sidebar-actions" class="flex gap-2 text-gray-400">
+            <button id="sidebar-add-btn" class="hidden hover:text-white transition-colors p-1 hover:bg-gray-700 rounded-md" title="Start new DM" onclick="app.showStartDMModal()"><i data-lucide="user-plus" class="w-4 h-4"></i></button>
+            <i id="sidebar-chevron" data-lucide="chevron-down" class="w-4 h-4 opacity-50"></i>
+        </div>
+    </header>
+    
+    <!-- Sidebar Content List -->
+    <div id="sidebar-list" class="flex-1 overflow-y-auto p-3 space-y-1 custom-scrollbar">
+        <!-- Channels or DMs injected here -->
+    </div>
+
+    <!-- Current User Profile Area -->
+    <div class="h-[68px] bg-gray-900/60 flex items-center px-3 gap-3 mt-auto border-t border-gray-800">
+        <div class="relative">
+            <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center font-bold text-white uppercase shadow-md" id="user-avatar-initial">?</div>
+            <div class="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-gray-900 rounded-full"></div>
+        </div>
+        <div class="flex-1 min-w-0">
+            <div id="user-nickname-display" class="text-sm font-bold text-white truncate leading-tight">User</div>
+            <div id="user-name-display" class="text-xs text-gray-400 truncate">@user</div>
+        </div>
+        <button onclick="app.showSettingsModal()" class="p-2 bg-gray-800 hover:bg-gray-700 rounded-xl text-gray-400 hover:text-white transition-all duration-200 border border-transparent hover:border-gray-600">
+            <i data-lucide="settings" class="w-[18px] h-[18px]"></i>
+        </button>
+    </div>
+</aside>

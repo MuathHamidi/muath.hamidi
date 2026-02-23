@@ -1,0 +1,24 @@
+<!-- SERVER NAVIGATION -->
+<nav class="w-[72px] bg-gray-900 flex flex-col items-center py-3 gap-2 border-r border-gray-800 z-20 hide-scrollbar overflow-y-auto">
+    <!-- Home Button -->
+    <div class="group relative flex items-center justify-center w-full mb-2">
+        <div class="absolute left-0 w-1 bg-white rounded-r-lg transition-all duration-300 h-0 group-hover:h-5" id="indicator-home"></div>
+        <button onclick="app.selectHome()" class="w-12 h-12 bg-gray-800 group-hover:bg-indigo-600 group-hover:rounded-2xl rounded-[24px] flex items-center justify-center transition-all duration-300 shadow-md text-white">
+            <i data-lucide="message-square" class="w-6 h-6"></i>
+        </button>
+        <div class="absolute left-16 bg-black text-white text-xs font-bold px-2 py-1 rounded scale-0 group-hover:scale-100 transition-transform origin-left z-50 whitespace-nowrap">Home (DMs)</div>
+    </div>
+    
+    <div class="w-8 h-[2px] bg-gray-800 rounded-full mb-2"></div>
+    
+    <!-- Server List -->
+    <div id="server-list" class="flex flex-col items-center gap-2 w-full"></div>
+    
+    <!-- Add Server Button -->
+    <div class="group relative flex items-center justify-center w-full mt-2">
+        <button onclick="app.showCreateServerModal()" class="w-12 h-12 bg-gray-800 group-hover:bg-green-600 group-hover:rounded-2xl rounded-[24px] flex items-center justify-center transition-all duration-300 text-green-500 group-hover:text-white">
+            <i data-lucide="plus" class="w-6 h-6"></i>
+        </button>
+        <div class="absolute left-16 bg-black text-white text-xs font-bold px-2 py-1 rounded scale-0 group-hover:scale-100 transition-transform origin-left z-50 whitespace-nowrap">Add/Join Server</div>
+    </div>
+</nav>

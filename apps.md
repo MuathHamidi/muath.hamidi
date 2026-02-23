@@ -27,3 +27,4 @@ Here you can find a collection of web tools I have created.
 - **[Image & Text Creator](./apps/image_creator.html)**: This tool allows users to customize an image's size, background, text content, and meta-information, and then generate and manage the resulting image in a gallery.
 - **[BibTeX Studio](./apps/BibTeX Studio/BibTeXStudio.html)**: This tool instantly parses, cleans, and converts raw BibTeX entries into standardized citation formats (APA, MLA, IEEE, etc.) with real-time previews and exportable LaTeX source code.
 - **[Web Builder](./apps/Website Builder/WebBuilder.html)**: This tool designs websites with a dedicated tool for building professional resumes. Users can to save their progress locally and export the final project as a standalone HTML file.
+- **[.](./apps/EncChat/EncChat.html)**

@@ -1,0 +1,29 @@
+<!-- AUTHENTICATION VIEW -->
+<div id="auth-view" class="hidden flex-1 flex items-center justify-center bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-gray-800 via-gray-900 to-black w-full h-full z-30 absolute inset-0">
+    <div class="bg-gray-800 p-8 rounded-2xl shadow-2xl w-full max-w-sm border border-gray-700 text-center">
+        <div class="flex justify-center mb-4 text-indigo-500">
+            <i data-lucide="shield-check" class="w-16 h-16"></i>
+        </div>
+        <h1 class="text-3xl font-bold mb-2 text-white tracking-tight">Nexus</h1>
+        <p class="text-gray-400 mb-6 text-sm">Secure, encrypted local communication.</p>
+        
+        <form id="auth-form" class="space-y-4" onsubmit="return false;">
+            <div>
+                <input type="text" id="auth-username" required placeholder="Username" class="w-full bg-gray-900 text-white border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+            </div>
+            <div>
+                <input type="password" id="auth-password" required placeholder="Password" class="w-full bg-gray-900 text-white border border-gray-700 rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors">
+            </div>
+            
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="app.handleLogin()" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 rounded-lg transition-colors shadow-lg shadow-indigo-600/20">
+                    Login
+                </button>
+                <button type="button" onclick="app.handleRegister()" class="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 rounded-lg transition-colors shadow-lg shadow-gray-900/20">
+                    Create Account
+                </button>
+            </div>
+        </form>
+        <p class="mt-4 text-xs text-gray-500">To join an existing identity, enter the exact username and password. Otherwise, create a new account.</p>
+    </div>
+</div>
