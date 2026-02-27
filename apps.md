@@ -18,6 +18,7 @@ Here you can find a collection of web tools I have created.
 - **[CIF Maker](./apps/cif_maker.html)**: A tool to create CIF files from input data.
 - **[State Basis Convertor](./apps/state_basis_convertor.html)**: A tool to convert the quantum states from the coupled basis to the chemical atomic orbitals basis.
 - **[Pyrochlores](./apps/Pyrochlores/Pyrochlores.html)**: This tool analyzes and visualizes Rare Earth Pyrochlores (A2B2O7) simulations.
+- **[Pyrochlores](./apps/SpinAlignment/SpinAlignment.html)**: This tool analyzes and visualizes the spin alignment probability density of Rare Earth Pyrochlores (A2B2O7).
 - **[CIF To XYZ Convertor](./apps/CIFTOXYZ.html)**: A tool to convert Crystallographic Information Files (.cif) into standard Cartesian coordinate files (.xyz).
 
 ## Utility Applications

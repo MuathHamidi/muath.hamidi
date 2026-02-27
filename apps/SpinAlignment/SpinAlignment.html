@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEF Spin Geometrical Alignment Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* Custom Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.3); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+        
+        /* Premium Background Texture (Noise + Gradient) */
+        .bg-noise {
+            background-color: #0b1120;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(30, 27, 75, 0.6) 0px, transparent 50%), 
+                radial-gradient(at 100% 100%, rgba(15, 23, 42, 0.8) 0px, transparent 50%);
+            background-attachment: fixed;
+        }
+        
+        .bg-noise::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.025; /* Highly subtle fine-grain noise */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+            mix-blend-mode: overlay;
+        }
+
+        /* Glassmorphism Panels */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .glass-input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* Custom Checkbox Styling */
+        .plot-toggle {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            transition: color 0.2s;
+            padding: 4px 0;
+        }
+        .plot-toggle:hover { color: #f8fafc; }
+        .plot-toggle input {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 1px solid rgba(255,255,255,0.2);
+            border-radius: 4px;
+            margin-right: 8px;
+            background: rgba(15, 23, 42, 0.5);
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .plot-toggle input:checked {
+            background: #6366f1;
+            border-color: #6366f1;
+            box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+        }
+        .plot-toggle input:checked::after {
+            content: '✔';
+            position: absolute;
+            color: white;
+            font-size: 10px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Neon Glows for Data */
+        .glow-red { text-shadow: 0 0 10px rgba(248, 113, 113, 0.6); }
+        .glow-green { text-shadow: 0 0 10px rgba(52, 211, 153, 0.6); }
+        .glow-blue { text-shadow: 0 0 10px rgba(96, 165, 250, 0.6); }
+        .glow-white { text-shadow: 0 0 10px rgba(255, 255, 255, 0.4); }
+    </style>
+</head>
+<body class="bg-noise text-slate-300 font-sans h-screen flex flex-col overflow-hidden">
+
+    <!-- Header -->
+    <header class="glass-panel text-white p-4 flex items-center justify-between shrink-0 border-b border-white/5 z-20">
+        <div class="flex items-center space-x-3">
+            <div class="p-2 bg-indigo-500/20 rounded-lg border border-indigo-500/30">
+                <i data-lucide="atom" class="w-6 h-6 text-indigo-400"></i>
+            </div>
+            <h1 class="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-cyan-400 to-indigo-300 drop-shadow-sm">
+                CEF Spin Alignment Visualizer
+            </h1>
+        </div>
+        <div class="text-cyan-200/70 text-sm flex items-center bg-cyan-900/20 px-3 py-1.5 rounded-full border border-cyan-500/20">
+            <i data-lucide="check-circle" class="w-4 h-4 mr-2 text-cyan-400"></i> SU(2) Coherent State Mapping
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex flex-1 overflow-hidden p-5 space-x-5 z-10">
+        
+        <!-- Left Panel: Data Input -->
+        <div class="w-1/3 glass-panel rounded-2xl flex flex-col overflow-hidden relative group">
+            <div class="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+            <div class="p-5 border-b border-white/5 flex justify-between items-center shrink-0">
+                <h2 class="font-bold text-slate-100 flex items-center text-lg tracking-wide">
+                    <i data-lucide="terminal" class="w-5 h-5 mr-2 text-indigo-400"></i> Data Input
+                </h2>
+                <div class="flex space-x-2">
+                    <input type="file" id="filePicker" class="hidden" onchange="handleFileUpload(event)">
+                    <button onclick="document.getElementById('filePicker').click()" class="bg-slate-700/50 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center border border-white/10 hover:border-white/20">
+                        <i data-lucide="folder-open" class="w-4 h-4 mr-1"></i> Browse
+                    </button>
+                    <button id="visualizeBtn" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-all shadow-lg flex items-center border border-indigo-400/30">
+                        <i data-lucide="play" class="w-4 h-4 mr-1"></i> Parse
+                    </button>
+                </div>
+            </div>
+            <div class="p-5 flex-1 overflow-hidden flex flex-col">
+                <label class="text-xs text-indigo-300/70 mb-2 uppercase tracking-widest font-bold">Loaded Data</label>
+                <textarea id="dataInput" class="w-full flex-1 p-4 glass-input rounded-xl focus:ring-2 focus:ring-indigo-500/50 outline-none resize-none font-mono text-[11px] leading-relaxed custom-scrollbar text-slate-300 transition-all shadow-inner" spellcheck="false"></textarea>
+            </div>
+        </div>
+
+        <!-- Right Panel: Visualization & Details -->
+        <div class="w-2/3 flex flex-col space-y-5 overflow-y-auto custom-scrollbar pr-2 pb-5">
+            
+            <!-- Controls & Selector -->
+            <div class="glass-panel rounded-2xl p-5 shrink-0 flex items-center justify-between">
+                <div class="flex items-center space-x-4 w-1/2">
+                    <div class="p-2 bg-slate-800/80 rounded-lg border border-white/5">
+                        <i data-lucide="layers" class="w-5 h-5 text-indigo-400"></i>
+                    </div>
+                    <select id="datasetSelect" class="w-full glass-input rounded-xl p-2.5 text-sm focus:ring-2 focus:ring-indigo-500/50 outline-none text-slate-100 disabled:opacity-50 font-semibold tracking-wide cursor-pointer transition-all" disabled>
+                        <option>No data parsed yet</option>
+                    </select>
+                </div>
+                <div class="flex space-x-8 text-sm bg-slate-900/40 px-6 py-2.5 rounded-xl border border-white/5 shadow-inner">
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Total J</span>
+                        <span id="displayJ" class="font-bold text-slate-100 text-lg glow-white">-</span>
+                    </div>
+                    <div class="w-px bg-white/10 my-1"></div>
+                    <div class="flex flex-col items-center justify-center">
+                        <span class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-0.5">Symmetry Class</span>
+                        <span id="displaySym" class="font-bold text-slate-100 text-base flex items-center mt-0.5">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Plot Area -->
+            <div class="flex-1 min-h-[500px] shrink-0 glass-panel rounded-2xl relative overflow-hidden flex flex-col border border-white/10 group">
+                <!-- Floating Plot Controls -->
+                <div class="absolute top-5 left-5 z-10 bg-slate-900/60 backdrop-blur-md border border-white/10 p-4 rounded-xl shadow-2xl flex flex-col space-y-2 opacity-80 group-hover:opacity-100 transition-opacity">
+                    <span class="text-[10px] uppercase font-black text-indigo-400 tracking-widest mb-2 border-b border-white/10 pb-1">Render Settings</span>
+                    <label class="plot-toggle">
+                        <input type="checkbox" id="toggleColorbar" checked onchange="updatePlotVis()"> Show Color Scale
+                    </label>
+                    <label class="plot-toggle">
+                        <input type="checkbox" id="toggleVector" checked onchange="updatePlotVis()"> Show ⟨J⟩ Vector
+                    </label>
+                    <label class="plot-toggle">
+                        <input type="checkbox" id="toggleAxes" onchange="updatePlotVis()"> Show Ref. Axes
+                    </label>
+                </div>
+                
+                <div id="plotly-div" class="w-full h-full flex-1"></div>
+            </div>
+
+            <!-- Wavefunction Details -->
+            <div class="glass-panel rounded-2xl p-5 shrink-0 h-48 overflow-hidden flex flex-col">
+                <h3 class="text-sm font-bold text-slate-100 mb-4 border-b border-white/5 pb-3 flex items-center">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5 mr-2 text-indigo-400"></i> Ground State Analytics <span class="text-xs text-slate-500 ml-2 font-normal">(E = 0.000 eV)</span>
+                </h3>
+                <div class="flex space-x-6 flex-1">
+                    <div class="w-5/12 flex flex-col">
+                        <div class="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-widest">Calculated Expectations</div>
+                        <div class="grid grid-cols-2 gap-3 font-mono text-xs flex-1">
+                            <div class="glass-input rounded-lg p-2.5 flex justify-between items-center">
+                                <span class="text-red-400 font-bold glow-red">⟨Jx⟩</span> <span id="valJx" class="text-slate-200">0.000</span>
+                            </div>
+                            <div class="glass-input rounded-lg p-2.5 flex justify-between items-center">
+                                <span class="text-emerald-400 font-bold glow-green">⟨Jy⟩</span> <span id="valJy" class="text-slate-200">0.000</span>
+                            </div>
+                            <div class="glass-input rounded-lg p-2.5 flex justify-between items-center">
+                                <span class="text-blue-400 font-bold glow-blue">⟨Jz⟩</span> <span id="valJz" class="text-slate-200">0.000</span>
+                            </div>
+                            <div class="bg-indigo-500/10 rounded-lg p-2.5 border border-indigo-500/20 flex justify-between items-center shadow-[inset_0_0_15px_rgba(99,102,241,0.1)]">
+                                <span class="text-indigo-300 font-bold">|⟨J⟩|</span> <span id="valJMag" class="text-white font-bold glow-white">0.000</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="w-7/12 flex flex-col">
+                        <div class="text-[10px] text-slate-400 font-bold mb-2 uppercase tracking-widest">Dominant Wavefunction Terms</div>
+                        <div id="wavefunctionDisplay" class="font-mono text-sm text-slate-200 space-y-1.5 glass-input p-4 rounded-xl overflow-x-auto whitespace-nowrap flex-1 custom-scrollbar flex items-center shadow-inner leading-relaxed">
+                            <span class="text-slate-500 italic">Waiting for quantum data...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pure M_J States Reference Card -->
+            <div id="pureStatesCard" class="glass-panel rounded-2xl p-5 shrink-0 hidden relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-30"></div>
+                <h3 id="pureStatesTitle" class="text-sm font-bold text-slate-100 mb-4 border-b border-white/5 pb-3 flex items-center">
+                    <i data-lucide="grid" class="w-5 h-5 mr-2 text-indigo-400"></i> Pure M_J States Reference
+                </h3>
+                <div id="pureStatesGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 min-h-[150px]">
+                    <!-- Dynamic Content -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide Icons safely
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        } else {
+            console.warn("Lucide icons failed to load.");
+        }
+
+        // State Management
+        let parsedDatasets = [];
+        let currentActiveDataset = null;
+        let currentlyRenderedPureJ = null;
+        let currentRenderSession = 0;
+
+        // Mathematical Utilities - Hardened for large J
+        function factorial(n) {
+            if (n <= 1) return 1; let res = 1; for(let i=2; i<=n; i++) res *= i; return res;
+        }
+
+        function nCr(n, r) {
+            if (r < 0 || r > n) return 0;
+            if (r === 0 || r === n) return 1;
+            // Iterative to avoid factorial overflow for very large quantum numbers
+            let res = 1;
+            for (let i = 1; i <= r; i++) {
+                res = res * (n - i + 1) / i;
+            }
+            return res;
+        }
+
+        // Calculate coherent state probability amplitude for 3D mapping (Husimi Q function)
+        function computeProbability(theta, phi, J, states) {
+            let realSum = 0; let imagSum = 0;
+            for (let state of states) {
+                let m = state.m, c_real = state.real, c_imag = state.imag;
+                let coeff = Math.sqrt(nCr(2 * J, J - m));
+                
+                let term = coeff * Math.pow(Math.cos(theta / 2), J + m) * Math.pow(Math.sin(theta / 2), J - m);
+                
+                let phaseReal = Math.cos(m * phi), phaseImag = Math.sin(m * phi);
+                
+                realSum += term * (c_real * phaseReal - c_imag * phaseImag);
+                imagSum += term * (c_real * phaseImag + c_imag * phaseReal);
+            }
+            return realSum * realSum + imagSum * imagSum;
+        }
+
+        // Calculate vector expectation values
+        function computeExpectations(J, states) {
+            let jz = 0, jx_real = 0, jy_real = 0;
+            let stateMap = {};
+            for(let s of states) stateMap[s.m] = {r: s.real, i: s.imag};
+
+            for(let s of states) {
+                let m = s.m;
+                let prob = s.real * s.real + s.imag * s.imag;
+                jz += prob * m; // <Jz>
+
+                if (stateMap[m+1] !== undefined) {
+                    let c_mp1 = stateMap[m+1];
+                    let val = 0.5 * Math.sqrt(J*(J+1) - m*(m+1));
+                    jx_real += val * (c_mp1.r * s.real + c_mp1.i * s.imag);
+                    jy_real += val * (c_mp1.r * s.imag - c_mp1.i * s.real);
+                }
+            }
+            return { jz: jz, jx: jx_real * 2, jy: jy_real * 2 }; 
+        }
+
+        // Parse Logic
+        function parseData() {
+            const text = document.getElementById('dataInput').value;
+            const lines = text.split('\n');
+            const datasets = [];
+            let currentData = null, blockActive = false, groundStateCol = -1;
+
+            for (let i = 0; i < lines.length; i++) {
+                let line = lines[i].trim();
+
+                // Handles new "Formula:" format as well as the older "ID:" format
+                if (line.startsWith('Formula:') || line.startsWith('ID:')) {
+                    if (currentData && currentData.states.length > 0) datasets.push(currentData);
+                    let idStr = line.startsWith('Formula:') ? line.substring(8) : line.substring(3);
+                    currentData = { id: idStr.trim(), J: 0, states: [] };
+                    blockActive = false;
+                }
+                if (currentData && line.includes('with respect to free GS J=')) {
+                    let match = line.match(/J=\s*([0-9.]+)/);
+                    if (match) currentData.J = parseFloat(match[1]);
+                }
+                if (currentData && line.startsWith('Mj') && line.includes('Level (eV)')) {
+                    if (currentData.states.length > 0) { blockActive = false; continue; }
+                    let nextLine = lines[i+1].trim();
+                    let energies = nextLine.split(/\s+/).map(Number).filter(n => !isNaN(n));
+                    
+                    groundStateCol = energies.findIndex(e => Math.abs(e) < 0.0001);
+                    if (groundStateCol === -1) groundStateCol = 0;
+
+                    blockActive = true; i++; continue;
+                }
+
+                if (blockActive && currentData) {
+                    if (line === '' || line.startsWith('admix') || line.startsWith('Time') || line.startsWith('=')) continue;
+                    if (line.startsWith('Mj')) { blockActive = false; continue; }
+
+                    let parts = line.split(/\s+/);
+                    if (parts.length >= 3) {
+                        let mVal = NaN;
+                        if (parts[0].includes('/2')) {
+                            let [num, den] = parts[0].split('/');
+                            mVal = parseFloat(num) / parseFloat(den);
+                        } else if (!isNaN(parseFloat(parts[0]))) {
+                            mVal = parseFloat(parts[0]);
+                        }
+
+                        if (!isNaN(mVal)) {
+                            let rIdx = groundStateCol * 2 + 1;
+                            let iIdx = groundStateCol * 2 + 2;
+
+                            if (rIdx < parts.length && iIdx < parts.length) {
+                                currentData.states.push({
+                                    m: mVal, label: parts[0],
+                                    real: parseFloat(parts[rIdx]), imag: parseFloat(parts[iIdx])
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+            if (currentData && currentData.states.length > 0) datasets.push(currentData);
+            
+            parsedDatasets = datasets;
+            updateUI();
+        }
+
+        function updateUI() {
+            const select = document.getElementById('datasetSelect');
+            select.innerHTML = '';
+            
+            if (parsedDatasets.length === 0) {
+                select.innerHTML = '<option>No valid data found</option>';
+                select.disabled = true;
+                return;
+            }
+
+            select.disabled = false;
+            parsedDatasets.forEach((ds, idx) => {
+                let opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = `${ds.id} (J = ${ds.J})`;
+                select.appendChild(opt);
+            });
+
+            select.onchange = () => {
+                currentActiveDataset = parsedDatasets[select.value];
+                visualizeDataset(currentActiveDataset);
+            };
+            
+            currentActiveDataset = parsedDatasets[0];
+            visualizeDataset(currentActiveDataset);
+        }
+
+        function visualizeDataset(dataset) {
+            // UI Updates
+            document.getElementById('displayJ').textContent = dataset.J;
+            
+            // Format Wavefunction String natively
+            let wfHtml = '';
+            dataset.states.forEach(s => {
+                let mag = Math.sqrt(s.real*s.real + s.imag*s.imag);
+                if (mag > 0.001) {
+                    let sign = wfHtml.length === 0 ? '' : ' <span class="text-slate-600 px-2">+</span> ';
+                    let coeff = '';
+                    if (Math.abs(s.imag) < 0.001) {
+                        coeff = s.real.toFixed(3);
+                    } else if (Math.abs(s.real) < 0.001) {
+                        coeff = s.imag.toFixed(3) + 'i';
+                    } else {
+                        let iSign = s.imag > 0 ? '+' : '-';
+                        coeff = `(${s.real.toFixed(3)} ${iSign} ${Math.abs(s.imag).toFixed(3)}i)`;
+                    }
+                    wfHtml += `${sign}<span class="text-indigo-300 font-medium">${coeff}</span><span class="text-slate-100 font-bold ml-1 text-[15px]">|${s.label}⟩</span>`;
+                }
+            });
+            document.getElementById('wavefunctionDisplay').innerHTML = wfHtml;
+
+            // Expectations calculation
+            let exp = computeExpectations(dataset.J, dataset.states);
+            let jMag = Math.sqrt(exp.jx**2 + exp.jy**2 + exp.jz**2);
+            
+            document.getElementById('valJx').textContent = exp.jx.toFixed(4);
+            document.getElementById('valJy').textContent = exp.jy.toFixed(4);
+            document.getElementById('valJz').textContent = exp.jz.toFixed(4);
+            document.getElementById('valJMag').textContent = jMag.toFixed(4);
+
+            // Determine Symmetry Badge for UI
+            let symEl = document.getElementById('displaySym');
+            if (jMag < 0.1) {
+                symEl.innerHTML = `<span class="px-2.5 py-1 bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-md text-xs ml-2 shadow-sm font-bold">Non-Magnetic (Singlet)</span>`;
+            } else if (Math.abs(exp.jz) > (jMag * 0.9)) {
+                symEl.innerHTML = `<span class="px-2.5 py-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-md text-xs ml-2 shadow-[0_0_10px_rgba(248,113,113,0.15)] flex items-center font-bold"><i data-lucide="arrow-up-down" class="w-3.5 h-3.5 mr-1.5"></i> Ising (Axial)</span>`;
+            } else if (Math.abs(exp.jz) < (jMag * 0.1)) {
+                symEl.innerHTML = `<span class="px-2.5 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/30 rounded-md text-xs ml-2 shadow-[0_0_10px_rgba(96,165,250,0.15)] flex items-center font-bold"><i data-lucide="disc" class="w-3.5 h-3.5 mr-1.5"></i> XY (Planar)</span>`;
+            } else {
+                symEl.innerHTML = `<span class="px-2.5 py-1 bg-purple-500/10 text-purple-400 border border-purple-500/30 rounded-md text-xs ml-2 shadow-[0_0_10px_rgba(168,85,247,0.15)] font-bold flex items-center"><i data-lucide="orbit" class="w-3.5 h-3.5 mr-1.5"></i> Mixed Anisotropy</span>`;
+            }
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+
+            // Store calculated exps in dataset for plotting
+            dataset.exp = exp;
+            dataset.jMag = jMag;
+
+            render3DCloud();
+            renderPureStates(dataset.J);
+        }
+
+        // Bridge function for checkboxes
+        function updatePlotVis() {
+            if(currentActiveDataset) render3DCloud();
+        }
+
+        function render3DCloud() {
+            if(!currentActiveDataset) return;
+            const dataset = currentActiveDataset;
+
+            // Read Toggles
+            const showScale = document.getElementById('toggleColorbar').checked;
+            const showVector = document.getElementById('toggleVector').checked;
+            const showAxes = document.getElementById('toggleAxes').checked;
+
+            let theta_steps = 75;
+            let phi_steps = 75;
+            let x = [], y = [], z = [], r_vals = [];
+            let max_r = 0;
+
+            // Compute spherical values
+            let rawR = [];
+            for (let i = 0; i <= theta_steps; i++) {
+                let theta = (i / theta_steps) * Math.PI;
+                let row = [];
+                for (let j = 0; j <= phi_steps; j++) {
+                    let phi = (j / phi_steps) * 2 * Math.PI;
+                    let r = computeProbability(theta, phi, dataset.J, dataset.states);
+                    if (r > max_r) max_r = r;
+                    row.push(r);
+                }
+                rawR.push(row);
+            }
+
+            // Cartesian conversion
+            for (let i = 0; i <= theta_steps; i++) {
+                let theta = (i / theta_steps) * Math.PI;
+                let x_row = [], y_row = [], z_row = [], c_row = [];
+                for (let j = 0; j <= phi_steps; j++) {
+                    let phi = (j / phi_steps) * 2 * Math.PI;
+                    let r = (max_r > 0) ? rawR[i][j] / max_r : 0; // Normalize 0 to 1
+                    x_row.push(r * Math.sin(theta) * Math.cos(phi));
+                    y_row.push(r * Math.sin(theta) * Math.sin(phi));
+                    z_row.push(r * Math.cos(theta));
+                    c_row.push(r); 
+                }
+                x.push(x_row); y.push(y_row); z.push(z_row); r_vals.push(c_row);
+            }
+
+            let plotData = [];
+
+            // 1. The Probability Cloud Surface
+            plotData.push({
+                type: 'surface',
+                x: x, y: y, z: z,
+                surfacecolor: r_vals,
+                colorscale: 'Plasma', // Vibrant mapping
+                showscale: showScale,
+                colorbar: {
+                    title: '<b>Probability<br>Density</b>',
+                    titleside: 'top',
+                    tickfont: {color: '#94a3b8', size: 11},
+                    titlefont: {color: '#e2e8f0', size: 12},
+                    thickness: 12, len: 0.5, xpad: 20, ypad: 0,
+                    outlinewidth: 0,
+                    bgcolor: 'rgba(15, 23, 42, 0.5)',
+                    bordercolor: 'transparent'
+                },
+                lighting: { ambient: 0.75, diffuse: 0.85, specular: 0.4, roughness: 0.5 },
+                contours: { x: {show: false}, y: {show: false}, z: {show: false} },
+                hoverinfo: 'none',
+                name: 'Density'
+            });
+
+            // 2. The Expectation Vector Arrow
+            if (showVector && dataset.jMag > 0.05) {
+                let vScale = 1.25 / dataset.J; 
+                plotData.push({
+                    type: 'scatter3d',
+                    mode: 'lines+markers',
+                    x: [0, dataset.exp.jx * vScale],
+                    y: [0, dataset.exp.jy * vScale],
+                    z: [0, dataset.exp.jz * vScale],
+                    line: { width: 10, color: '#34d399' }, // Emerald Glow
+                    marker: { size: [0, 7], color: '#34d399', symbol: 'diamond' },
+                    name: '⟨J⟩ Vector',
+                    hoverinfo: 'x+y+z+name'
+                });
+            }
+
+            // 3. Reference Axes (X, Y, Z)
+            if (showAxes) {
+                plotData.push({
+                    type: 'scatter3d',
+                    mode: 'lines',
+                    x: [-1.4, 1.4, null, 0, 0, null, 0, 0],
+                    y: [0, 0, null, -1.4, 1.4, null, 0, 0],
+                    z: [0, 0, null, 0, 0, null, -1.4, 1.4],
+                    line: { width: 2, color: 'rgba(148, 163, 184, 0.4)', dash: 'dot' },
+                    hoverinfo: 'none',
+                    showlegend: false
+                });
+            }
+
+            let layout = {
+                autosize: true,
+                margin: { l: 0, r: 0, b: 0, t: 0 },
+                font: { color: '#cbd5e1', family: 'Inter, sans-serif' },
+                scene: {
+                    xaxis: { title: 'Jx', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
+                    yaxis: { title: 'Jy', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
+                    zaxis: { title: 'Jz', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
+                    aspectratio: { x: 1, y: 1, z: 1 },
+                    camera: { eye: { x: 1.6, y: 1.4, z: 0.8 } }
+                },
+                paper_bgcolor: 'transparent',
+                plot_bgcolor: 'transparent',
+                showlegend: false
+            };
+
+            Plotly.react('plotly-div', plotData, layout, {responsive: true, displayModeBar: false});
+        }
+
+        // Render Pure States Reference
+        async function renderPureStates(J) {
+            if (currentlyRenderedPureJ === J) return;
+            currentlyRenderedPureJ = J;
+            
+            currentRenderSession++;
+            let mySession = currentRenderSession;
+
+            const container = document.getElementById('pureStatesGrid');
+            const card = document.getElementById('pureStatesCard');
+            const title = document.getElementById('pureStatesTitle');
+            
+            // Show loading state
+            card.classList.remove('hidden');
+            title.innerHTML = `<i data-lucide="grid" class="w-5 h-5 mr-2 text-indigo-400"></i> Pure M_J States Reference (Total J = ${J})`;
+            container.innerHTML = `
+                <div class="col-span-full flex flex-col items-center justify-center py-10">
+                    <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-indigo-500 mb-4 opacity-80"></i>
+                    <span class="text-sm font-medium text-slate-300 tracking-wide">Computing quantum geometric manifolds for J=${J}...</span>
+                </div>
+            `;
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+
+            // Allow DOM to paint loading state
+            await new Promise(resolve => setTimeout(resolve, 50));
+
+            container.innerHTML = '';
+            
+            let statesToRender = [];
+            for (let m = -J; m <= J; m++) {
+                statesToRender.push(m);
+            }
+
+            // CONTROLLED BATCH PROCESSING: 
+            // Process 4 states at a time. This maximizes speed while keeping active
+            // WebGL contexts strictly below the browser crash limit (usually 8-16).
+            const BATCH_SIZE = 4;
+
+            for (let i = 0; i < statesToRender.length; i += BATCH_SIZE) {
+                if (mySession !== currentRenderSession) break; // Abort if user switched datasets
+                
+                let batch = statesToRender.slice(i, i + BATCH_SIZE);
+                let batchPromises = [];
+
+                for (let m of batch) {
+                    let divId = `pure-mj-${m.toString().replace('.', '_').replace('-', 'minus')}`;
+                    
+                    let wrapper = document.createElement('div');
+                    wrapper.className = 'flex flex-col items-center glass-input rounded-xl p-3 border border-white/5 shadow-sm transition-transform hover:scale-[1.02] hover:bg-slate-800/80 duration-300';
+                    
+                    let label = m;
+                    if (m % 1 !== 0) {
+                        label = (m > 0 ? '+' : '') + (m * 2) + '/2';
+                    } else {
+                        label = (m > 0 ? '+' : '') + m;
+                    }
+
+                    wrapper.innerHTML = `
+                        <div class="text-[12px] font-black tracking-wider text-slate-300 mb-2 font-mono bg-slate-900/50 px-3 py-1 rounded-full border border-white/5">M_J = <span class="text-indigo-300">${label}</span></div>
+                        <div id="${divId}" class="w-full h-36 relative flex items-center justify-center">
+                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-indigo-500/50"></i>
+                        </div>
+                    `;
+                    container.appendChild(wrapper);
+
+                    // Add to queue to process this specific batch concurrently
+                    batchPromises.push(renderSinglePureState(J, m, divId));
+                }
+
+                // Wait for the current batch of 4 to finish rendering and purging
+                // BEFORE moving on to the next batch. This protects the GPU.
+                await Promise.all(batchPromises);
+                
+                // Re-initialize any new icons
+                if (mySession === currentRenderSession && typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        }
+
+        function renderSinglePureState(J, m, divId) {
+            return new Promise((resolve) => {
+                let theta_steps = 30;
+                let phi_steps = 30;
+                let x = [], y = [], z = [], r_vals = [];
+                let max_r = 0;
+                let rawR = [];
+                let coeff = Math.sqrt(nCr(2 * J, J - m));
+                
+                for (let i = 0; i <= theta_steps; i++) {
+                    let theta = (i / theta_steps) * Math.PI;
+                    let term = coeff * Math.pow(Math.cos(theta / 2), J + m) * Math.pow(Math.sin(theta / 2), J - m);
+                    let r = term * term;
+                    if (r > max_r) max_r = r;
+                    rawR.push(r);
+                }
+
+                for (let i = 0; i <= theta_steps; i++) {
+                    let theta = (i / theta_steps) * Math.PI;
+                    let r = max_r > 0 ? rawR[i] / max_r : 0;
+                    let x_row = [], y_row = [], z_row = [], c_row = [];
+                    for (let j = 0; j <= phi_steps; j++) {
+                        let phi = (j / phi_steps) * 2 * Math.PI;
+                        x_row.push(r * Math.sin(theta) * Math.cos(phi));
+                        y_row.push(r * Math.sin(theta) * Math.sin(phi));
+                        z_row.push(r * Math.cos(theta));
+                        c_row.push(r);
+                    }
+                    x.push(x_row); y.push(y_row); z.push(z_row); r_vals.push(c_row);
+                }
+
+                let plotData = [{
+                    type: 'surface', x: x, y: y, z: z, surfacecolor: r_vals,
+                    colorscale: 'Plasma', showscale: false,
+                    lighting: { ambient: 0.8, diffuse: 0.8, specular: 0.2, roughness: 0.7 },
+                    hoverinfo: 'none'
+                }];
+
+                let layout = {
+                    margin: { l: 0, r: 0, b: 0, t: 0 },
+                    scene: {
+                        xaxis: { visible: false, range: [-1.2, 1.2] },
+                        yaxis: { visible: false, range: [-1.2, 1.2] },
+                        zaxis: { visible: false, range: [-1.2, 1.2] },
+                        aspectmode: 'cube',
+                        camera: { eye: { x: 1.5, y: 1.5, z: 0.6 } }
+                    },
+                    paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
+                };
+
+                let node = document.getElementById(divId);
+                if (!node) { resolve(); return; } // Abort if DOM node was destroyed
+
+                // Render, capture to image, and purge WebGL context immediately
+                Plotly.newPlot(node, plotData, layout, {responsive: true, displayModeBar: false}).then(function(gd) {
+                    Plotly.toImage(gd, {format: 'png', width: 200, height: 200}).then(function(dataUrl) {
+                        let activeNode = document.getElementById(divId);
+                        if (activeNode) { // Only purge if the node still exists
+                            Plotly.purge(activeNode); // Free the WebGL Context!
+                            activeNode.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain drop-shadow-lg opacity-90 hover:opacity-100 transition-opacity">`;
+                        }
+                        resolve();
+                    }).catch(() => resolve()); // Safe fail
+                }).catch(() => resolve()); // Safe fail
+            });
+        }
+
+        // File Upload Handler
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('dataInput').value = e.target.result;
+                parseData();
+            };
+            reader.readAsText(file);
+        }
+
+        // Auto-fetch ground_state_data.txt
+        async function fetchDefaultLog() {
+            try {
+                const response = await fetch('ground_state_data.txt');
+                if (response.ok) {
+                    const text = await response.text();
+                    document.getElementById('dataInput').value = text;
+                    parseData();
+                } else {
+                    document.getElementById('dataInput').value = "// Could not auto-load 'ground_state_data.txt'.\n// Please ensure you are running a local web server (e.g., 'python -m http.server').\n\n// Alternatively, use the 'Browse' button above to select your file manually, or paste the content here.";
+                }
+            } catch (error) {
+                document.getElementById('dataInput').value = "// Error: Cannot fetch local files directly via file:// protocol.\n\n// Please use the 'Browse' button above to select 'ground_state_data.txt', or paste the content here.";
+            }
+        }
+
+        // Attach event listener
+        document.getElementById('visualizeBtn').addEventListener('click', parseData);
+        
+        // Initial attempt to load file
+        fetchDefaultLog();
+
+    </script>
+</body>
+</html>
