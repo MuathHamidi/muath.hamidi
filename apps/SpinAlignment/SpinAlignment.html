@@ -26,13 +26,9 @@
         .bg-noise::before {
             content: "";
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            z-index: 0;
-            opacity: 0.025; /* Highly subtle fine-grain noise */
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 0;
+            opacity: 0.025;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
             mix-blend-mode: overlay;
         }
@@ -54,40 +50,22 @@
 
         /* Custom Checkbox Styling */
         .plot-toggle {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-size: 0.75rem;
-            color: #94a3b8;
-            transition: color 0.2s;
-            padding: 4px 0;
+            display: flex; align-items: center; cursor: pointer;
+            font-size: 0.75rem; color: #94a3b8; transition: color 0.2s; padding: 4px 0;
         }
         .plot-toggle:hover { color: #f8fafc; }
         .plot-toggle input {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 4px;
-            margin-right: 8px;
-            background: rgba(15, 23, 42, 0.5);
-            position: relative;
-            cursor: pointer;
-            transition: all 0.2s;
+            appearance: none; width: 16px; height: 16px;
+            border: 1px solid rgba(255,255,255,0.2); border-radius: 4px;
+            margin-right: 8px; background: rgba(15, 23, 42, 0.5);
+            position: relative; cursor: pointer; transition: all 0.2s;
         }
         .plot-toggle input:checked {
-            background: #6366f1;
-            border-color: #6366f1;
-            box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
+            background: #6366f1; border-color: #6366f1; box-shadow: 0 0 8px rgba(99, 102, 241, 0.5);
         }
         .plot-toggle input:checked::after {
-            content: '✔';
-            position: absolute;
-            color: white;
-            font-size: 10px;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
+            content: '✔'; position: absolute; color: white; font-size: 10px;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
         }
 
         /* Neon Glows for Data */
@@ -95,6 +73,11 @@
         .glow-green { text-shadow: 0 0 10px rgba(52, 211, 153, 0.6); }
         .glow-blue { text-shadow: 0 0 10px rgba(96, 165, 250, 0.6); }
         .glow-white { text-shadow: 0 0 10px rgba(255, 255, 255, 0.4); }
+
+        /* Off-screen container for WebGL generation */
+        #offscreen-renderer {
+            position: fixed; top: -10000px; left: -10000px; width: 200px; height: 200px;
+        }
     </style>
 </head>
 <body class="bg-noise text-slate-300 font-sans h-screen flex flex-col overflow-hidden">
@@ -129,7 +112,7 @@
                     <button onclick="document.getElementById('filePicker').click()" class="bg-slate-700/50 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-all shadow-sm flex items-center border border-white/10 hover:border-white/20">
                         <i data-lucide="folder-open" class="w-4 h-4 mr-1"></i> Browse
                     </button>
-                    <button id="visualizeBtn" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-all shadow-lg flex items-center border border-indigo-400/30">
+                    <button id="visualizeBtn" onclick="parseData()" class="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-all shadow-lg flex items-center border border-indigo-400/30">
                         <i data-lucide="play" class="w-4 h-4 mr-1"></i> Parse
                     </button>
                 </div>
@@ -182,7 +165,13 @@
                     </label>
                 </div>
                 
-                <div id="plotly-div" class="w-full h-full flex-1"></div>
+                <div id="plotly-div" class="w-full h-full flex-1 relative">
+                    <!-- Loading overlay for main plot -->
+                    <div id="plot-loading" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-900/80 z-20 hidden backdrop-blur-sm">
+                        <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-indigo-500 mb-4 opacity-80"></i>
+                        <span class="text-sm font-medium text-slate-300">Rendering 3D Probability Density...</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Wavefunction Details -->
@@ -230,13 +219,12 @@
         </div>
     </main>
 
+    <!-- Hidden div exclusively used for sequential WebGL rendering to avoid Context Limits -->
+    <div id="offscreen-renderer"></div>
+
     <script>
         // Initialize Lucide Icons safely
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        } else {
-            console.warn("Lucide icons failed to load.");
-        }
+        if (typeof lucide !== 'undefined') lucide.createIcons();
 
         // State Management
         let parsedDatasets = [];
@@ -244,7 +232,7 @@
         let currentlyRenderedPureJ = null;
         let currentRenderSession = 0;
 
-        // Mathematical Utilities - Hardened for large J
+        // Mathematical Utilities
         function factorial(n) {
             if (n <= 1) return 1; let res = 1; for(let i=2; i<=n; i++) res *= i; return res;
         }
@@ -252,7 +240,6 @@
         function nCr(n, r) {
             if (r < 0 || r > n) return 0;
             if (r === 0 || r === n) return 1;
-            // Iterative to avoid factorial overflow for very large quantum numbers
             let res = 1;
             for (let i = 1; i <= r; i++) {
                 res = res * (n - i + 1) / i;
@@ -265,10 +252,10 @@
             let realSum = 0; let imagSum = 0;
             for (let state of states) {
                 let m = state.m, c_real = state.real, c_imag = state.imag;
-                let coeff = Math.sqrt(nCr(2 * J, J - m));
+                // n and r for nCr must be integers. For half-integer J, 2J and J-m are integers.
+                let coeff = Math.sqrt(nCr(Math.round(2 * J), Math.round(J - m)));
                 
                 let term = coeff * Math.pow(Math.cos(theta / 2), J + m) * Math.pow(Math.sin(theta / 2), J - m);
-                
                 let phaseReal = Math.cos(m * phi), phaseImag = Math.sin(m * phi);
                 
                 realSum += term * (c_real * phaseReal - c_imag * phaseImag);
@@ -308,7 +295,6 @@
             for (let i = 0; i < lines.length; i++) {
                 let line = lines[i].trim();
 
-                // Handles new "Formula:" format as well as the older "ID:" format
                 if (line.startsWith('Formula:') || line.startsWith('ID:')) {
                     if (currentData && currentData.states.length > 0) datasets.push(currentData);
                     let idStr = line.startsWith('Formula:') ? line.substring(8) : line.substring(3);
@@ -321,7 +307,7 @@
                 }
                 if (currentData && line.startsWith('Mj') && line.includes('Level (eV)')) {
                     if (currentData.states.length > 0) { blockActive = false; continue; }
-                    let nextLine = lines[i+1].trim();
+                    let nextLine = lines[i+1]?.trim() || "";
                     let energies = nextLine.split(/\s+/).map(Number).filter(n => !isNaN(n));
                     
                     groundStateCol = energies.findIndex(e => Math.abs(e) < 0.0001);
@@ -364,7 +350,7 @@
             updateUI();
         }
 
-        function updateUI() {
+        async function updateUI() {
             const select = document.getElementById('datasetSelect');
             select.innerHTML = '';
             
@@ -388,10 +374,14 @@
             };
             
             currentActiveDataset = parsedDatasets[0];
-            visualizeDataset(currentActiveDataset);
+            await visualizeDataset(currentActiveDataset);
         }
 
-        function visualizeDataset(dataset) {
+        async function visualizeDataset(dataset) {
+            // Cancel previous render sessions
+            currentRenderSession++;
+            const activeSession = currentRenderSession;
+
             // UI Updates
             document.getElementById('displayJ').textContent = dataset.J;
             
@@ -437,161 +427,160 @@
             }
             if(typeof lucide !== 'undefined') lucide.createIcons();
 
-            // Store calculated exps in dataset for plotting
             dataset.exp = exp;
             dataset.jMag = jMag;
 
-            render3DCloud();
-            renderPureStates(dataset.J);
+            // Sequential Rendering to protect WebGL constraints: 
+            // 1. Await main plot
+            await render3DCloud();
+            
+            // 2. Only proceed to render thumbnails if user hasn't switched datasets in the meantime
+            if (activeSession === currentRenderSession) {
+                await renderPureStates(dataset.J, activeSession);
+            }
         }
 
-        // Bridge function for checkboxes
-        function updatePlotVis() {
-            if(currentActiveDataset) render3DCloud();
+        async function updatePlotVis() {
+            if(currentActiveDataset) await render3DCloud();
         }
 
         function render3DCloud() {
-            if(!currentActiveDataset) return;
-            const dataset = currentActiveDataset;
+            return new Promise((resolve) => {
+                if(!currentActiveDataset) return resolve();
+                
+                const loader = document.getElementById('plot-loading');
+                loader.classList.remove('hidden');
 
-            // Read Toggles
-            const showScale = document.getElementById('toggleColorbar').checked;
-            const showVector = document.getElementById('toggleVector').checked;
-            const showAxes = document.getElementById('toggleAxes').checked;
+                // Slight timeout to let UI show the loader before locking the thread
+                setTimeout(() => {
+                    const dataset = currentActiveDataset;
+                    const showScale = document.getElementById('toggleColorbar').checked;
+                    const showVector = document.getElementById('toggleVector').checked;
+                    const showAxes = document.getElementById('toggleAxes').checked;
 
-            let theta_steps = 75;
-            let phi_steps = 75;
-            let x = [], y = [], z = [], r_vals = [];
-            let max_r = 0;
+                    let theta_steps = 75;
+                    let phi_steps = 75;
+                    let x = [], y = [], z = [], r_vals = [];
+                    let max_r = 0;
 
-            // Compute spherical values
-            let rawR = [];
-            for (let i = 0; i <= theta_steps; i++) {
-                let theta = (i / theta_steps) * Math.PI;
-                let row = [];
-                for (let j = 0; j <= phi_steps; j++) {
-                    let phi = (j / phi_steps) * 2 * Math.PI;
-                    let r = computeProbability(theta, phi, dataset.J, dataset.states);
-                    if (r > max_r) max_r = r;
-                    row.push(r);
-                }
-                rawR.push(row);
-            }
+                    let rawR = [];
+                    for (let i = 0; i <= theta_steps; i++) {
+                        let theta = (i / theta_steps) * Math.PI;
+                        let row = [];
+                        for (let j = 0; j <= phi_steps; j++) {
+                            let phi = (j / phi_steps) * 2 * Math.PI;
+                            let r = computeProbability(theta, phi, dataset.J, dataset.states);
+                            if (r > max_r) max_r = r;
+                            row.push(r);
+                        }
+                        rawR.push(row);
+                    }
 
-            // Cartesian conversion
-            for (let i = 0; i <= theta_steps; i++) {
-                let theta = (i / theta_steps) * Math.PI;
-                let x_row = [], y_row = [], z_row = [], c_row = [];
-                for (let j = 0; j <= phi_steps; j++) {
-                    let phi = (j / phi_steps) * 2 * Math.PI;
-                    let r = (max_r > 0) ? rawR[i][j] / max_r : 0; // Normalize 0 to 1
-                    x_row.push(r * Math.sin(theta) * Math.cos(phi));
-                    y_row.push(r * Math.sin(theta) * Math.sin(phi));
-                    z_row.push(r * Math.cos(theta));
-                    c_row.push(r); 
-                }
-                x.push(x_row); y.push(y_row); z.push(z_row); r_vals.push(c_row);
-            }
+                    for (let i = 0; i <= theta_steps; i++) {
+                        let theta = (i / theta_steps) * Math.PI;
+                        let x_row = [], y_row = [], z_row = [], c_row = [];
+                        for (let j = 0; j <= phi_steps; j++) {
+                            let phi = (j / phi_steps) * 2 * Math.PI;
+                            let r = (max_r > 0) ? rawR[i][j] / max_r : 0; 
+                            x_row.push(r * Math.sin(theta) * Math.cos(phi));
+                            y_row.push(r * Math.sin(theta) * Math.sin(phi));
+                            z_row.push(r * Math.cos(theta));
+                            c_row.push(r); 
+                        }
+                        x.push(x_row); y.push(y_row); z.push(z_row); r_vals.push(c_row);
+                    }
 
-            let plotData = [];
+                    let plotData = [];
 
-            // 1. The Probability Cloud Surface
-            plotData.push({
-                type: 'surface',
-                x: x, y: y, z: z,
-                surfacecolor: r_vals,
-                colorscale: 'Plasma', // Vibrant mapping
-                showscale: showScale,
-                colorbar: {
-                    title: '<b>Probability<br>Density</b>',
-                    titleside: 'top',
-                    tickfont: {color: '#94a3b8', size: 11},
-                    titlefont: {color: '#e2e8f0', size: 12},
-                    thickness: 12, len: 0.5, xpad: 20, ypad: 0,
-                    outlinewidth: 0,
-                    bgcolor: 'rgba(15, 23, 42, 0.5)',
-                    bordercolor: 'transparent'
-                },
-                lighting: { ambient: 0.75, diffuse: 0.85, specular: 0.4, roughness: 0.5 },
-                contours: { x: {show: false}, y: {show: false}, z: {show: false} },
-                hoverinfo: 'none',
-                name: 'Density'
+                    // Probability Cloud Surface
+                    plotData.push({
+                        type: 'surface',
+                        x: x, y: y, z: z,
+                        surfacecolor: r_vals,
+                        colorscale: 'Plasma',
+                        showscale: showScale,
+                        colorbar: {
+                            title: '<b>Probability<br>Density</b>',
+                            titleside: 'top',
+                            tickfont: {color: '#94a3b8', size: 11},
+                            titlefont: {color: '#e2e8f0', size: 12},
+                            thickness: 12, len: 0.5, xpad: 20, ypad: 0,
+                            outlinewidth: 0,
+                            bgcolor: 'rgba(15, 23, 42, 0.5)', bordercolor: 'transparent'
+                        },
+                        lighting: { ambient: 0.75, diffuse: 0.85, specular: 0.4, roughness: 0.5 },
+                        contours: { x: {show: false}, y: {show: false}, z: {show: false} },
+                        hoverinfo: 'none',
+                        name: 'Density'
+                    });
+
+                    // Expectation Vector Arrow
+                    if (showVector && dataset.jMag > 0.05) {
+                        let vScale = 1.25 / dataset.J; 
+                        plotData.push({
+                            type: 'scatter3d',
+                            mode: 'lines+markers',
+                            x: [0, dataset.exp.jx * vScale],
+                            y: [0, dataset.exp.jy * vScale],
+                            z: [0, dataset.exp.jz * vScale],
+                            line: { width: 10, color: '#34d399' },
+                            marker: { size: [0, 7], color: '#34d399', symbol: 'diamond' },
+                            name: '⟨J⟩ Vector', hoverinfo: 'x+y+z+name'
+                        });
+                    }
+
+                    // Reference Axes
+                    if (showAxes) {
+                        plotData.push({
+                            type: 'scatter3d', mode: 'lines',
+                            x: [-1.4, 1.4, null, 0, 0, null, 0, 0],
+                            y: [0, 0, null, -1.4, 1.4, null, 0, 0],
+                            z: [0, 0, null, 0, 0, null, -1.4, 1.4],
+                            line: { width: 2, color: 'rgba(148, 163, 184, 0.4)', dash: 'dot' },
+                            hoverinfo: 'none', showlegend: false
+                        });
+                    }
+
+                    let layout = {
+                        autosize: true, margin: { l: 0, r: 0, b: 0, t: 0 },
+                        font: { color: '#cbd5e1', family: 'Inter, sans-serif' },
+                        scene: {
+                            xaxis: { title: 'Jx', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
+                            yaxis: { title: 'Jy', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
+                            zaxis: { title: 'Jz', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
+                            aspectratio: { x: 1, y: 1, z: 1 },
+                            camera: { eye: { x: 1.6, y: 1.4, z: 0.8 } }
+                        },
+                        paper_bgcolor: 'transparent', plot_bgcolor: 'transparent', showlegend: false
+                    };
+
+                    Plotly.react('plotly-div', plotData, layout, {responsive: true, displayModeBar: false})
+                        .then(() => {
+                            loader.classList.add('hidden');
+                            resolve();
+                        }).catch((e) => {
+                            console.error("Plotly render failed:", e);
+                            loader.classList.add('hidden');
+                            resolve();
+                        });
+
+                }, 10);
             });
-
-            // 2. The Expectation Vector Arrow
-            if (showVector && dataset.jMag > 0.05) {
-                let vScale = 1.25 / dataset.J; 
-                plotData.push({
-                    type: 'scatter3d',
-                    mode: 'lines+markers',
-                    x: [0, dataset.exp.jx * vScale],
-                    y: [0, dataset.exp.jy * vScale],
-                    z: [0, dataset.exp.jz * vScale],
-                    line: { width: 10, color: '#34d399' }, // Emerald Glow
-                    marker: { size: [0, 7], color: '#34d399', symbol: 'diamond' },
-                    name: '⟨J⟩ Vector',
-                    hoverinfo: 'x+y+z+name'
-                });
-            }
-
-            // 3. Reference Axes (X, Y, Z)
-            if (showAxes) {
-                plotData.push({
-                    type: 'scatter3d',
-                    mode: 'lines',
-                    x: [-1.4, 1.4, null, 0, 0, null, 0, 0],
-                    y: [0, 0, null, -1.4, 1.4, null, 0, 0],
-                    z: [0, 0, null, 0, 0, null, -1.4, 1.4],
-                    line: { width: 2, color: 'rgba(148, 163, 184, 0.4)', dash: 'dot' },
-                    hoverinfo: 'none',
-                    showlegend: false
-                });
-            }
-
-            let layout = {
-                autosize: true,
-                margin: { l: 0, r: 0, b: 0, t: 0 },
-                font: { color: '#cbd5e1', family: 'Inter, sans-serif' },
-                scene: {
-                    xaxis: { title: 'Jx', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
-                    yaxis: { title: 'Jy', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
-                    zaxis: { title: 'Jz', range: [-1.4, 1.4], showgrid: false, zeroline: false, showline: false, showticklabels: false },
-                    aspectratio: { x: 1, y: 1, z: 1 },
-                    camera: { eye: { x: 1.6, y: 1.4, z: 0.8 } }
-                },
-                paper_bgcolor: 'transparent',
-                plot_bgcolor: 'transparent',
-                showlegend: false
-            };
-
-            Plotly.react('plotly-div', plotData, layout, {responsive: true, displayModeBar: false});
         }
 
-        // Render Pure States Reference
-        async function renderPureStates(J) {
+        // Render Pure States Reference using Offscreen Context Recycling
+        async function renderPureStates(J, sessionKey) {
             if (currentlyRenderedPureJ === J) return;
             currentlyRenderedPureJ = J;
             
-            currentRenderSession++;
-            let mySession = currentRenderSession;
-
             const container = document.getElementById('pureStatesGrid');
             const card = document.getElementById('pureStatesCard');
             const title = document.getElementById('pureStatesTitle');
+            const offscreenDiv = document.getElementById('offscreen-renderer');
             
-            // Show loading state
             card.classList.remove('hidden');
             title.innerHTML = `<i data-lucide="grid" class="w-5 h-5 mr-2 text-indigo-400"></i> Pure M_J States Reference (Total J = ${J})`;
-            container.innerHTML = `
-                <div class="col-span-full flex flex-col items-center justify-center py-10">
-                    <i data-lucide="loader-2" class="w-10 h-10 animate-spin text-indigo-500 mb-4 opacity-80"></i>
-                    <span class="text-sm font-medium text-slate-300 tracking-wide">Computing quantum geometric manifolds for J=${J}...</span>
-                </div>
-            `;
             if(typeof lucide !== 'undefined') lucide.createIcons();
-
-            // Allow DOM to paint loading state
-            await new Promise(resolve => setTimeout(resolve, 50));
 
             container.innerHTML = '';
             
@@ -600,61 +589,68 @@
                 statesToRender.push(m);
             }
 
-            // CONTROLLED BATCH PROCESSING: 
-            // Process 4 states at a time. This maximizes speed while keeping active
-            // WebGL contexts strictly below the browser crash limit (usually 8-16).
-            const BATCH_SIZE = 4;
-
-            for (let i = 0; i < statesToRender.length; i += BATCH_SIZE) {
-                if (mySession !== currentRenderSession) break; // Abort if user switched datasets
+            // Create placeholders first
+            statesToRender.forEach(m => {
+                let divId = `pure-mj-${m.toString().replace('.', '_').replace('-', 'minus')}`;
+                let wrapper = document.createElement('div');
+                wrapper.className = 'flex flex-col items-center glass-input rounded-xl p-3 border border-white/5 shadow-sm transition-transform hover:scale-[1.02] hover:bg-slate-800/80 duration-300';
                 
-                let batch = statesToRender.slice(i, i + BATCH_SIZE);
-                let batchPromises = [];
+                let label = m;
+                if (m % 1 !== 0) {
+                    label = (m > 0 ? '+' : '') + (m * 2) + '/2';
+                } else {
+                    label = (m > 0 ? '+' : '') + m;
+                }
 
-                for (let m of batch) {
-                    let divId = `pure-mj-${m.toString().replace('.', '_').replace('-', 'minus')}`;
+                wrapper.innerHTML = `
+                    <div class="text-[12px] font-black tracking-wider text-slate-300 mb-2 font-mono bg-slate-900/50 px-3 py-1 rounded-full border border-white/5">M_J = <span class="text-indigo-300">${label}</span></div>
+                    <div id="${divId}" class="w-full h-36 relative flex items-center justify-center">
+                        <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-indigo-500/50"></i>
+                    </div>
+                `;
+                container.appendChild(wrapper);
+            });
+
+            if(typeof lucide !== 'undefined') lucide.createIcons();
+
+            // Process sequentially using a single WebGL context that we recycle
+            for (let m of statesToRender) {
+                if (sessionKey !== currentRenderSession) break; // Abort if user switched datasets
+                let divId = `pure-mj-${m.toString().replace('.', '_').replace('-', 'minus')}`;
+                
+                try {
+                    await renderSinglePureStateOffscreen(J, m, offscreenDiv);
                     
-                    let wrapper = document.createElement('div');
-                    wrapper.className = 'flex flex-col items-center glass-input rounded-xl p-3 border border-white/5 shadow-sm transition-transform hover:scale-[1.02] hover:bg-slate-800/80 duration-300';
+                    // Take snapshot
+                    const dataUrl = await Plotly.toImage(offscreenDiv, {format: 'png', width: 200, height: 200});
                     
-                    let label = m;
-                    if (m % 1 !== 0) {
-                        label = (m > 0 ? '+' : '') + (m * 2) + '/2';
-                    } else {
-                        label = (m > 0 ? '+' : '') + m;
+                    // Kill the webGL context to stay within browser hardware limits
+                    Plotly.purge(offscreenDiv);
+
+                    // Update UI
+                    let activeNode = document.getElementById(divId);
+                    if (activeNode) {
+                        activeNode.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain drop-shadow-lg opacity-90 hover:opacity-100 transition-opacity">`;
                     }
-
-                    wrapper.innerHTML = `
-                        <div class="text-[12px] font-black tracking-wider text-slate-300 mb-2 font-mono bg-slate-900/50 px-3 py-1 rounded-full border border-white/5">M_J = <span class="text-indigo-300">${label}</span></div>
-                        <div id="${divId}" class="w-full h-36 relative flex items-center justify-center">
-                            <i data-lucide="loader-2" class="w-5 h-5 animate-spin text-indigo-500/50"></i>
-                        </div>
-                    `;
-                    container.appendChild(wrapper);
-
-                    // Add to queue to process this specific batch concurrently
-                    batchPromises.push(renderSinglePureState(J, m, divId));
+                } catch(err) {
+                    console.error("Error generating pure state:", err);
+                    Plotly.purge(offscreenDiv); // Ensure we purge on error too
                 }
 
-                // Wait for the current batch of 4 to finish rendering and purging
-                // BEFORE moving on to the next batch. This protects the GPU.
-                await Promise.all(batchPromises);
-                
-                // Re-initialize any new icons
-                if (mySession === currentRenderSession && typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
+                // Tiny yield to the event loop so the UI stays responsive and GPU garbage collects
+                await new Promise(r => setTimeout(r, 10));
             }
         }
 
-        function renderSinglePureState(J, m, divId) {
-            return new Promise((resolve) => {
+        // Renders geometry math to the offscreen div
+        function renderSinglePureStateOffscreen(J, m, targetDiv) {
+            return new Promise((resolve, reject) => {
                 let theta_steps = 30;
                 let phi_steps = 30;
                 let x = [], y = [], z = [], r_vals = [];
                 let max_r = 0;
                 let rawR = [];
-                let coeff = Math.sqrt(nCr(2 * J, J - m));
+                let coeff = Math.sqrt(nCr(Math.round(2 * J), Math.round(J - m)));
                 
                 for (let i = 0; i <= theta_steps; i++) {
                     let theta = (i / theta_steps) * Math.PI;
@@ -697,20 +693,9 @@
                     paper_bgcolor: 'transparent', plot_bgcolor: 'transparent'
                 };
 
-                let node = document.getElementById(divId);
-                if (!node) { resolve(); return; } // Abort if DOM node was destroyed
-
-                // Render, capture to image, and purge WebGL context immediately
-                Plotly.newPlot(node, plotData, layout, {responsive: true, displayModeBar: false}).then(function(gd) {
-                    Plotly.toImage(gd, {format: 'png', width: 200, height: 200}).then(function(dataUrl) {
-                        let activeNode = document.getElementById(divId);
-                        if (activeNode) { // Only purge if the node still exists
-                            Plotly.purge(activeNode); // Free the WebGL Context!
-                            activeNode.innerHTML = `<img src="${dataUrl}" class="w-full h-full object-contain drop-shadow-lg opacity-90 hover:opacity-100 transition-opacity">`;
-                        }
-                        resolve();
-                    }).catch(() => resolve()); // Safe fail
-                }).catch(() => resolve()); // Safe fail
+                Plotly.newPlot(targetDiv, plotData, layout, {responsive: false, displayModeBar: false})
+                    .then(resolve)
+                    .catch(reject);
             });
         }
 
@@ -742,11 +727,10 @@
             }
         }
 
-        // Attach event listener
-        document.getElementById('visualizeBtn').addEventListener('click', parseData);
-        
-        // Initial attempt to load file
-        fetchDefaultLog();
+        // Initialize application on load
+        window.onload = () => {
+            fetchDefaultLog();
+        };
 
     </script>
 </body>
