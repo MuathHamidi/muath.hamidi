@@ -52,12 +52,13 @@ title: Muath Hamidi CV
 
 ## Skills
 *   **Subjects:** Condensed Matter, Topological Materials, Semimetals, Superconductors, Photonics, Nanomaterials, Computer Science, Programming, Physics, Mathematics, Chemistry, Artificial Intelligence, Quantum Materials.
-*   **Languages:** Python, Julia, C, C++, Java, SQL, HTML, Mathematica, MATLAB, Quantum ESPRESSO.
+*   **Languages:** Python, Julia, C, C++, Java Script, SQL, HTML, Mathematica, MATLAB, Quantum ESPRESSO, multiX, xTB, DFTB+.
 *   **Programming:** Large-Scale Data Processing, Parallel Processing, Cloud Computing, Object-Oriented Programming (OOP), Data Analysis, Machine Learning, Optimization.
 *   **Operating Systems:** Windows, macOS, Linux.
-*   **Editors:** Visual Studio, Unreal Engine, LaTeX, Microsoft Office, LabVIEW, Jupyter, Spyder.
+*   **Editors:** Visual Studio Code, Unreal Engine, LaTeX, Microsoft Office, LabVIEW, Jupyter, Spyder, PyCharm.
 
 ## Memberships
+*   **2025-Now:** Member of Alex Hernandez-Garcia Research Group, MILA.
 *   **2024-Now:** Member of Andrea Bianchi Research Group, Université de Montréal.
 *   **2021-Now:** Member of Regroupement québécois sur les matériaux de pointe (RQMP).
 *   **2021-Now:** Member of Institut Transdisciplinaire d'Information Quantique (INTRIQ).
