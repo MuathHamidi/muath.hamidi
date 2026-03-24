@@ -21,6 +21,8 @@ Here you can find a collection of web tools I have created.
 - **[Spin Alignment Probability Density of Rare Earth Magnetic Ions in Pyrochlores](./apps/SpinAlignment/SpinAlignment.html)**: This tool analyzes and visualizes the spin alignment probability density of Rare Earth Pyrochlores (A2B2O7).
 - **[CIF To XYZ Convertor](./apps/CIFTOXYZ.html)**: A tool to convert Crystallographic Information Files (.cif) into standard Cartesian coordinate files (.xyz).
 - **[X-Ray Intensity Heatmap](./apps/xray_intensity_heatmap.html)**: A tool to visualize the x-ray intensity heatmap in RIXS experiment.
+- **[X-Ray Intensity on the Scattering Plane Cross-Section](./apps/RIXSCrossSection.html)**: A tool to visualize the x-ray intensity on the scattering plane cross-section with the 3D unit sphere in RIXS experiment.
+
 
 ## Utility Applications
 

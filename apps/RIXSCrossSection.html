@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RIXS Sphere Explorer Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0a0a0c',
+                        panelbg: 'rgba(20, 20, 24, 0.7)',
+                        borderglow: 'rgba(255, 255, 255, 0.1)',
+                        accent: '#6366f1'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['Fira Code', 'ui-monospace', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap');
+        
+        body {
+            background-color: #0a0a0c;
+            color: #e2e8f0;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .glass-panel {
+            background: var(--panelbg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--borderglow);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #drag-overlay { transition: opacity 0.2s ease, backdrop-filter 0.2s ease; }
+        #drag-overlay.active { opacity: 1; pointer-events: auto; backdrop-filter: blur(8px); }
+        
+        .noise-bg {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            pointer-events: none; z-index: 50; opacity: 0.04; mix-blend-mode: overlay;
+        }
+        
+        input[type=number]::-webkit-inner-spin-button, 
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        .scale-toggle.active { background-color: #4f46e5; color: white; border-color: #6366f1; }
+    </style>
+</head>
+<body class="h-screen w-screen flex font-sans antialiased text-slate-300">
+
+    <svg class="noise-bg" xmlns="http://www.w3.org/2000/svg">
+        <filter id="noiseFilter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="4" stitchTiles="stitch"/>
+            <feColorMatrix type="matrix" values="1 0 0 0 0, 0 1 0 0 0, 0 0 1 0 0, 0 0 0 1 0" />
+        </filter>
+        <rect width="100%" height="100%" filter="url(#noiseFilter)"/>
+    </svg>
+
+    <div class="flex flex-col md:flex-row h-full w-full relative z-10">
+        
+        <!-- Sidebar Controls -->
+        <aside class="w-full md:w-80 flex flex-col h-full border-r border-white/10 glass-panel shrink-0 overflow-y-auto z-20">
+            <div class="p-6 border-b border-white/10">
+                <div class="flex items-center gap-3 text-white mb-1">
+                    <i data-lucide="orbit" class="w-6 h-6 text-indigo-400"></i>
+                    <h1 class="text-xl font-semibold tracking-tight">RIXS Explorer</h1>
+                </div>
+                <p class="text-[11px] text-slate-400">1D Slices & 3D Spherical Mapping</p>
+            </div>
+
+            <div class="p-6 flex-1 flex flex-col gap-6">
+                <!-- Data Source -->
+                <div class="space-y-2">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Data Source</label>
+                    <div id="drop-zone" class="relative group cursor-pointer border-2 border-dashed border-slate-700 rounded-xl p-4 text-center hover:border-indigo-500 hover:bg-indigo-500/5 transition-all">
+                        <input type="file" id="file-input" multiple accept=".txt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer">
+                        <i data-lucide="upload-cloud" class="w-8 h-8 mx-auto text-slate-500 group-hover:text-indigo-400 mb-2 transition-colors"></i>
+                        <p class="text-sm font-medium text-slate-300">Upload Data Files</p>
+                    </div>
+                </div>
+
+                <div id="file-list-container" class="hidden space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Loaded Files</label>
+                        <button id="clear-files-btn" class="text-xs text-red-400 hover:text-red-300 transition-colors">Clear All</button>
+                    </div>
+                    <ul id="file-list" class="space-y-2 max-h-32 overflow-y-auto pr-1"></ul>
+                </div>
+
+                <!-- Global Display Settings -->
+                <div class="space-y-3 pt-4 border-t border-white/10">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Display Scale</label>
+                    <div class="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700">
+                        <button id="scale-linear" class="scale-toggle active flex-1 py-1.5 text-xs rounded-md transition-all font-medium border border-transparent">Linear</button>
+                        <button id="scale-log" class="scale-toggle flex-1 py-1.5 text-xs rounded-md text-slate-400 hover:text-slate-200 transition-all font-medium border border-transparent">Log₁₀</button>
+                    </div>
+                </div>
+
+                <!-- Cross Section Controls -->
+                <div class="space-y-4 pt-4 border-t border-white/10">
+                    <label class="text-xs font-semibold uppercase tracking-wider text-slate-400">Extraction Sweep Line</label>
+                    
+                    <div class="flex bg-slate-800/50 p-1 rounded-lg border border-slate-700">
+                        <button id="sweep-theta" class="flex-1 py-1.5 text-xs rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 transition-all font-medium">Theta</button>
+                        <button id="sweep-phi" class="flex-1 py-1.5 text-xs rounded-md text-slate-400 hover:text-slate-200 transition-all font-medium border border-transparent">Phi</button>
+                        <button id="sweep-custom" class="flex-1 py-1.5 text-xs rounded-md text-slate-400 hover:text-slate-200 transition-all font-medium border border-transparent">Rotation</button>
+                    </div>
+
+                    <!-- Fixed Axis -->
+                    <div id="fixed-axis-container" class="space-y-2">
+                        <label id="fixed-axis-label" class="text-sm text-slate-300 block flex justify-between">
+                            <span>Fixed Plane (Phi)</span>
+                            <span id="fixed-axis-val-display" class="text-indigo-400 font-mono">0°</span>
+                        </label>
+                        <input type="range" id="fixed-axis-slider" min="0" max="359" value="0" step="1" class="w-full accent-indigo-500">
+                        <div class="flex justify-between text-xs text-slate-500 font-mono">
+                            <span id="slider-min">0</span>
+                            <span id="slider-max">359</span>
+                        </div>
+                    </div>
+
+                    <!-- Custom Rotation Info (Replaces manual inputs) -->
+                    <div id="custom-rotation-info" class="hidden text-xs text-slate-400 p-3 bg-indigo-500/10 rounded-lg border border-indigo-500/20 leading-relaxed">
+                        <i data-lucide="info" class="w-4 h-4 inline-block mb-0.5 mr-1 text-indigo-400"></i>
+                        Automatically extracting cross-sections perpendicular to each file's specific scattering plane normal.
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Scrolling Plot Area -->
+        <main class="flex-1 h-full p-4 md:p-6 bg-transparent relative z-10 overflow-y-auto">
+            <div id="empty-state" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 z-20 pointer-events-none transition-opacity duration-300">
+                <i data-lucide="scatter-chart" class="w-24 h-24 mb-4 opacity-20"></i>
+                <h2 class="text-xl font-medium text-slate-400">No Data Plotted</h2>
+                <p class="text-sm mt-2 max-w-sm text-center">Upload multix output files to visualize 1D, 2D, and 3D cross-sections.</p>
+            </div>
+            
+            <div id="content-area" class="w-full space-y-6 hidden">
+                
+                <!-- 1D Plot -->
+                <div class="w-full h-[70vh] min-h-[600px] glass-panel rounded-2xl overflow-hidden relative shadow-lg border border-slate-700/50">
+                    <div class="absolute top-4 left-4 z-10">
+                        <span class="bg-indigo-500/20 text-indigo-300 text-xs font-semibold px-2 py-1 rounded-md border border-indigo-500/30">1D Slicing</span>
+                    </div>
+                    <div id="plotly-1d" class="w-full h-full"></div>
+                </div>
+
+                <!-- 1D Difference Plot (Auto-Pairs High vs Low Field) -->
+                <div id="diff-plot-container" class="w-full h-[50vh] min-h-[400px] glass-panel rounded-2xl overflow-hidden relative shadow-lg border border-slate-700/50 hidden">
+                    <div class="absolute top-4 left-4 z-10 flex flex-col gap-1">
+                        <span id="diff-title" class="bg-red-500/20 text-red-300 text-xs font-semibold px-2 py-1 rounded-md border border-red-500/30 w-max">Intensity Difference (ΔI)</span>
+                        <span class="text-[10px] text-slate-400 ml-1">High Field - Low Field</span>
+                    </div>
+                    <div id="plotly-diff" class="w-full h-full"></div>
+                </div>
+
+                <!-- 2D Maps Grid -->
+                <div class="w-full">
+                    <h2 class="text-lg font-semibold text-slate-300 mb-4 flex items-center">
+                        <i data-lucide="map" class="w-5 h-5 mr-2 text-blue-400"></i> 2D Intensity Heatmaps
+                    </h2>
+                    <div id="grid-2d" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+                </div>
+
+                <!-- 3D Spheres Grid -->
+                <div class="w-full pb-12">
+                    <h2 class="text-lg font-semibold text-slate-300 mb-4 flex items-center mt-6">
+                        <i data-lucide="globe" class="w-5 h-5 mr-2 text-fuchsia-400"></i> Spherical 3D Projections
+                    </h2>
+                    <div id="grid-3d" class="grid grid-cols-1 lg:grid-cols-2 gap-6"></div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Drop Overlay -->
+    <div id="drag-overlay" class="fixed inset-0 bg-indigo-900/20 z-50 opacity-0 pointer-events-none flex items-center justify-center">
+        <div class="bg-slate-900 border-2 border-indigo-500 border-dashed rounded-3xl p-12 text-center transform scale-105 transition-transform duration-300 shadow-2xl">
+            <i data-lucide="download" class="w-16 h-16 text-indigo-400 mx-auto mb-4 animate-bounce"></i>
+            <h2 class="text-2xl font-bold text-white mb-2">Drop files to plot</h2>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        const AppState = {
+            files: [], 
+            sweepAxis: 'theta',
+            fixedAxisValue: 0,
+            isLogScale: false,
+            colorPalette: [
+                '#6366f1', '#10b981', '#f43f5e', '#f59e0b', '#0ea5e9', 
+                '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#84cc16',
+                '#ef4444', '#3b82f6', '#22c55e', '#a855f7', '#d946ef',
+                '#06b6d4', '#eab308'
+            ]
+        };
+
+        // Generates infinitely unique colors if the base palette runs out
+        function getColor(index) {
+            if (index < AppState.colorPalette.length) {
+                return AppState.colorPalette[index];
+            }
+            const hue = (index * 137.508) % 360; // Golden angle approximation
+            return `hsl(${hue}, 75%, 65%)`;
+        }
+
+        const elements = {
+            fileInput: document.getElementById('file-input'),
+            dragOverlay: document.getElementById('drag-overlay'),
+            fileListContainer: document.getElementById('file-list-container'),
+            fileList: document.getElementById('file-list'),
+            clearFilesBtn: document.getElementById('clear-files-btn'),
+            
+            scaleLinear: document.getElementById('scale-linear'),
+            scaleLog: document.getElementById('scale-log'),
+            
+            btnSweepTheta: document.getElementById('sweep-theta'),
+            btnSweepPhi: document.getElementById('sweep-phi'),
+            btnSweepCustom: document.getElementById('sweep-custom'),
+            
+            fixedAxisContainer: document.getElementById('fixed-axis-container'),
+            fixedAxisLabel: document.getElementById('fixed-axis-label'),
+            fixedAxisValDisplay: document.getElementById('fixed-axis-val-display'),
+            fixedAxisSlider: document.getElementById('fixed-axis-slider'),
+            
+            customRotationInfo: document.getElementById('custom-rotation-info'),
+            emptyState: document.getElementById('empty-state'),
+            contentArea: document.getElementById('content-area'),
+            
+            grid2d: document.getElementById('grid-2d'),
+            grid3d: document.getElementById('grid-3d')
+        };
+
+        // --- Math & Geometry Functions ---
+        const deg2rad = d => d * Math.PI / 180;
+        const rad2deg = r => r * 180 / Math.PI;
+
+        function sphericalToCartesian(theta, phi) {
+            const t = deg2rad(theta), p = deg2rad(phi);
+            return [Math.sin(t) * Math.cos(p), Math.sin(t) * Math.sin(p), Math.cos(t)];
+        }
+
+        function cartesianToSpherical(x, y, z) {
+            const r = Math.sqrt(x*x + y*y + z*z);
+            let theta = r === 0 ? 0 : Math.acos(z / r);
+            let phi = Math.atan2(y, x);
+            if (phi < 0) phi += 2 * Math.PI;
+            return [rad2deg(theta), rad2deg(phi)];
+        }
+
+        function rotateVector(v, k, angleDeg) {
+            const a = deg2rad(angleDeg), cosA = Math.cos(a), sinA = Math.sin(a);
+            const cross = [k[1]*v[2] - k[2]*v[1], k[2]*v[0] - k[0]*v[2], k[0]*v[1] - k[1]*v[0]];
+            const dot = k[0]*v[0] + k[1]*v[1] + k[2]*v[2];
+            return [
+                v[0]*cosA + cross[0]*sinA + k[0]*dot*(1 - cosA),
+                v[1]*cosA + cross[1]*sinA + k[1]*dot*(1 - cosA),
+                v[2]*cosA + cross[2]*sinA + k[2]*dot*(1 - cosA)
+            ];
+        }
+
+        function buildGrid(data) {
+            const grid = Array(181).fill(null).map(() => Array(360).fill(null));
+            data.forEach(pt => {
+                const t = Math.round(pt.theta), p = Math.round(pt.phi) % 360;
+                if (t >= 0 && t <= 180 && p >= 0 && p < 360) grid[t][p] = pt;
+            });
+            for(let t = 0; t <= 180; t++) {
+                for(let p = 0; p < 360; p++) {
+                    if(!grid[t][p]) grid[t][p] = { intensity: 0, h: 0, k: 0, l: 0 };
+                }
+            }
+            return grid;
+        }
+
+        function interpolatePt(grid, theta, phi) {
+            let t = Math.max(0, Math.min(180, theta));
+            let p = ((phi % 360) + 360) % 360;
+
+            const t0 = Math.floor(t), t1 = Math.min(180, t0 + 1), dt = t - t0;
+            const p0 = Math.floor(p), p1 = (p0 + 1) % 360, dp = p - p0;
+
+            const v00 = grid[t0][p0], v10 = grid[t1][p0], v01 = grid[t0][p1], v11 = grid[t1][p1];
+
+            const interp = (key) => {
+                const c0 = v00[key] * (1 - dt) + v10[key] * dt;
+                const c1 = v01[key] * (1 - dt) + v11[key] * dt;
+                return c0 * (1 - dp) + c1 * dp;
+            };
+
+            return { intensity: interp('intensity'), h: interp('h'), k: interp('k'), l: interp('l') };
+        }
+
+        function getFileTrajectory(file, sweepAxis, fixedVal) {
+            let pts = [];
+            if (sweepAxis === 'theta') {
+                for(let t=0; t<=180; t++) pts.push([t, fixedVal]);
+            } else if (sweepAxis === 'phi') {
+                for(let p=0; p<=359; p++) pts.push([fixedVal, p]);
+            } else {
+                // Per-file rotation setup based on its specific plane normal
+                const normal = file.meta.q0 || {theta: 90, phi: 0};
+                let [nx, ny, nz] = sphericalToCartesian(normal.theta, normal.phi);
+                
+                let perpX = 0, perpY = 0, perpZ = 0;
+                let len = Math.sqrt(nx*nx + ny*ny);
+                if (len < 0.1) {
+                    perpX = 1; perpY = 0; perpZ = 0;
+                } else {
+                    perpX = ny/len; perpY = -nx/len; perpZ = 0;
+                }
+                
+                let v0 = [perpX, perpY, perpZ];
+                let kAxis = [nx, ny, nz];
+
+                for (let alpha = -180; alpha <= 180; alpha += 2) {
+                    const vRot = rotateVector(v0, kAxis, alpha);
+                    pts.push(cartesianToSpherical(vRot[0], vRot[1], vRot[2]));
+                }
+            }
+            return pts;
+        }
+
+        // --- Plotly Config with High-Res Export & HTML Download ---
+        const config1D = {
+            responsive: true,
+            displaylogo: false,
+            toImageButtonOptions: {
+                format: 'png',
+                filename: 'RIXS_1D_CrossSection',
+                height: 1080,
+                width: 1920,
+                scale: 4 // Outputs ultra high resolution PNG
+            },
+            modeBarButtonsToAdd: [
+                {
+                    name: 'Download Interactive HTML',
+                    icon: {
+                        width: 24, height: 24,
+                        path: "M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"
+                    },
+                    click: function(gd) {
+                        const data = JSON.stringify(gd.data);
+                        const layout = JSON.stringify(gd.layout);
+                        const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>RIXS 1D Cross-Section (Interactive)</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"><\/script>
+</head>
+<body style="background-color: #0a0a0c; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh;">
+    <div id="plot" style="width: 95vw; height: 95vh;"></div>
+    <script>
+        Plotly.newPlot('plot', ${data}, ${layout}, {responsive: true});
+    <\/script>
+</body>
+</html>`;
+                        const blob = new Blob([htmlContent], { type: 'text/html' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = 'RIXS_1D_Interactive_Plot.html';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }
+                }
+            ]
+        };
+
+        // --- Core Application Plotting ---
+        const layoutTemplate1D = {
+            paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { color: '#94a3b8', family: 'Inter, sans-serif' },
+            margin: { t: 30, r: 20, b: 80, l: 60 },
+            xaxis: { title: 'Angle (deg)', gridcolor: 'rgba(255,255,255,0.05)', zerolinecolor: 'rgba(255,255,255,0.1)' },
+            yaxis: { title: 'Intensity', gridcolor: 'rgba(255,255,255,0.05)', zerolinecolor: 'rgba(255,255,255,0.1)', exponentformat: 'e' },
+            legend: { 
+                orientation: 'h', y: -0.2, x: 0.5, xanchor: 'center', yanchor: 'top',
+                bgcolor: 'rgba(15, 23, 42, 0.8)', bordercolor: 'rgba(255,255,255,0.1)', borderwidth: 1, font: { size: 11 } 
+            }
+        };
+
+        Plotly.newPlot('plotly-1d', [], layoutTemplate1D, config1D);
+        Plotly.newPlot('plotly-diff', [], layoutTemplate1D, config1D);
+
+        function updateAllPlots() {
+            if (AppState.files.length === 0) {
+                elements.contentArea.classList.add('hidden');
+                elements.emptyState.style.opacity = '1';
+                return;
+            }
+            elements.contentArea.classList.remove('hidden');
+            elements.emptyState.style.opacity = '0';
+
+            render1DPlot();
+            renderDiffPlot();
+            render2D3DPlots();
+        }
+
+        function render1DPlot() {
+            const traces = [];
+            const layout = JSON.parse(JSON.stringify(layoutTemplate1D)); 
+            
+            // Set 1D native log axis and update title
+            layout.yaxis.type = AppState.isLogScale ? 'log' : 'linear';
+            layout.yaxis.title = AppState.isLogScale ? 'Log₁₀(Intensity)' : 'Intensity';
+
+            AppState.files.forEach((file, index) => {
+                if (!file.visible) return;
+
+                const xVals = [], yVals = [], texts = [];
+
+                if(AppState.sweepAxis === 'theta' || AppState.sweepAxis === 'phi') {
+                    const sweepVar = AppState.sweepAxis;
+                    const fixedVar = sweepVar === 'theta' ? 'phi' : 'theta';
+                    const sliceData = file.data.filter(pt => Math.abs(pt[fixedVar] - AppState.fixedAxisValue) < 0.1);
+                    sliceData.sort((a, b) => a[sweepVar] - b[sweepVar]);
+                    sliceData.forEach(pt => {
+                        xVals.push(pt[sweepVar]);
+                        yVals.push(Math.max(pt.intensity, AppState.isLogScale ? 1e-15 : 0));
+                        texts.push(`hkl: [${pt.h.toFixed(3)}, ${pt.k.toFixed(3)}, ${pt.l.toFixed(3)}]`);
+                    });
+                } else {
+                    const traj = getFileTrajectory(file, AppState.sweepAxis, AppState.fixedAxisValue);
+                    let alpha = -180;
+                    traj.forEach(pt => {
+                        const interp = interpolatePt(file.grid, pt[0], pt[1]);
+                        xVals.push(alpha);
+                        yVals.push(Math.max(interp.intensity, AppState.isLogScale ? 1e-15 : 0));
+                        texts.push(`Q(t:${pt[0].toFixed(1)}, p:${pt[1].toFixed(1)})`);
+                        alpha += 2;
+                    });
+                }
+
+                const traceName = file.meta.crystal ? file.meta.crystal.split(' ')[0] : file.name;
+                traces.push({
+                    x: xVals, y: yVals, type: 'scatter', mode: AppState.sweepAxis === 'custom' ? 'lines' : 'lines+markers',
+                    name: traceName, text: texts,
+                    line: { color: getColor(index), width: 2, shape: 'spline' },
+                    marker: { size: 5 }
+                });
+            });
+
+            Plotly.react('plotly-1d', traces, layout, config1D);
+        }
+
+        function renderDiffPlot() {
+            const vFiles = AppState.files.filter(f => f.visible);
+            let pairs = [];
+            
+            // Intelligently pair files together
+            if (vFiles.length === 2) {
+                pairs.push([vFiles[0], vFiles[1]]);
+            } else {
+                const groups = {};
+                vFiles.forEach(f => {
+                    // Strip the B-field specific part to find the base crystal/plane name
+                    let baseName = f.meta.crystal ? f.meta.crystal.replace(/_[0-9.]+T/i, '') : f.name.replace(/_[0-9.]+T/i, '');
+                    if (!groups[baseName]) groups[baseName] = [];
+                    groups[baseName].push(f);
+                });
+                Object.values(groups).forEach(g => {
+                    if (g.length === 2) pairs.push([g[0], g[1]]);
+                });
+            }
+
+            const diffContainer = document.getElementById('diff-plot-container');
+            if (pairs.length === 0) {
+                diffContainer.classList.add('hidden');
+                return;
+            }
+            diffContainer.classList.remove('hidden');
+
+            // Update custom badge based on scale
+            const diffTitleBadge = document.getElementById('diff-title');
+            if (diffTitleBadge) {
+                diffTitleBadge.textContent = AppState.isLogScale ? 'Log₁₀ Intensity Diff (Δ Log I)' : 'Intensity Difference (ΔI)';
+            }
+
+            const traces = [];
+            const layout = JSON.parse(JSON.stringify(layoutTemplate1D));
+            layout.yaxis.title = AppState.isLogScale ? 'Δ Log₁₀(Intensity)' : 'Δ Intensity (arb.u)';
+            layout.yaxis.type = 'linear'; // Difference can be negative, strictly linear
+
+            pairs.forEach((pair, index) => {
+                let [f1, f2] = pair;
+                let b1 = parseFloat(f1.meta.bfield) || 0;
+                let b2 = parseFloat(f2.meta.bfield) || 0;
+                
+                // Ensure f1 is always the higher magnetic field
+                if (b2 > b1) {
+                    [f1, f2] = [f2, f1];
+                    [b1, b2] = [b2, b1];
+                }
+
+                const xVals = [], yValsDiff = [], texts = [];
+                const traj = getFileTrajectory(f1, AppState.sweepAxis, AppState.fixedAxisValue);
+
+                // Helper to get correctly scaled intensity
+                const getVal = (grid, t, p) => {
+                    let v = interpolatePt(grid, t, p).intensity;
+                    return AppState.isLogScale ? Math.log10(Math.max(v, 1e-15)) : v;
+                };
+
+                if (AppState.sweepAxis === 'theta' || AppState.sweepAxis === 'phi') {
+                    const sweepVar = AppState.sweepAxis;
+                    let sweepMin = 0, sweepMax = sweepVar === 'theta' ? 180 : 359;
+                    for (let v = sweepMin; v <= sweepMax; v++) {
+                        let t = sweepVar === 'theta' ? v : AppState.fixedAxisValue;
+                        let p = sweepVar === 'phi' ? v : AppState.fixedAxisValue;
+                        let val1 = getVal(f1.grid, t, p);
+                        let val2 = getVal(f2.grid, t, p);
+                        let diff = val1 - val2;
+                        xVals.push(v);
+                        yValsDiff.push(diff);
+                        let dispDiff = AppState.isLogScale ? diff.toFixed(3) : diff.toExponential(3);
+                        texts.push(`Δ: ${dispDiff}<br>t:${t}, p:${p}`);
+                    }
+                } else {
+                    let alpha = -180;
+                    traj.forEach(pt => {
+                        let val1 = getVal(f1.grid, pt[0], pt[1]);
+                        let val2 = getVal(f2.grid, pt[0], pt[1]);
+                        let diff = val1 - val2;
+                        xVals.push(alpha);
+                        yValsDiff.push(diff);
+                        let dispDiff = AppState.isLogScale ? diff.toFixed(3) : diff.toExponential(3);
+                        texts.push(`Δ: ${dispDiff}<br>Q(t:${pt[0].toFixed(1)}, p:${pt[1].toFixed(1)})`);
+                        alpha += 2;
+                    });
+                }
+
+                let baseName = f1.meta.crystal ? f1.meta.crystal.replace(/_[0-9.]+T/i, '') : f1.name.replace(/_[0-9.]+T/i, '');
+                
+                traces.push({
+                    x: xVals, y: yValsDiff, type: 'scatter', mode: AppState.sweepAxis === 'custom' ? 'lines' : 'lines+markers',
+                    name: `ΔI ${baseName} (${b1}T - ${b2}T)`, text: texts,
+                    line: { color: getColor(index + 5), width: 2, shape: 'spline' }, // Offset index for unique colors
+                    marker: { size: 5 }
+                });
+            });
+
+            // Clone config to change download filename for the diff plot
+            const configDiff = JSON.parse(JSON.stringify(config1D));
+            configDiff.toImageButtonOptions.filename = 'RIXS_1D_Difference_Plot';
+
+            Plotly.react('plotly-diff', traces, layout, configDiff);
+        }
+
+        function render2D3DPlots() {
+            elements.grid2d.innerHTML = '';
+            elements.grid3d.innerHTML = '';
+
+            let globalMax = -Infinity, globalMin = Infinity;
+            
+            // Calculate Global Limits for colorbar consistency
+            AppState.files.forEach(file => {
+                if(!file.visible) return;
+                file.data.forEach(pt => {
+                    let val = AppState.isLogScale ? Math.log10(Math.max(pt.intensity, 1e-15)) : pt.intensity;
+                    if(val > globalMax) globalMax = val;
+                    if(val < globalMin) globalMin = val;
+                });
+            });
+
+            AppState.files.forEach(file => {
+                if(!file.visible) return;
+                
+                // Get the unique trajectory for this specific file
+                const traj = getFileTrajectory(file, AppState.sweepAxis, AppState.fixedAxisValue);
+                
+                let tX = [], tY = [], tX3 = [], tY3 = [], tZ3 = [];
+                for(let i=0; i<traj.length; i++) {
+                    if(i > 0 && Math.abs(traj[i][1] - traj[i-1][1]) > 180) {
+                        tX.push(null); tY.push(null);
+                    }
+                    tX.push(traj[i][0]);
+                    tY.push(traj[i][1]);
+
+                    const r = 1.03;
+                    tX3.push(r * Math.sin(deg2rad(traj[i][0])) * Math.cos(deg2rad(traj[i][1])));
+                    tY3.push(r * Math.sin(deg2rad(traj[i][0])) * Math.sin(deg2rad(traj[i][1])));
+                    tZ3.push(r * Math.cos(deg2rad(traj[i][0])));
+                }
+
+                const traj2DTrace = { x: tX, y: tY, type: 'scatter', mode: 'lines', line: {color: '#f472b6', width: 2.5, dash: 'dash'}, name: 'Trajectory', showlegend: false, hoverinfo: 'none' };
+                const traj3DTrace = { x: tX3, y: tY3, z: tZ3, type: 'scatter3d', mode: 'lines', line: {color: '#f472b6', width: 6}, name: 'Trajectory', showlegend: false, hoverinfo: 'none' };
+
+                const name = file.meta.crystal ? file.meta.crystal.split(' ')[0] : file.name;
+                
+                // --- 2D HEATMAP ---
+                const thetas = Array.from({length: 181}, (_, i) => i);
+                const phis = Array.from({length: 360}, (_, i) => i);
+                const z2D = phis.map(p => thetas.map(t => {
+                    let val = file.grid[t][p].intensity;
+                    return AppState.isLogScale ? Math.log10(Math.max(val, 1e-15)) : val;
+                }));
+
+                const div2D = document.createElement('div');
+                div2D.className = 'glass-panel rounded-2xl p-4 shadow-lg border border-slate-700/50';
+                div2D.innerHTML = `<h3 class="text-sm font-semibold text-blue-300 mb-2 truncate">${name}</h3><div id="plot2d-${file.id}" class="w-full h-[350px]"></div>`;
+                elements.grid2d.appendChild(div2D);
+
+                Plotly.newPlot(`plot2d-${file.id}`, [
+                    { z: z2D, x: thetas, y: phis, type: 'heatmap', colorscale: 'Viridis', zmin: globalMin, zmax: globalMax, colorbar: { thickness: 10, tickfont: {color: '#94a3b8'} } },
+                    traj2DTrace
+                ], {
+                    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', margin: { t: 10, r: 10, b: 40, l: 40 },
+                    font: { family: 'Inter', color: '#94a3b8' }, xaxis: { title: 'Theta', gridcolor: '#1e293b' }, yaxis: { title: 'Phi', gridcolor: '#1e293b' }
+                }, {responsive: true, displaylogo: false});
+
+                // --- 3D SPHERE ---
+                let sX = [], sY = [], sZ = [], sI = [];
+                const phisExt = [...phis, 360];
+                phisExt.forEach(p => {
+                    let rX=[], rY=[], rZ=[], rI=[];
+                    let gridP = p % 360;
+                    thetas.forEach(t => {
+                        rX.push(Math.sin(deg2rad(t)) * Math.cos(deg2rad(p)));
+                        rY.push(Math.sin(deg2rad(t)) * Math.sin(deg2rad(p)));
+                        rZ.push(Math.cos(deg2rad(t)));
+                        let val = file.grid[t][gridP].intensity;
+                        rI.push(AppState.isLogScale ? Math.log10(Math.max(val, 1e-15)) : val);
+                    });
+                    sX.push(rX); sY.push(rY); sZ.push(rZ); sI.push(rI);
+                });
+
+                const div3D = document.createElement('div');
+                div3D.className = 'glass-panel rounded-2xl p-4 shadow-lg border border-slate-700/50';
+                div3D.innerHTML = `<h3 class="text-sm font-semibold text-fuchsia-300 mb-2 truncate">${name}</h3><div id="plot3d-${file.id}" class="w-full h-[400px]"></div>`;
+                elements.grid3d.appendChild(div3D);
+
+                // --- HKL Vector Visualization (Plane Normal) ---
+                let axT = file.meta.q0 ? file.meta.q0.theta : 90;
+                let axP = file.meta.q0 ? file.meta.q0.phi : 0;
+                let [vx, vy, vz] = sphericalToCartesian(axT, axP);
+                const vScale = 1.35; 
+                
+                const hklLabel = file.meta.h_ref !== undefined 
+                    ? `[${file.meta.h_ref}${file.meta.k_ref}${file.meta.l_ref}]` 
+                    : 'Plane Normal';
+
+                const hklTrace = {
+                    x: [0, vx * vScale],
+                    y: [0, vy * vScale],
+                    z: [0, vz * vScale],
+                    type: 'scatter3d',
+                    mode: 'lines+markers+text',
+                    marker: { size: [0, 5], color: '#fbbf24', symbol: 'diamond' }, 
+                    line: { color: '#fbbf24', width: 5 },
+                    text: ['', `<b>${hklLabel}</b>`],
+                    textposition: 'top center',
+                    textfont: { color: '#fbbf24', size: 13, family: 'Inter' },
+                    hoverinfo: 'none',
+                    showlegend: false
+                };
+
+                Plotly.newPlot(`plot3d-${file.id}`, [
+                    { type: 'surface', x: sX, y: sY, z: sZ, surfacecolor: sI, colorscale: 'Viridis', cmin: globalMin, cmax: globalMax, colorbar: { thickness: 15, tickfont: {color: '#94a3b8'} } },
+                    traj3DTrace, 
+                    hklTrace     
+                ], {
+                    paper_bgcolor: 'rgba(0,0,0,0)', margin: { t: 0, r: 0, b: 0, l: 0 },
+                    scene: { aspectmode: 'cube', xaxis: {visible:false}, yaxis: {visible:false}, zaxis: {visible:false}, camera: { eye: {x:1.5, y:1.5, z:1.5} } }
+                }, {responsive: true, displaylogo: false});
+            });
+        }
+
+
+        // --- Event Listeners & UI ---
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(e => window.addEventListener(e, ev => { ev.preventDefault(); ev.stopPropagation(); }));
+        window.addEventListener('dragenter', () => elements.dragOverlay.classList.add('active'));
+        elements.dragOverlay.addEventListener('dragleave', () => elements.dragOverlay.classList.remove('active'));
+        elements.dragOverlay.addEventListener('drop', (e) => {
+            elements.dragOverlay.classList.remove('active');
+            handleFiles(e.dataTransfer.files);
+        });
+        
+        elements.fileInput.addEventListener('change', (e) => handleFiles(e.target.files));
+
+        elements.scaleLinear.addEventListener('click', () => {
+            AppState.isLogScale = false;
+            elements.scaleLinear.classList.add('active', 'border-indigo-500/30'); elements.scaleLinear.classList.remove('text-slate-400', 'border-transparent');
+            elements.scaleLog.classList.remove('active', 'border-indigo-500/30'); elements.scaleLog.classList.add('text-slate-400', 'border-transparent');
+            updateAllPlots();
+        });
+        
+        elements.scaleLog.addEventListener('click', () => {
+            AppState.isLogScale = true;
+            elements.scaleLog.classList.add('active', 'border-indigo-500/30'); elements.scaleLog.classList.remove('text-slate-400', 'border-transparent');
+            elements.scaleLinear.classList.remove('active', 'border-indigo-500/30'); elements.scaleLinear.classList.add('text-slate-400', 'border-transparent');
+            updateAllPlots();
+        });
+
+        elements.btnSweepTheta.addEventListener('click', () => setSweepAxis('theta'));
+        elements.btnSweepPhi.addEventListener('click', () => setSweepAxis('phi'));
+        elements.btnSweepCustom.addEventListener('click', () => setSweepAxis('custom'));
+
+        elements.fixedAxisSlider.addEventListener('input', (e) => {
+            AppState.fixedAxisValue = parseInt(e.target.value);
+            elements.fixedAxisValDisplay.textContent = `${AppState.fixedAxisValue}°`;
+            updateAllPlots();
+        });
+
+        elements.clearFilesBtn.addEventListener('click', () => {
+            AppState.files = [];
+            renderFileList();
+            updateAllPlots();
+            elements.fileInput.value = '';
+        });
+
+        function setSweepAxis(axis) {
+            AppState.sweepAxis = axis;
+            const active = "scale-toggle active flex-1 py-1.5 text-xs rounded-md transition-all font-medium border-indigo-500/30";
+            const inactive = "scale-toggle flex-1 py-1.5 text-xs rounded-md text-slate-400 hover:text-slate-200 transition-all font-medium border-transparent";
+            
+            elements.btnSweepTheta.className = axis === 'theta' ? active : inactive;
+            elements.btnSweepPhi.className = axis === 'phi' ? active : inactive;
+            elements.btnSweepCustom.className = axis === 'custom' ? active : inactive;
+            
+            if (axis === 'custom') {
+                elements.fixedAxisContainer.classList.add('hidden');
+                elements.customRotationInfo.classList.remove('hidden');
+            } else {
+                elements.fixedAxisContainer.classList.remove('hidden');
+                elements.customRotationInfo.classList.add('hidden');
+                elements.fixedAxisLabel.firstElementChild.textContent = axis === 'theta' ? "Fixed Plane (Phi)" : "Fixed Plane (Theta)";
+            }
+            updateAllPlots();
+        }
+
+        // --- File Handling ---
+        function handleFiles(files) {
+            if (!files.length) return;
+            let count = 0;
+            const isFirstLoad = AppState.files.length === 0;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    parseDataFile(file.name, e.target.result);
+                    if (++count === files.length) {
+                        
+                        // INITIAL LOAD AUTOCONFIGURATION:
+                        // Automatically switch to Rotation mode if scattering plane was detected
+                        if (isFirstLoad && AppState.files.length > 0 && AppState.files[0].meta.q0) {
+                            setSweepAxis('custom'); 
+                        } else {
+                            updateAllPlots();
+                        }
+                        
+                        renderFileList();
+                    }
+                };
+                reader.readAsText(file);
+            });
+        }
+
+        function parseDataFile(filename, text) {
+            const lines = text.split('\n');
+            const dataPoints = [], meta = {};
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+                if (line.startsWith('#')) {
+                    if (line.includes('CRYSTAL:')) {
+                        meta.crystal = line.replace('# CRYSTAL:', '').trim();
+                        // Extract HKL indices from string (e.g. PrOs4Sb12_502_0.0T -> 502)
+                        let match = meta.crystal.match(/_(\d)(\d)(\d)_/);
+                        if (match) {
+                            meta.h_ref = parseInt(match[1]);
+                            meta.k_ref = parseInt(match[2]);
+                            meta.l_ref = parseInt(match[3]);
+                        }
+                    }
+                    continue;
+                }
+                if (line.includes('Theta(deg)')) continue;
+                const parts = line.split(/[\s\t]+/);
+                if (parts.length >= 6) {
+                    dataPoints.push({ theta: parseFloat(parts[0]), phi: parseFloat(parts[1]), h: parseFloat(parts[2]), k: parseFloat(parts[3]), l: parseFloat(parts[4]), intensity: parseFloat(parts[5]) });
+                }
+            }
+            if (dataPoints.length > 0) {
+                // Find the absolute closest (theta, phi) to the requested HKL plane
+                if (meta.h_ref !== undefined) {
+                    let minDist = Infinity;
+                    let bestPt = null;
+                    dataPoints.forEach(pt => {
+                        let dist = Math.sqrt(Math.pow(pt.h - meta.h_ref, 2) + Math.pow(pt.k - meta.k_ref, 2) + Math.pow(pt.l - meta.l_ref, 2));
+                        if (dist < minDist) {
+                            minDist = dist;
+                            bestPt = pt;
+                        }
+                    });
+                    if (bestPt) {
+                        meta.q0 = { theta: bestPt.theta, phi: bestPt.phi };
+                    }
+                }
+
+                AppState.files = AppState.files.filter(f => f.name !== filename);
+                AppState.files.push({ id: Math.random().toString(36).substr(2, 9), name: filename, meta: meta, data: dataPoints, grid: buildGrid(dataPoints), visible: true });
+            }
+        }
+
+        function renderFileList() {
+            if (AppState.files.length === 0) {
+                elements.fileListContainer.classList.add('hidden');
+                return;
+            }
+            elements.fileListContainer.classList.remove('hidden');
+            elements.fileList.innerHTML = '';
+            
+            AppState.files.forEach((file, index) => {
+                const color = getColor(index);
+                const name = file.meta.crystal ? file.meta.crystal.split(' ')[0] : file.name;
+                const li = document.createElement('li');
+                li.className = "flex items-center justify-between p-2 rounded-lg bg-slate-800/40 border border-slate-700";
+                li.innerHTML = `
+                    <div class="flex items-center gap-2 truncate pr-2"><div class="w-3 h-3 rounded-full shrink-0" style="background-color: ${color}"></div><span class="text-xs text-slate-200 truncate">${name}</span></div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button onclick="toggleFile('${file.id}')" class="p-1 text-slate-400 hover:text-white"><i data-lucide="${file.visible ? 'eye' : 'eye-off'}" class="w-4 h-4"></i></button>
+                        <button onclick="removeFile('${file.id}')" class="p-1 text-slate-400 hover:text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>`;
+                elements.fileList.appendChild(li);
+            });
+            lucide.createIcons();
+        }
+
+        window.toggleFile = function(id) { const f = AppState.files.find(f => f.id === id); if(f) { f.visible = !f.visible; renderFileList(); updateAllPlots(); } };
+        window.removeFile = function(id) { AppState.files = AppState.files.filter(f => f.id !== id); renderFileList(); updateAllPlots(); };
+        window.addEventListener('resize', () => { if(AppState.files.length) { Plotly.Plots.resize('plotly-1d'); } });
+    </script>
+</body>
+</html>
