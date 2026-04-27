@@ -13,6 +13,10 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 
+    <!-- Three.js for 3D Simulation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
     <style>
         body { background-color: #020617; color: #e2e8f0; }
         ::-webkit-scrollbar { height: 8px; width: 8px; }
@@ -292,6 +296,7 @@ python step2_cein3_topography.py`
                 title: '3. Supercell Muon Relaxation',
                 goal: 'Expand the lattice, inject the muon, and minimize the atomic forces.',
                 overview: 'We build a 2x2x2 32-atom supercell to isolate the muon from its periodic replicas. We inject a Hydrogen atom (our muon proxy) directly into the mapped (0.25, 0.25, 0.25) supercell octahedral void and allow the atoms to physically deform around it.',
+                has3D: true, // Enables the 3D Simulation Tab
                 hpc_resources: String.raw`
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
@@ -806,11 +811,13 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             book: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
             tool: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>',
             download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
-            cpu: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>'
+            cpu: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>',
+            cube3d: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
         };
 
         let activeId = 'intro';
         let activeTab = 'overview';
+        let animationId; // Track Three.js animation frame
 
         function updateProgressBar() {
             const index = steps.findIndex(s => s.id === activeId);
@@ -858,6 +865,173 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             URL.revokeObjectURL(url);
         }
 
+        function initThreeJS() {
+            const container = document.getElementById('three-container');
+            if (!container) return;
+
+            if (animationId) cancelAnimationFrame(animationId);
+            container.innerHTML = ''; // clear any existing canvas
+
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color('#0f172a'); // slate-900
+
+            // Camera setup
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            
+            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            const a = 4.689;
+            const centerOffset = a; 
+            
+            // The precise theoretical muon coordinate
+            // Fractional (0.25, 0.25, 0.25) in 2a supercell maps to a/2 from the corner
+            // With centering, it sits exactly at (0.5a, 0.5a, 0.5a)
+            const muonPos = new THREE.Vector3(0.5 * a, 0.5 * a, 0.5 * a);
+
+            // Orbit strictly around the Muon!
+            camera.position.set(muonPos.x + 8, muonPos.y + 6, muonPos.z + 10);
+            const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 2.0;
+            controls.target.copy(muonPos);
+
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+            const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            dirLight.position.set(10, 20, 10);
+            scene.add(dirLight);
+
+            // Materials - Making lattice semi-transparent to reveal the trapped Muon
+            const ceMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, shininess: 100, transparent: true, opacity: 0.3 }); // Sky blue (Cerium)
+            const inMat = new THREE.MeshPhongMaterial({ color: 0xc084fc, shininess: 80, transparent: true, opacity: 0.3 });  // Purple (Indium)
+            
+            // Glowing Muon Materials
+            const muMat = new THREE.MeshPhongMaterial({ color: 0xff0033, emissive: 0xff0033, emissiveIntensity: 1.0 }); 
+            const glowMat = new THREE.MeshBasicMaterial({ 
+                color: 0xff0033, 
+                transparent: true, 
+                opacity: 0.5, 
+                blending: THREE.AdditiveBlending,
+                depthWrite: false
+            });
+
+            // Geometries
+            const ceGeo = new THREE.SphereGeometry(0.6, 32, 32);
+            const inGeo = new THREE.SphereGeometry(0.5, 32, 32);
+            const muGeo = new THREE.SphereGeometry(0.35, 32, 32);
+            const glowGeo = new THREE.SphereGeometry(0.6, 32, 32);
+
+            // Create Ce atoms (Corners of the primitive cells)
+            for(let x=0; x<=2; x++) {
+                for(let y=0; y<=2; y++) {
+                    for(let z=0; z<=2; z++) {
+                        const mesh = new THREE.Mesh(ceGeo, ceMat);
+                        mesh.position.set(x*a - centerOffset, y*a - centerOffset, z*a - centerOffset);
+                        scene.add(mesh);
+                    }
+                }
+            }
+
+            // Create In atoms (Face centers of the primitive cells)
+            // xy faces
+            for(let x=0; x<2; x++) {
+                for(let y=0; y<2; y++) {
+                    for(let z=0; z<=2; z++) {
+                        const mesh = new THREE.Mesh(inGeo, inMat);
+                        mesh.position.set((x+0.5)*a - centerOffset, (y+0.5)*a - centerOffset, z*a - centerOffset);
+                        scene.add(mesh);
+                    }
+                }
+            }
+            // xz faces
+            for(let x=0; x<2; x++) {
+                for(let y=0; y<=2; y++) {
+                    for(let z=0; z<2; z++) {
+                        const mesh = new THREE.Mesh(inGeo, inMat);
+                        mesh.position.set((x+0.5)*a - centerOffset, y*a - centerOffset, (z+0.5)*a - centerOffset);
+                        scene.add(mesh);
+                    }
+                }
+            }
+            // yz faces
+            for(let x=0; x<=2; x++) {
+                for(let y=0; y<2; y++) {
+                    for(let z=0; z<2; z++) {
+                        const mesh = new THREE.Mesh(inGeo, inMat);
+                        mesh.position.set(x*a - centerOffset, (y+0.5)*a - centerOffset, (z+0.5)*a - centerOffset);
+                        scene.add(mesh);
+                    }
+                }
+            }
+
+            // Muon Injection
+            const muonGroup = new THREE.Group();
+            muonGroup.position.copy(muonPos); 
+            
+            const muonMesh = new THREE.Mesh(muGeo, muMat);
+            const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+            muonGroup.add(muonMesh);
+            muonGroup.add(glowMesh);
+            
+            const muLight = new THREE.PointLight(0xff0033, 2, 10);
+            muonGroup.add(muLight);
+            scene.add(muonGroup);
+
+            // Explicitly draw the "Octahedral Trap" (interaction lines to nearest Indium atoms)
+            const bondMat = new THREE.LineBasicMaterial({ color: 0xff0033, transparent: true, opacity: 0.8, linewidth: 2 });
+            const neighbors = [
+                new THREE.Vector3(0.5*a, 0.5*a, 0),
+                new THREE.Vector3(0.5*a, 0.5*a, a),
+                new THREE.Vector3(0.5*a, 0, 0.5*a),
+                new THREE.Vector3(0.5*a, a, 0.5*a),
+                new THREE.Vector3(0, 0.5*a, 0.5*a),
+                new THREE.Vector3(a, 0.5*a, 0.5*a)
+            ];
+            
+            neighbors.forEach(nPos => {
+                const pts = [muonPos, nPos];
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                scene.add(new THREE.Line(geo, bondMat));
+            });
+
+            // Add subtle bounding box edges
+            const boxGeo = new THREE.BoxGeometry(2*a, 2*a, 2*a);
+            const edges = new THREE.EdgesGeometry(boxGeo);
+            const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x334155, opacity: 0.5, transparent: true }));
+            scene.add(line);
+
+            // Pulsing Animation loop
+            const startTime = Date.now();
+            function animate() {
+                animationId = requestAnimationFrame(animate);
+                controls.update();
+                
+                // Make the muon glow "breathe" to represent zero-point motion energy
+                const elapsed = Date.now() - startTime;
+                const scale = 1.0 + 0.2 * Math.sin(elapsed * 0.005);
+                glowMesh.scale.set(scale, scale, scale);
+                glowMesh.material.opacity = 0.4 + 0.2 * Math.sin(elapsed * 0.005);
+
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            // Handle resize
+            const resizeObserver = new ResizeObserver(() => {
+                if (container && container.clientWidth) {
+                    camera.aspect = container.clientWidth / container.clientHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(container.clientWidth, container.clientHeight);
+                }
+            });
+            resizeObserver.observe(container);
+        }
+
         function render() {
             renderSidebar();
             updateProgressBar();
@@ -874,6 +1048,7 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
                     </button>
                     ${data.aiida_commands ? `<button onclick="setActiveTab('aiida')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'aiida' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.tool}</div> AiiDA Toolkit</button>` : ''}
                     ${data.hpc_resources ? `<button onclick="setActiveTab('hpc')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'hpc' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.cpu}</div> HPC Specs</button>` : ''}
+                    ${data.has3D ? `<button onclick="setActiveTab('3d')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === '3d' ? 'bg-pink-500/10 text-pink-400 border border-pink-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.cube3d}</div> 3D Simulation</button>` : ''}
                     ${hasScripts ? `<button onclick="setActiveTab('code')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'code' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.code}</div> Python Script${data.scripts.length > 1 ? 's' : ''}</button>` : ''}
                     ${data.commands ? `<button onclick="setActiveTab('cli')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'cli' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.terminal}</div> CLI Execution</button>` : ''}
                 </div>`;
@@ -903,6 +1078,19 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
                     </div>`;
             } else if (activeTab === 'hpc' && data.hpc_resources) {
                  mainBody = data.hpc_resources;
+            } else if (activeTab === '3d' && data.has3D) {
+                 mainBody = `
+                    <div class="mb-6">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Supercell Muon Site Simulation</h3>
+                        <p class="text-slate-300 leading-relaxed text-sm mb-4">Interactive 3D visualization of the 2x2x2 $CeIn_3$ supercell. The lattice atoms have been made semi-transparent to reveal the Muon perfectly trapped inside the central Octahedral Void at exactly (0.5a, 0.5a, 0.5a). The glowing red bond lines represent the Muon's immediate interaction with its 6 nearest Indium neighbors.</p>
+                    </div>
+                    <div id="three-container" class="w-full h-[500px] rounded-xl overflow-hidden border border-slate-700/50 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative">
+                        <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-lg z-10 text-xs">
+                            <div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-full bg-sky-400"></div> <span class="text-slate-300">Cerium (Ce)</span></div>
+                            <div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-full bg-purple-400"></div> <span class="text-slate-300">Indium (In)</span></div>
+                            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]"></div> <span class="text-white font-bold">Muon (μ+)</span></div>
+                        </div>
+                    </div>`;
             } else if (activeTab === 'code' && hasScripts) {
                 mainBody = '<div class="space-y-6">' + data.scripts.map((script, index) => `
                     <div class="bg-[#0b1120] rounded-xl overflow-hidden border border-emerald-900/50 shadow-2xl mt-4 relative">
@@ -942,6 +1130,15 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
                     </div>
                 </div>`;
                 
+            // Handle Three.js initialization
+            if (activeTab === '3d' && data.has3D) {
+                // slight delay to ensure DOM is fully painted
+                setTimeout(initThreeJS, 50);
+            } else if (animationId) {
+                // Cleanup animation if leaving 3D tab
+                cancelAnimationFrame(animationId);
+            }
+
             // Trigger MathJax re-render safely for LaTeX equations
             if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
                 MathJax.typesetPromise().catch(function (err) {
