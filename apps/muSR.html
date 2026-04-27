@@ -67,7 +67,7 @@
         </div>
         <div>
             <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">DFT+μ CeIn₃ Workflow Explorer</h1>
-            <p class="text-slate-400 text-lg max-w-3xl leading-relaxed">Comprehensive technical log of the computational physics workflow mapping the muon stopping site and local magnetic field of the CeIn₃ simple cubic lattice.</p>
+            <p class="text-slate-400 text-lg max-w-3xl leading-relaxed">Comprehensive technical log of the computational physics workflow mapping the muon stopping site and local magnetic field of the CeIn₃ simple cubic lattice (FM & AFM states).</p>
         </div>
     </div>
 
@@ -97,6 +97,7 @@
                         <ul class="math-breakdown text-slate-400 text-xs mt-4">
                             <li><strong>$B_{dip}$</strong>: Classical dipolar sum from surrounding Cerium magnetic moments.</li>
                             <li><strong>$B_{c}$</strong>: Quantum contact field (spin density overlap exactly at the muon).</li>
+                            <li><strong>$B_{L}$</strong>: The Lorentz field (macroscopic shape-dependent magnetic field).</li>
                         </ul>
                     </div>
                 `,
@@ -293,10 +294,11 @@ python step2_cein3_topography.py`
             },
             {
                 id: 'step3',
-                title: '3. Supercell Muon Relaxation',
-                goal: 'Expand the lattice, inject the muon, and minimize the atomic forces.',
-                overview: 'We build a 2x2x2 32-atom supercell to isolate the muon from its periodic replicas. We inject a Hydrogen atom (our muon proxy) directly into the mapped (0.25, 0.25, 0.25) supercell octahedral void and allow the atoms to physically deform around it.',
-                has3D: true, // Enables the 3D Simulation Tab
+                title: '3. Supercell Muon Relaxation & Extraction',
+                goal: 'Expand the lattice, inject the muon, minimize the atomic forces, and extract the resulting coordinates.',
+                overview: 'First, we build a 2x2x2 32-atom supercell to isolate the muon from its periodic replicas and inject a Hydrogen atom (our muon proxy) directly into the mapped (0.25, 0.25, 0.25) supercell octahedral void. We allow the atoms to physically deform around it. Once the 2.5 hour calculation finishes, we extract the resulting structure from the AiiDA database, export it as a CIF file, and verify the exact final coordinate of the muon.',
+                has3D: true, 
+                showSpins: false,
                 hpc_resources: String.raw`
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
@@ -323,7 +325,7 @@ python step2_cein3_topography.py`
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
                                 Resource Context
                             </h4>
-                            <p class="text-slate-300 text-sm leading-relaxed">Structural relaxation of a 33-atom supercell using the BFGS algorithm. Calculating the Hellmann-Feynman forces iteratively until all forces fall below the <code>1.0e-3</code> threshold is exceptionally computationally heavy. A 4-hour wallclock prevents the scheduler from killing the job prematurely.</p>
+                            <p class="text-slate-300 text-sm leading-relaxed">Structural relaxation of a 33-atom supercell using the BFGS algorithm. Calculating the Hellmann-Feynman forces iteratively until all forces fall below the <code>1.0e-3</code> threshold is exceptionally computationally heavy. A 4-hour wallclock prevents the scheduler from killing the job prematurely. The subsequent extraction runs locally in seconds.</p>
                         </div>
                     </div>
                 `,
@@ -370,38 +372,7 @@ builder.metadata.options = {
 
 node = submit(builder)
 print(f"STEP 3: Muon Supercell Relaxation Submitted! PK: {node.pk}")`
-                    }
-                ],
-                math: String.raw`
-                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
-                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Relaxation Engine</div>
-                        <p class="text-slate-400 text-xs mb-2">The <code>ion_dynamics = 'bfgs'</code> flag tells the supercomputer to move the surrounding Cerium and Indium atoms iteratively until the Hellmann-Feynman forces on every single atom hit zero.</p>
-                    </div>
-                `,
-                commands: String.raw`verdi run step3_cein3_muon.py`
-            },
-            {
-                id: 'step4',
-                title: '4. Extracting Relaxed Coordinates',
-                goal: 'Verify the final resting position of the muon.',
-                overview: 'Once the 2.5 hour calculation finishes, we extract the resulting structure (the <code>output_structure</code>) from the AiiDA database, export it as a CIF file for 3D visualization, and print the exact coordinate of the muon.',
-                hpc_resources: String.raw`
-                    <div class="mb-8">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
-                        <div class="bg-slate-900/80 border border-slate-700/50 rounded-xl p-5 text-center mb-6">
-                            <div class="text-purple-400 font-mono text-lg font-bold">Local / Head Node</div>
-                            <div class="text-slate-400 text-sm mt-1">Jupyter Container Environment</div>
-                        </div>
-                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
-                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                Resource Context
-                            </h4>
-                            <p class="text-slate-300 text-sm leading-relaxed">This step consists of purely post-processing Python scripts parsing existing data out of the AiiDA vault. It requires minimal RAM and CPU power, and executes instantaneously.</p>
-                        </div>
-                    </div>
-                `,
-                scripts: [
+                    },
                     {
                         name: 'step4_extract_relaxation.py',
                         code: String.raw`import sys
@@ -437,17 +408,26 @@ except AttributeError:
                 ],
                 math: String.raw`
                     <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
-                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Zero Movement Observation</div>
-                        <p class="text-slate-400 text-xs mb-2">The final coordinates output <code>(2.34450, 2.34450, 2.34450)</code> matched the injection point exactly. Because the octahedral void is highly symmetric, the electrostatic forces pulling from all sides were perfectly balanced in all directions.</p>
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Relaxation Engine & Zero Movement</div>
+                        <ul class="math-breakdown text-slate-400 text-xs">
+                            <li>The <code>ion_dynamics = 'bfgs'</code> flag tells the supercomputer to move the surrounding Cerium and Indium atoms iteratively until the Hellmann-Feynman forces hit zero.</li>
+                            <li>The final coordinates output <code>(2.34450, 2.34450, 2.34450)</code> matched the injection point exactly. Because the octahedral void is highly symmetric, electrostatic forces pulling from all sides are perfectly balanced.</li>
+                        </ul>
                     </div>
                 `,
-                commands: String.raw`verdi run step4_extract_relaxation.py`
+                commands: String.raw`# 1. Submit the heavy calculation
+verdi run step3_cein3_muon.py
+
+# 2. Wait ~2.5 hours, then extract the result
+verdi run step4_extract_relaxation.py`
             },
             {
-                id: 'step5',
-                title: '5. Magnetic Spin SCF',
-                goal: 'Polarize the electrons and measure the localized spin moments.',
-                overview: 'We take the perfectly relaxed structure and run one final Self-Consistent Field (SCF) calculation. By setting `nspin: 2` and defining a `starting_magnetization`, we trigger Quantum ESPRESSO to split the electrons into up-spin and down-spin populations.',
+                id: 'step4',
+                title: '4. Magnetic Spin SCF & Extraction (FM vs AFM)',
+                goal: 'Polarize the electrons, measure localized spin moments, and extract the dense 3D Spin Polarization map.',
+                overview: 'We take the perfectly relaxed structure and run one final Self-Consistent Field (SCF) calculation. By setting <code>nspin: 2</code>, we activate magnetism. We perform this calculation twice: once as a basic Ferromagnet (FM), and once dynamically tagging atoms using parity to simulate the true G-type Antiferromagnetic (AFM) state. Finally, we deploy our heavy-duty spin smuggling script to parallel-extract the <code>ρ_up - ρ_down</code> matrix without triggering Linux Out-of-Memory (OOM) limits.',
+                has3D: true,
+                showSpins: true,
                 hpc_resources: String.raw`
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
@@ -469,18 +449,25 @@ except AttributeError:
                                 <div class="text-purple-400 font-mono text-xl">Max (600 GB)</div>
                             </div>
                         </div>
-                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5 mb-4">
                             <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                                Resource Context
+                                Resource Context: Magnetic SCF
                             </h4>
-                            <p class="text-slate-300 text-sm leading-relaxed">Spin-polarized SCF calculation (<code>nspin: 2</code>). This effectively doubles the number of electronic wavefunctions to evaluate and converge compared to non-magnetic DFT. We request 2 hours to ensure safe convergence of the fully polarized magnetic ground state.</p>
+                            <p class="text-slate-300 text-sm leading-relaxed">Spin-polarized SCF calculation (<code>nspin: 2</code>). This effectively doubles the number of electronic wavefunctions to evaluate and converge compared to non-magnetic DFT. We request 2 hours to ensure safe convergence. Note: For the AFM run, breaking crystal symmetry will cause AiiDA to throw a harmless <code>[322]</code> warning at the end of the successful run.</p>
+                        </div>
+                        <div class="bg-amber-900/20 border border-amber-500/30 rounded-xl p-5">
+                            <h4 class="text-amber-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                Resource Context: The OOM Extraction Fix
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">The 3D spin density grid (<code>.cube</code> file) is enormously dense. Running the extraction script on a single core initially caused the Linux kernel to immediately snipe the job (Out-Of-Memory Kill). We explicitly claim an entire supercomputer node (32 cores) and use the <code>#SBATCH --mem=0</code> flag to grant the post-processing script access to all physical node RAM via <code>srun pp.x</code>.</p>
                         </div>
                     </div>
                 `,
                 scripts: [
                     {
-                        name: 'step5_cein3_magnetic.py',
+                        name: 'step5_cein3_fm_magnetic.py',
                         code: String.raw`from aiida.engine import submit
 from aiida.orm import load_node, load_code, load_group, Dict
 from aiida.plugins import DataFactory
@@ -496,13 +483,13 @@ builder.pseudos = load_group('SSSP/1.3/PBE/efficiency').get_pseudos(structure=re
 builder.kpoints = DataFactory('core.array.kpoints')()
 builder.kpoints.set_kpoints_mesh([2, 2, 2])
 
-# 2. Parameters (TURNING ON MAGNETISM!)
+# 2. Parameters (TURNING ON FM MAGNETISM)
 builder.parameters = Dict(dict={
     'CONTROL': { 'calculation': 'scf' },
     'SYSTEM': {
         'ecutwfc': 40.0, 'ecutrho': 320.0,
         'occupations': 'smearing', 'smearing': 'marzari-vanderbilt', 'degauss': 0.02,
-        'nspin': 2,  # Activates spin-up/spin-down tracking
+        'nspin': 2,  
         'starting_magnetization': { 'Ce': 0.5, 'In': 0.0, 'H': 0.0 }
     },
     'ELECTRONS': { 'conv_thr': 1.0e-8 }
@@ -517,62 +504,70 @@ builder.metadata.options = {
 }
 
 node = submit(builder)
-print(f"STEP 5: Magnetic Spin-Polarized SCF Submitted! PK: {node.pk}")`
-                    }
-                ],
-                math: String.raw`
-                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
-                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Magnetization Jumpstart</div>
-                        <ul class="math-breakdown text-slate-400 text-xs">
-                            <li><strong>Ce: 0.5</strong> → Forces the Cerium f-electrons to align to a ferromagnetic state.</li>
-                            <li><strong>nspin: 2</strong> → Instructs the code to separately calculate $\rho_{up}$ and $\rho_{down}$.</li>
-                        </ul>
-                    </div>
-                `,
-                commands: String.raw`verdi run step5_cein3_magnetic.py`
-            },
-            {
-                id: 'step6',
-                title: '6. Heavy-Duty Spin Smuggling',
-                goal: 'Extract the dense 3D Spin Polarization map without triggering OOM limits.',
-                overview: 'To calculate the contact field, we need the $\\rho_{up} - \\rho_{down}$ matrix. We deploy our most advanced script to satisfy AiiDA\'s validators, claim 32 supercomputer cores to prevent Linux Out-of-Memory (OOM) kills, and execute the spin extraction in parallel using <code>srun</code>.',
-                hpc_resources: String.raw`
-                    <div class="mb-8">
-                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
-                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Nodes</div>
-                                <div class="text-purple-400 font-mono text-xl">1</div>
-                            </div>
-                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
-                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">MPI Procs</div>
-                                <div class="text-purple-400 font-mono text-xl">32</div>
-                            </div>
-                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
-                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Wallclock</div>
-                                <div class="text-purple-400 font-mono text-xl">30 Mins</div>
-                            </div>
-                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
-                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Memory</div>
-                                <div class="text-purple-400 font-mono text-xl">Max (600 GB)</div>
-                            </div>
-                        </div>
-                        <div class="bg-amber-900/20 border border-amber-500/30 rounded-xl p-5">
-                            <h4 class="text-amber-400 text-sm font-bold mb-2 flex items-center gap-2">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-                                Critical OOM Fix Context
-                            </h4>
-                            <p class="text-slate-300 text-sm leading-relaxed">The 3D spin density grid (<code>.cube</code> file) is enormously dense. Running this exact script on a single core initially caused the Linux kernel to immediately snipe the job (Out-Of-Memory Kill). We had to explicitly claim an entire supercomputer node (32 cores) and use the <code>#SBATCH --mem=0</code> flag to grant the post-processing script access to all physical node RAM via <code>srun pp.x</code>.</p>
-                        </div>
-                    </div>
-                `,
-                scripts: [
+print(f"STEP 5 (FM): Spin-Polarized SCF Submitted! PK: {node.pk}")`
+                    },
+                    {
+                        name: 'step5_cein3_afm_magnetic.py',
+                        code: String.raw`import numpy as np
+from aiida.engine import submit
+from aiida.orm import load_node, load_code, load_group, Dict, StructureData
+from aiida.plugins import DataFactory
+
+# 1. Load the PERFECTLY RELAXED supercell
+relax_calc = load_node(892) # UPDATE THIS WITH YOUR ACTUAL STEP 3 PK
+ase_struct = relax_calc.outputs.output_structure.get_ase()
+a = 4.689
+
+# 2. THE AFM HACK: Tag alternating Ce atoms using parity
+for atom in ase_struct:
+    if atom.symbol == 'Ce':
+        coords = np.round(atom.position / a)
+        parity = int(coords[0] + coords[1] + coords[2]) % 2
+        atom.tag = 1 if parity == 0 else 2 # Ce1 vs Ce2
+
+afm_structure = StructureData(ase=ase_struct)
+
+builder = load_code('pw-7.5@rorqual').get_builder()
+builder.structure = afm_structure
+builder.pseudos = load_group('SSSP/1.3/PBE/efficiency').get_pseudos(structure=afm_structure)
+
+builder.kpoints = DataFactory('core.array.kpoints')()
+builder.kpoints.set_kpoints_mesh([2, 2, 2])
+
+# 3. Parameters (TURNING ON G-TYPE AFM!)
+builder.parameters = Dict(dict={
+    'CONTROL': { 'calculation': 'scf' },
+    'SYSTEM': {
+        'ecutwfc': 40.0, 'ecutrho': 320.0,
+        'occupations': 'smearing', 'smearing': 'marzari-vanderbilt', 'degauss': 0.02,
+        'nspin': 2,  
+        'starting_magnetization': { 
+            'Ce1': 0.5,   # Spin Up
+            'Ce2': -0.5,  # Spin Down
+            'In': 0.0, 
+            'H': 0.0 
+        }
+    },
+    'ELECTRONS': { 'conv_thr': 1.0e-8 }
+})
+
+builder.settings = Dict(dict={'cmdline': ['-nk', '8']})
+builder.metadata.options = {
+    'resources': {'num_machines': 1, 'num_mpiprocs_per_machine': 32},
+    'max_wallclock_seconds': 2 * 60 * 60,
+    'custom_scheduler_commands': '#SBATCH --mem=0\n',
+    'withmpi': True,
+}
+
+node = submit(builder)
+print(f"STEP 5 (AFM): G-Type AFM SCF Submitted! PK: {node.pk}")`
+                    },
                     {
                         name: 'step6_extract_spin_v3.py',
                         code: String.raw`from aiida.engine import submit
 from aiida.orm import load_node, load_code, Dict
 
-parent_calc = load_node(901) # UPDATE THIS WITH YOUR ACTUAL STEP 5 PK
+parent_calc = load_node(926) # UPDATE THIS WITH EITHER YOUR FM OR AFM STEP 5 PK!
 builder = load_code('pp-7.5@rorqual').get_builder()
 builder.parent_folder = parent_calc.outputs.remote_folder
 
@@ -628,18 +623,31 @@ print("SUCCESS! cein3_spin.cube is safely in your exports folder!")`
                 ],
                 math: String.raw`
                     <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
-                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Plot_Num 6</div>
-                        <p class="text-slate-400 text-xs mb-2">Setting <code>plot_num = 6</code> specifically commands Quantum ESPRESSO to subtract the down-spin density matrix from the up-spin density matrix.</p>
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Magnetic & Extraction Physics</div>
+                        <ul class="math-breakdown text-slate-400 text-xs">
+                            <li><strong>FM Hack:</strong> Assign <code>Ce: 0.5</code> universally. Forces all f-electrons parallel.</li>
+                            <li><strong>AFM Hack:</strong> Calculate parity <code>(-1)^(x+y+z)</code> for each Ce site. Assign <code>Ce1: 0.5</code> and <code>Ce2: -0.5</code> to enforce strict G-type anti-parallel ordering.</li>
+                            <li><strong>Plot_Num 6:</strong> Setting <code>plot_num = 6</code> specifically commands Quantum ESPRESSO to subtract the down-spin density matrix from the up-spin density matrix.</li>
+                        </ul>
                     </div>
                 `,
-                commands: String.raw`verdi run step6_extract_spin_v3.py
-verdi run step7_check_vault.py <PK>`
+                commands: String.raw`# 1. Run whichever physics state you are testing:
+verdi run step5_cein3_fm_magnetic.py
+# or
+verdi run step5_cein3_afm_magnetic.py
+
+# 2. Extract the spin map (Update PK inside script first!):
+verdi run step6_extract_spin_v3.py
+
+# 3. Retrieve the file from AiiDA:
+verdi run step7_check_vault.py <NEW_PK>`
             },
             {
-                id: 'step7',
-                title: '7. Calculating Contact Field (Bc)',
+                id: 'step5',
+                title: '5. Calculating Contact Field (Bc)',
                 goal: 'Convert raw localized spin density into a physical Tesla value.',
-                overview: 'With the `.cube` file safely exported, we use Python to extract the exact spin density value at the known fractional coordinates of the muon (0.25, 0.25, 0.25) and apply the physics conversion constants.',
+                overview: 'With the <code>.cube</code> file safely exported, we use Python to extract the exact spin density value at the known fractional coordinates of the muon (0.25, 0.25, 0.25). <strong>FM Result:</strong> -0.2015 Tesla. <strong>AFM Result:</strong> 0.0000 Tesla.',
+                has3D: false,
                 hpc_resources: String.raw`
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
@@ -691,17 +699,18 @@ print(f"Calculated Bc    : {bc_tesla:.4f} Tesla")`
                             $$B_{c} = \frac{2\mu_{0}}{3}|\psi(0)|^{2}m$$
                         </div>
                         <ul class="math-breakdown text-slate-400 text-xs mt-2">
-                            <li><strong>Unit Conversion:</strong> $1 \text{ } e/a_0^3 = 52.4272 \text{ Tesla}$</li>
+                            <li><strong>Unit Conversion:</strong> 1 e/a_0^3 = 52.4272 Tesla</li>
                         </ul>
                     </div>
                 `,
                 commands: String.raw`python step8_calculate_bc.py`
             },
             {
-                id: 'step8',
-                title: '8. Calculating Dipolar Field',
+                id: 'step6',
+                title: '6. Calculating Dipolar Field',
                 goal: 'Sum the classical magnetic interactions from the host lattice.',
-                overview: 'The dipolar field is a purely classical summation of the localized magnetic moments acting through space on the muon. We build a massive 10x10x10 supercell in Python and sum the field vectors from every Cerium atom.',
+                overview: 'The dipolar field is a classical summation of localized magnetic moments. We provide both scripts here: the standard Ferromagnetic (FM) summation, and the G-type Antiferromagnetic (AFM) summation utilizing parity logic to alternate the spins. Due to the high symmetry of the void, both scripts mathematically sum to 0.0000 T.',
+                has3D: false,
                 hpc_resources: String.raw`
                     <div class="mb-8">
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
@@ -720,7 +729,7 @@ print(f"Calculated Bc    : {bc_tesla:.4f} Tesla")`
                 `,
                 scripts: [
                     {
-                        name: 'step9_calculate_bdip.py',
+                        name: 'step9_calculate_fm_bdip.py',
                         code: String.raw`import numpy as np
 from ase import Atoms
 from ase.build import make_supercell
@@ -730,19 +739,14 @@ mu_B = 9.274e-24
 mu_0_4pi = 1e-7   
 conversion = (mu_0_4pi * mu_B) / (1e-30) 
 
-# 2. Build a 10x10x10 supercell of CeIn3
+# 2. Build supercell
 a = 4.689
 primitive = Atoms('CeIn3',
     scaled_positions=[(0,0,0), (0.5,0.5,0), (0.5,0,0.5), (0.0,0.5,0.5)], cell=[a, a, a])
 supercell = make_supercell(primitive, 10 * np.eye(3))
 
-# 3. Target the Muon Site (Body-Center)
 muon_pos = np.array([5.5, 5.5, 5.5]) * a 
-
-# 4. Ce Magnetic Moments 
-m_vector = np.array([0.0, 0.0, 0.5])
-
-# 5. The Dipolar Summation
+m_vector = np.array([0.0, 0.0, 0.5]) # Uniform FM spin
 B_dip = np.zeros(3)
 cutoff_radius = 4.5 * a
 
@@ -756,9 +760,49 @@ for atom in supercell:
             term = (3 * np.dot(m_vector, r_hat) * r_hat - m_vector) / (r**3)
             B_dip += term * conversion
 
-print(f"Bx : {B_dip[0]:.6f} Tesla")
-print(f"By : {B_dip[1]:.6f} Tesla")
-print(f"Bz : {B_dip[2]:.6f} Tesla")`
+print(f"FM Bx : {B_dip[0]:.6f} Tesla")
+print(f"FM By : {B_dip[1]:.6f} Tesla")
+print(f"FM Bz : {B_dip[2]:.6f} Tesla")`
+                    },
+                    {
+                        name: 'step9_calculate_afm_bdip.py',
+                        code: String.raw`import numpy as np
+from ase import Atoms
+from ase.build import make_supercell
+
+mu_B = 9.274e-24  
+mu_0_4pi = 1e-7   
+conversion = (mu_0_4pi * mu_B) / (1e-30) 
+
+a = 4.689
+primitive = Atoms('CeIn3',
+    scaled_positions=[(0,0,0), (0.5,0.5,0), (0.5,0,0.5), (0.0,0.5,0.5)], cell=[a, a, a])
+supercell = make_supercell(primitive, 10 * np.eye(3))
+
+muon_pos = np.array([5.5, 5.5, 5.5]) * a 
+B_dip = np.zeros(3)
+cutoff_radius = 4.5 * a
+
+for atom in supercell:
+    if atom.symbol == 'Ce':
+        # Apply G-type AFM Parity (-1)^(x+y+z)
+        coords = np.round(atom.position / a)
+        parity = int(coords[0] + coords[1] + coords[2]) % 2
+        spin_dir = 1.0 if parity == 0 else -1.0
+        
+        m_vector = np.array([0.0, 0.0, 0.5 * spin_dir]) # Alternating AFM spin
+        
+        r_vec = muon_pos - atom.position
+        r = np.linalg.norm(r_vec)
+        
+        if 0.1 < r < cutoff_radius:
+            r_hat = r_vec / r
+            term = (3 * np.dot(m_vector, r_hat) * r_hat - m_vector) / (r**3)
+            B_dip += term * conversion
+
+print(f"AFM Bx : {B_dip[0]:.6f} Tesla")
+print(f"AFM By : {B_dip[1]:.6f} Tesla")
+print(f"AFM Bz : {B_dip[2]:.6f} Tesla")`
                     }
                 ],
                 math: String.raw`
@@ -767,42 +811,56 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
                         <div class="text-gray-300 mb-4 text-center text-lg">
                             $$B_{dip} = \frac{\mu_{0}}{4\pi} \sum_i \left( \frac{3(m_i \cdot \hat{r}_i)\hat{r}_i - m_i}{r_i^3} \right)$$
                         </div>
-                        <p class="text-slate-400 text-xs">Because the muon resides perfectly in the center of the highly symmetric octahedral void, all classical magnetic vectors from the surrounding Ce atoms perfectly cancel each other out, resulting in exactly 0.00 T.</p>
+                        <p class="text-slate-400 text-xs">Because the muon resides perfectly in the center of the highly symmetric octahedral void, all classical magnetic vectors from the surrounding Ce atoms perfectly cancel each other out, resulting in exactly 0.00 T regardless of whether the state is FM or AFM.</p>
                     </div>
                 `,
-                commands: String.raw`python step9_calculate_bdip.py`
+                commands: String.raw`python step9_calculate_fm_bdip.py
+python step9_calculate_afm_bdip.py`
             },
             {
                 id: 'summary',
-                title: '9. Summary & Conclusion',
+                title: '7. Summary & Conclusion',
                 goal: 'Synthesize the calculated fields into the total muon local magnetic field.',
-                overview: 'By successfully executing the full DFT+μ cycle using Quantum ESPRESSO and AiiDA, we have mathematically solved for the local field felt by a muon in the ground state of CeIn₃.',
+                overview: 'By successfully executing the full DFT+μ cycle using Quantum ESPRESSO and AiiDA, we have mapped the local field felt by a muon. The comparative table below outlines the differences between a theoretical forced Ferromagnetic (FM) state and the true experimental Antiferromagnetic (AFM) ground state of CeIn₃.',
                 scripts: [],
                 math: String.raw`
                     <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden mt-6 shadow-2xl">
-                        <div class="bg-slate-800 px-6 py-4 border-b border-slate-700">
-                            <h3 class="text-sky-400 font-bold uppercase text-sm tracking-wider">Final CeIn₃ Magnetic Profile</h3>
+                        <div class="bg-slate-800 px-6 py-4 border-b border-slate-700 flex justify-between items-center">
+                            <h3 class="text-sky-400 font-bold uppercase text-sm tracking-wider">Final CeIn₃ Magnetic Profile Comparison</h3>
                         </div>
-                        <div class="p-6">
-                            <table class="w-full text-left border-collapse">
-                                <tbody>
-                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Host Material</td><td class="py-3 text-white font-medium">CeIn₃ (Simple Cubic)</td></tr>
-                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Stopping Site</td><td class="py-3 text-white font-medium">Octahedral Void (0.25, 0.25, 0.25)</td></tr>
-                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Contact Field ($B_c$)</td><td class="py-3 text-emerald-400 font-mono">-0.2015 Tesla</td></tr>
-                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Dipolar Field ($B_{dip}$)</td><td class="py-3 text-slate-400 font-mono">0.0000 Tesla</td></tr>
-                                    <tr class="bg-sky-500/10 rounded"><td class="py-4 px-2 text-sky-400 font-bold text-lg rounded-l">Total Field ($B_\mu$)</td><td class="py-4 px-2 text-emerald-400 font-mono font-bold text-lg rounded-r">-0.2015 Tesla</td></tr>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse min-w-[500px]">
+                                <thead>
+                                    <tr class="border-b border-slate-700 bg-slate-800/50">
+                                        <th class="py-3 px-6 text-slate-300 font-semibold">Parameter</th>
+                                        <th class="py-3 px-6 text-sky-400 font-semibold border-l border-slate-700/50">Ferromagnetic (FM)</th>
+                                        <th class="py-3 px-6 text-purple-400 font-semibold border-l border-slate-700/50">Antiferromagnetic (AFM)</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-800">
+                                    <tr class="hover:bg-slate-800/30 transition-colors"><td class="py-4 px-6 text-slate-400">Host Material</td><td class="py-4 px-6 text-white border-l border-slate-700/50">CeIn₃</td><td class="py-4 px-6 text-white border-l border-slate-700/50">CeIn₃</td></tr>
+                                    <tr class="hover:bg-slate-800/30 transition-colors"><td class="py-4 px-6 text-slate-400">Stopping Site</td><td class="py-4 px-6 text-white border-l border-slate-700/50">Octahedral (0.25, 0.25, 0.25)</td><td class="py-4 px-6 text-white border-l border-slate-700/50">Octahedral (0.25, 0.25, 0.25)</td></tr>
+                                    <tr class="hover:bg-slate-800/30 transition-colors"><td class="py-4 px-6 text-slate-400">Contact Field ($B_c$)</td><td class="py-4 px-6 text-sky-300 font-mono border-l border-slate-700/50">-0.2015 Tesla</td><td class="py-4 px-6 text-purple-300 font-mono border-l border-slate-700/50">0.0000 Tesla</td></tr>
+                                    <tr class="hover:bg-slate-800/30 transition-colors"><td class="py-4 px-6 text-slate-400">Dipolar Field ($B_{dip}$)</td><td class="py-4 px-6 text-slate-400 font-mono border-l border-slate-700/50">0.0000 Tesla</td><td class="py-4 px-6 text-slate-400 font-mono border-l border-slate-700/50">0.0000 Tesla</td></tr>
+                                    <tr class="hover:bg-slate-800/30 transition-colors"><td class="py-4 px-6 text-slate-400">Lorentz Field ($B_L$)</td><td class="py-4 px-6 text-slate-400 font-mono border-l border-slate-700/50">Shape Dependent</td><td class="py-4 px-6 text-purple-300 font-mono border-l border-slate-700/50">0.0000 Tesla</td></tr>
+                                    <tr class="bg-slate-800/50"><td class="py-5 px-6 text-white font-bold text-lg">Total Field ($B_\mu$)</td><td class="py-5 px-6 text-sky-400 font-mono font-bold text-lg border-l border-slate-700/50">-0.2015 T + $B_L$</td><td class="py-5 px-6 text-purple-400 font-mono font-bold text-lg border-l border-slate-700/50">0.0000 Tesla</td></tr>
                                 </tbody>
                             </table>
                         </div>
                     </div>
-                    <p class="text-slate-400 text-sm mt-6 pl-4 border-l-2 border-sky-500">
-                        <strong>Physics Interpretation:</strong> The negative $B_c$ indicates conduction electron spin-polarization aligned anti-parallel to the primary Cerium magnetic moments. Because the site is perfectly symmetrical, $B_{dip}$ cancels to zero, leaving the quantum contact interaction as the sole driver of the muon's local field.
-                    </p>
+                    <div class="mt-6 pl-4 border-l-2 border-sky-500 space-y-3">
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            <strong class="text-sky-400">Ferromagnetic State:</strong> The uniform alignment of Cerium moments forces the conduction electrons to spin-polarize in a uniform direction via the RKKY interaction, causing a massive spin-density buildup exactly at the muon trap (-0.2015 T). Note that because there is a net macroscopic magnetization, the Lorentz field ($B_L$) would be non-zero and highly dependent on the physical shape of the sample.
+                        </p>
+                        <p class="text-slate-300 text-sm leading-relaxed">
+                            <strong class="text-purple-400">Antiferromagnetic State:</strong> In the true G-type AFM ground state, the strictly alternating Up/Down Cerium magnetic moments completely cancel each other out. The conduction electrons pushed by a "Spin-Up" Cerium are perfectly canceled by the conduction electrons pushed by the neighboring "Spin-Down" Cerium. Because there is zero net macroscopic magnetization, the Lorentz Field ($B_L$) is identically zero. Thus, due to the perfect inversion symmetry of the octahedral trap, all three components ($B_c$, $B_{dip}$, and $B_L$) collapse to absolutely zero.
+                        </p>
+                    </div>
                 `
             }
         ];
 
-        // SVGs for the UI (Explicit width and height added to fix rendering inside buttons)
+        // SVGs for the UI
         const icons = {
             code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
             terminal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>',
@@ -815,9 +873,48 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             cube3d: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>'
         };
 
+        // UI State Variables
         let activeId = 'intro';
         let activeTab = 'overview';
-        let animationId; // Track Three.js animation frame
+        let currentMagState = 'AFM';
+        
+        // Bulletproof Three.js memory management state
+        let threeState = {
+            renderer: null,
+            scene: null,
+            camera: null,
+            controls: null,
+            animationId: null,
+            observer: null,
+            initTimer: null
+        };
+
+        // Strictly dispose of everything from the previous render cycle
+        function cleanupThreeJS() {
+            if (threeState.animationId) {
+                cancelAnimationFrame(threeState.animationId);
+                threeState.animationId = null;
+            }
+            if (threeState.observer) {
+                threeState.observer.disconnect();
+                threeState.observer = null;
+            }
+            if (threeState.renderer) {
+                threeState.renderer.dispose();
+                threeState.renderer.forceContextLoss();
+                const domElement = threeState.renderer.domElement;
+                if (domElement && domElement.parentNode) {
+                    domElement.parentNode.removeChild(domElement);
+                }
+                threeState.renderer = null;
+            }
+            if (threeState.scene) {
+                threeState.scene.clear();
+                threeState.scene = null;
+            }
+            threeState.camera = null;
+            threeState.controls = null;
+        }
 
         function updateProgressBar() {
             const index = steps.findIndex(s => s.id === activeId);
@@ -845,6 +942,7 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
 
         function setActiveStep(id) { activeId = id; activeTab = 'overview'; render(); }
         function setActiveTab(tab) { activeTab = tab; render(); }
+        function setMagState(state) { currentMagState = state; render(); }
 
         function copy(text, btn) {
             navigator.clipboard.writeText(text);
@@ -866,115 +964,174 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
         }
 
         function initThreeJS() {
+            cleanupThreeJS(); // Guarantee memory is wiped before building a new simulation
+
             const container = document.getElementById('three-container');
             if (!container) return;
+            
+            const data = steps.find(s => s.id === activeId); // Fetch data for current step
 
-            if (animationId) cancelAnimationFrame(animationId);
-            container.innerHTML = ''; // clear any existing canvas
+            // Ultimate Failsafe: Sweep the div for any ghost canvases that survived React/innerHTML
+            const existingCanvases = container.getElementsByTagName('canvas');
+            while(existingCanvases.length > 0) {
+                existingCanvases[0].parentNode.removeChild(existingCanvases[0]);
+            }
+            
+            container.innerHTML = ''; 
 
             const scene = new THREE.Scene();
-            scene.background = new THREE.Color('#0f172a'); // slate-900
-
-            // Camera setup
-            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            threeState.scene = scene;
+            scene.background = new THREE.Color('#0f172a'); 
             
-            const renderer = new THREE.WebGLRenderer({ antialias: true });
+            const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+            threeState.camera = camera;
+            
+            const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            threeState.renderer = renderer;
             renderer.setSize(container.clientWidth, container.clientHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
+            
+            // Force absolute positioning of the canvas to eliminate flexbox layout overlaps
+            renderer.domElement.style.position = 'absolute';
+            renderer.domElement.style.top = '0';
+            renderer.domElement.style.left = '0';
+            renderer.domElement.style.width = '100%';
+            renderer.domElement.style.height = '100%';
+            renderer.domElement.style.zIndex = '1';
+            
             container.appendChild(renderer.domElement);
 
             const a = 4.689;
             const centerOffset = a; 
             
-            // The precise theoretical muon coordinate
-            // Fractional (0.25, 0.25, 0.25) in 2a supercell maps to a/2 from the corner
-            // With centering, it sits exactly at (0.5a, 0.5a, 0.5a)
             const muonPos = new THREE.Vector3(0.5 * a, 0.5 * a, 0.5 * a);
 
-            // Orbit strictly around the Muon!
             camera.position.set(muonPos.x + 8, muonPos.y + 6, muonPos.z + 10);
             const controls = new THREE.OrbitControls(camera, renderer.domElement);
+            threeState.controls = controls;
             controls.enableDamping = true;
             controls.autoRotate = true;
             controls.autoRotateSpeed = 2.0;
             controls.target.copy(muonPos);
 
-            // Lighting
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
             scene.add(ambientLight);
             const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
             dirLight.position.set(10, 20, 10);
             scene.add(dirLight);
 
-            // Materials - Making lattice semi-transparent to reveal the trapped Muon
-            const ceMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, shininess: 100, transparent: true, opacity: 0.3 }); // Sky blue (Cerium)
-            const inMat = new THREE.MeshPhongMaterial({ color: 0xc084fc, shininess: 80, transparent: true, opacity: 0.3 });  // Purple (Indium)
+            function createLabelMaterial(text, colorStr) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 128;
+                canvas.height = 128;
+                const ctx = canvas.getContext('2d');
+                ctx.font = 'bold 50px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.shadowColor = 'rgba(0,0,0,1)';
+                ctx.shadowBlur = 4;
+                ctx.lineWidth = 5;
+                ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+                ctx.strokeText(text, 64, 64);
+                
+                ctx.fillStyle = colorStr;
+                ctx.fillText(text, 64, 64);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                return new THREE.SpriteMaterial({ map: texture, transparent: true, depthWrite: false });
+            }
+
+            const ceLabelMat = createLabelMaterial('Ce', '#7dd3fc'); 
+            const inLabelMat = createLabelMaterial('In', '#d8b4fe'); 
+
+            const ceMat = new THREE.MeshPhongMaterial({ color: 0x38bdf8, shininess: 100, transparent: true, opacity: 0.25 }); 
+            const inMat = new THREE.MeshPhongMaterial({ color: 0xc084fc, shininess: 80, transparent: true, opacity: 0.25 });  
             
-            // Glowing Muon Materials
             const muMat = new THREE.MeshPhongMaterial({ color: 0xff0033, emissive: 0xff0033, emissiveIntensity: 1.0 }); 
             const glowMat = new THREE.MeshBasicMaterial({ 
-                color: 0xff0033, 
-                transparent: true, 
-                opacity: 0.5, 
-                blending: THREE.AdditiveBlending,
-                depthWrite: false
+                color: 0xff0033, transparent: true, opacity: 0.5, blending: THREE.AdditiveBlending, depthWrite: false
             });
 
-            // Geometries
-            const ceGeo = new THREE.SphereGeometry(0.6, 32, 32);
-            const inGeo = new THREE.SphereGeometry(0.5, 32, 32);
+            const ceGeo = new THREE.SphereGeometry(0.7, 32, 32);  
+            const inGeo = new THREE.SphereGeometry(0.45, 32, 32); 
             const muGeo = new THREE.SphereGeometry(0.35, 32, 32);
             const glowGeo = new THREE.SphereGeometry(0.6, 32, 32);
 
-            // Create Ce atoms (Corners of the primitive cells)
             for(let x=0; x<=2; x++) {
                 for(let y=0; y<=2; y++) {
                     for(let z=0; z<=2; z++) {
                         const mesh = new THREE.Mesh(ceGeo, ceMat);
                         mesh.position.set(x*a - centerOffset, y*a - centerOffset, z*a - centerOffset);
+                        
+                        const sprite = new THREE.Sprite(ceLabelMat);
+                        sprite.scale.set(1.4, 1.4, 1.4);
+                        mesh.add(sprite);
+
+                        // Only add spin arrows if the current step requires them
+                        if (data && data.showSpins) {
+                            let isUp = true;
+                            if (currentMagState === 'AFM') {
+                                const parity = (x + y + z) % 2;
+                                isUp = (parity === 0);
+                            }
+                            
+                            const spinColor = isUp ? 0xff0033 : 0x3b82f6; 
+                            const spinDir = isUp ? new THREE.Vector3(0, 1, 0) : new THREE.Vector3(0, -1, 0);
+                            const origin = new THREE.Vector3(0, 0, 0); 
+                            
+                            const arrowHelper = new THREE.ArrowHelper(spinDir, origin, 1.8, spinColor, 0.5, 0.3);
+                            mesh.add(arrowHelper);
+                        }
+                        
                         scene.add(mesh);
                     }
                 }
             }
 
-            // Create In atoms (Face centers of the primitive cells)
-            // xy faces
             for(let x=0; x<2; x++) {
                 for(let y=0; y<2; y++) {
                     for(let z=0; z<=2; z++) {
                         const mesh = new THREE.Mesh(inGeo, inMat);
                         mesh.position.set((x+0.5)*a - centerOffset, (y+0.5)*a - centerOffset, z*a - centerOffset);
+                        const sprite = new THREE.Sprite(inLabelMat);
+                        sprite.scale.set(1.1, 1.1, 1.1);
+                        mesh.add(sprite);
                         scene.add(mesh);
                     }
                 }
             }
-            // xz faces
             for(let x=0; x<2; x++) {
                 for(let y=0; y<=2; y++) {
                     for(let z=0; z<2; z++) {
                         const mesh = new THREE.Mesh(inGeo, inMat);
                         mesh.position.set((x+0.5)*a - centerOffset, y*a - centerOffset, (z+0.5)*a - centerOffset);
+                        const sprite = new THREE.Sprite(inLabelMat);
+                        sprite.scale.set(1.1, 1.1, 1.1);
+                        mesh.add(sprite);
                         scene.add(mesh);
                     }
                 }
             }
-            // yz faces
             for(let x=0; x<=2; x++) {
                 for(let y=0; y<2; y++) {
                     for(let z=0; z<2; z++) {
                         const mesh = new THREE.Mesh(inGeo, inMat);
                         mesh.position.set(x*a - centerOffset, (y+0.5)*a - centerOffset, (z+0.5)*a - centerOffset);
+                        const sprite = new THREE.Sprite(inLabelMat);
+                        sprite.scale.set(1.1, 1.1, 1.1);
+                        mesh.add(sprite);
                         scene.add(mesh);
                     }
                 }
             }
 
-            // Muon Injection
             const muonGroup = new THREE.Group();
             muonGroup.position.copy(muonPos); 
             
             const muonMesh = new THREE.Mesh(muGeo, muMat);
             const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+            
             muonGroup.add(muonMesh);
             muonGroup.add(glowMesh);
             
@@ -982,8 +1139,7 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             muonGroup.add(muLight);
             scene.add(muonGroup);
 
-            // Explicitly draw the "Octahedral Trap" (interaction lines to nearest Indium atoms)
-            const bondMat = new THREE.LineBasicMaterial({ color: 0xff0033, transparent: true, opacity: 0.8, linewidth: 2 });
+            const bondMat = new THREE.MeshPhongMaterial({ color: 0xff0033, emissive: 0xff0033, emissiveIntensity: 0.6, transparent: true, opacity: 0.7 });
             const neighbors = [
                 new THREE.Vector3(0.5*a, 0.5*a, 0),
                 new THREE.Vector3(0.5*a, 0.5*a, a),
@@ -994,42 +1150,45 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             ];
             
             neighbors.forEach(nPos => {
-                const pts = [muonPos, nPos];
-                const geo = new THREE.BufferGeometry().setFromPoints(pts);
-                scene.add(new THREE.Line(geo, bondMat));
+                const distance = muonPos.distanceTo(nPos);
+                const cylinderGeo = new THREE.CylinderGeometry(0.04, 0.04, distance, 8);
+                const mesh = new THREE.Mesh(cylinderGeo, bondMat);
+                mesh.position.copy(muonPos).lerp(nPos, 0.5);
+                mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), nPos.clone().sub(muonPos).normalize());
+                scene.add(mesh);
             });
 
-            // Add subtle bounding box edges
             const boxGeo = new THREE.BoxGeometry(2*a, 2*a, 2*a);
             const edges = new THREE.EdgesGeometry(boxGeo);
             const line = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0x334155, opacity: 0.5, transparent: true }));
             scene.add(line);
 
-            // Pulsing Animation loop
             const startTime = Date.now();
             function animate() {
-                animationId = requestAnimationFrame(animate);
-                controls.update();
+                threeState.animationId = requestAnimationFrame(animate);
                 
-                // Make the muon glow "breathe" to represent zero-point motion energy
+                if(threeState.controls) threeState.controls.update();
+                
                 const elapsed = Date.now() - startTime;
                 const scale = 1.0 + 0.2 * Math.sin(elapsed * 0.005);
                 glowMesh.scale.set(scale, scale, scale);
                 glowMesh.material.opacity = 0.4 + 0.2 * Math.sin(elapsed * 0.005);
+                muLight.intensity = 1.5 + 0.5 * Math.sin(elapsed * 0.005);
 
-                renderer.render(scene, camera);
+                if(threeState.renderer && threeState.scene && threeState.camera) {
+                    threeState.renderer.render(threeState.scene, threeState.camera);
+                }
             }
             animate();
 
-            // Handle resize
-            const resizeObserver = new ResizeObserver(() => {
-                if (container && container.clientWidth) {
-                    camera.aspect = container.clientWidth / container.clientHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(container.clientWidth, container.clientHeight);
+            threeState.observer = new ResizeObserver(() => {
+                if (container && container.clientWidth && threeState.camera && threeState.renderer) {
+                    threeState.camera.aspect = container.clientWidth / container.clientHeight;
+                    threeState.camera.updateProjectionMatrix();
+                    threeState.renderer.setSize(container.clientWidth, container.clientHeight);
                 }
             });
-            resizeObserver.observe(container);
+            threeState.observer.observe(container);
         }
 
         function render() {
@@ -1039,7 +1198,6 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             const data = steps.find(s => s.id === activeId);
             const content = document.getElementById('content-area');
 
-            // Generate Tabs
             const hasScripts = data.scripts && data.scripts.length > 0;
             const tabs = `
                 <div class="flex flex-wrap gap-2 border-b border-slate-800 mb-6 pb-2">
@@ -1055,7 +1213,6 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
 
             let mainBody = '';
             
-            // Tab contents
             if (activeTab === 'overview') {
                 mainBody = `
                     <div class="mb-8">
@@ -1079,18 +1236,57 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
             } else if (activeTab === 'hpc' && data.hpc_resources) {
                  mainBody = data.hpc_resources;
             } else if (activeTab === '3d' && data.has3D) {
+                 const fmClass = currentMagState === 'FM' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-transparent';
+                 const afmClass = currentMagState === 'AFM' ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30' : 'bg-slate-800 text-slate-400 hover:bg-slate-700 border border-transparent';
+                 
+                 const stateDescription = data.showSpins 
+                     ? (currentMagState === 'FM' 
+                         ? 'Notice the <strong>Red (Spin-Up)</strong> magnetic arrows attached to all Cerium atoms, visualizing the uniform Ferromagnetic state.'
+                         : 'Notice the <strong>Red (Spin-Up)</strong> and <strong>Blue (Spin-Down)</strong> magnetic arrows attached to the Cerium atoms, visualizing the strictly alternating parity of the true G-type Antiferromagnetic ground state.')
+                     : 'The geometry has been perfectly relaxed. At this stage, no magnetic polarization has been applied to the electrons yet, so no spin vectors are shown.';
+
+                 let legendSpins = '';
+                 let controlsOverlay = '';
+                 
+                 if (data.showSpins) {
+                     legendSpins = `
+                        <div class="flex items-center gap-1 ml-1">
+                            <div class="w-2 h-4 bg-red-500 rounded-sm"></div><span class="text-slate-400 text-[10px]">Up</span>
+                            ${currentMagState === 'AFM' ? '<div class="w-2 h-4 bg-blue-500 rounded-sm ml-1"></div><span class="text-slate-400 text-[10px]">Down</span>' : ''}
+                        </div>
+                     `;
+                     controlsOverlay = `
+                        <div class="bg-slate-900 border border-slate-700 p-1.5 rounded-lg text-xs flex gap-1.5 shadow-md">
+                            <button onclick="setMagState('FM')" class="px-4 py-2 rounded font-semibold transition-all ${fmClass}">FM State</button>
+                            <button onclick="setMagState('AFM')" class="px-4 py-2 rounded font-semibold transition-all ${afmClass}">AFM State</button>
+                        </div>
+                     `;
+                 }
+
                  mainBody = `
                     <div class="mb-6">
                         <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Supercell Muon Site Simulation</h3>
-                        <p class="text-slate-300 leading-relaxed text-sm mb-4">Interactive 3D visualization of the 2x2x2 $CeIn_3$ supercell. The lattice atoms have been made semi-transparent to reveal the Muon perfectly trapped inside the central Octahedral Void at exactly (0.5a, 0.5a, 0.5a). The glowing red bond lines represent the Muon's immediate interaction with its 6 nearest Indium neighbors.</p>
+                        <p class="text-slate-300 leading-relaxed text-sm mb-4">Interactive 3D visualization of the 2x2x2 $CeIn_3$ supercell. The lattice atoms are semi-transparent to reveal the Muon trapped inside the central Octahedral Void at exactly (0.5a, 0.5a, 0.5a). ${stateDescription}</p>
                     </div>
-                    <div id="three-container" class="w-full h-[500px] rounded-xl overflow-hidden border border-slate-700/50 shadow-[0_0_30px_rgba(0,0,0,0.5)] relative">
-                        <div class="absolute top-4 left-4 bg-slate-900/80 backdrop-blur border border-slate-700 p-3 rounded-lg z-10 text-xs">
-                            <div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-full bg-sky-400"></div> <span class="text-slate-300">Cerium (Ce)</span></div>
-                            <div class="flex items-center gap-2 mb-2"><div class="w-3 h-3 rounded-full bg-purple-400"></div> <span class="text-slate-300">Indium (In)</span></div>
-                            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]"></div> <span class="text-white font-bold">Muon (μ+)</span></div>
+
+                    <!-- UI Controls & Legend ABOVE the simulation -->
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4">
+                        <div class="bg-slate-900 border border-slate-700 p-3 rounded-lg text-xs flex flex-wrap gap-4 items-center shadow-md">
+                            <div class="flex items-center gap-2">
+                                <div class="w-3 h-3 rounded-full bg-sky-400"></div> 
+                                <span class="text-slate-300 font-bold tracking-wide">Cerium (Ce)</span>
+                                ${legendSpins}
+                            </div>
+                            <div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-purple-400"></div> <span class="text-slate-300 font-bold tracking-wide">Indium (In)</span></div>
+                            <div class="flex items-center gap-2 border-l border-slate-700/50 pl-4"><div class="w-3 h-3 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e]"></div> <span class="text-white font-bold tracking-wide">Muon (μ⁺)</span></div>
                         </div>
-                    </div>`;
+                        
+                        ${controlsOverlay}
+                    </div>
+
+                    <!-- Dedicated Three.js Canvas Container: Completely Empty so innerHTML clear works safely -->
+                    <div id="three-container" class="w-full h-[500px] rounded-xl overflow-hidden border border-slate-700/50 shadow-[0_0_30px_rgba(0,0,0,0.5)] bg-black relative"></div>
+                    `;
             } else if (activeTab === 'code' && hasScripts) {
                 mainBody = '<div class="space-y-6">' + data.scripts.map((script, index) => `
                     <div class="bg-[#0b1120] rounded-xl overflow-hidden border border-emerald-900/50 shadow-2xl mt-4 relative">
@@ -1130,23 +1326,20 @@ print(f"Bz : {B_dip[2]:.6f} Tesla")`
                     </div>
                 </div>`;
                 
-            // Handle Three.js initialization
+            // Delay initialization with debounce to prevent race conditions during rapid clicking
+            if (threeState.initTimer) clearTimeout(threeState.initTimer);
             if (activeTab === '3d' && data.has3D) {
-                // slight delay to ensure DOM is fully painted
-                setTimeout(initThreeJS, 50);
-            } else if (animationId) {
-                // Cleanup animation if leaving 3D tab
-                cancelAnimationFrame(animationId);
+                threeState.initTimer = setTimeout(initThreeJS, 100); 
+            } else {
+                cleanupThreeJS();
             }
 
-            // Trigger MathJax re-render safely for LaTeX equations
             if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
                 MathJax.typesetPromise().catch(function (err) {
                     console.log('MathJax typeset failed: ' + err.message);
                 });
             }
             
-            // Trigger PrismJS syntax highlighting
             if (window.Prism) {
                 Prism.highlightAllUnder(content);
             }
