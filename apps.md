@@ -22,7 +22,7 @@ Here you can find a collection of web tools I have created.
 - **[CIF To XYZ Convertor](./apps/CIFTOXYZ.html)**: A tool to convert Crystallographic Information Files (.cif) into standard Cartesian coordinate files (.xyz).
 - **[X-Ray Intensity Heatmap](./apps/xray_intensity_heatmap.html)**: A tool to visualize the x-ray intensity heatmap in RIXS experiment.
 - **[X-Ray Intensity on the Scattering Plane Cross-Section](./apps/RIXSCrossSection.html)**: A tool to visualize the x-ray intensity on the scattering plane cross-section with the 3D unit sphere in RIXS experiment.
-
+- **[muSR](./apps/muSR.html)**: Log for DFT+μ workflow, combining theoretical physics, supercomputer resource allocations, and exact Python and CLI scripts into a step-by-step guide for calculating the muon's local magnetic field in CeIn₃.
 
 ## Utility Applications
 

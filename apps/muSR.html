@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFT+μ CeIn3 Workflow Explorer</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PrismJS for proper syntax highlighting -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+
+    <style>
+        body { background-color: #020617; color: #e2e8f0; }
+        ::-webkit-scrollbar { height: 8px; width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(51, 65, 85, 0.5);
+        }
+        .timeline-line::before {
+            content: ''; position: absolute; left: 1.5rem; top: 3rem; bottom: -1rem;
+            width: 2px; background: linear-gradient(to bottom, #0ea5e9 0%, #334155 100%);
+            z-index: 0; opacity: 0.2;
+        }
+        .timeline-item:last-child .timeline-line::before { display: none; }
+        .math-breakdown li { position: relative; padding-left: 1.25rem; margin-bottom: 0.5rem; }
+        .math-breakdown li::before { content: '→'; position: absolute; left: 0; color: #0ea5e9; font-weight: bold; }
+        
+        /* Prism overrides to fit the dark theme better */
+        pre[class*="language-"] { background: #09090b !important; border-radius: 0; margin: 0; padding: 1.25rem !important; }
+        code[class*="language-"], pre[class*="language-"] { text-shadow: none !important; font-size: 0.875rem; }
+    </style>
+    <script>
+        MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="font-sans antialiased min-h-screen p-4 md:p-8 flex flex-col items-center relative overflow-x-hidden pt-12">
+
+    <!-- Global Progress Bar -->
+    <div id="progress-bar" class="fixed top-0 left-0 h-1.5 bg-gradient-to-r from-sky-500 to-emerald-400 z-50 transition-all duration-500 shadow-[0_0_10px_rgba(14,165,233,0.5)]" style="width: 0%"></div>
+
+    <!-- Ambient background glows -->
+    <div class="fixed top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-sky-900/10 blur-[120px] pointer-events-none"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-900/10 blur-[120px] pointer-events-none"></div>
+
+    <!-- Header -->
+    <div class="max-w-7xl w-full mb-10 flex flex-col md:row items-start md:items-center gap-6 border-b border-slate-800 pb-8 relative z-10">
+        <div class="p-4 bg-sky-500/10 rounded-2xl border border-sky-500/20 shadow-[0_0_30px_rgba(14,165,233,0.15)]">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-sky-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+        </div>
+        <div>
+            <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight mb-2">DFT+μ CeIn₃ Workflow Explorer</h1>
+            <p class="text-slate-400 text-lg max-w-3xl leading-relaxed">Comprehensive technical log of the computational physics workflow mapping the muon stopping site and local magnetic field of the CeIn₃ simple cubic lattice.</p>
+        </div>
+    </div>
+
+    <div class="max-w-7xl w-full flex flex-col lg:flex-row gap-10 relative z-10">
+        <!-- Sidebar -->
+        <div id="sidebar" class="w-full lg:w-1/3 space-y-0 flex-shrink-0 relative"></div>
+        
+        <!-- Content Area -->
+        <div id="content-area" class="w-full lg:w-2/3 flex flex-col gap-6"></div>
+    </div>
+
+    <script>
+        // Use String.raw to prevent JS from escaping backslashes inside LaTeX math and code blocks
+        const steps = [
+            {
+                id: 'intro',
+                title: 'Introduction & AiiDA Toolkit',
+                goal: 'Initialize the computational environment and define the physical goals.',
+                overview: 'To determine the magnetic field probed by a muon ($B_{\\mu}$), we must first find its stopping site in the crystal, relax the lattice distortion, and compute the resulting quantum contact and classical dipolar fields. This entire process is orchestrated through AiiDA to interface seamlessly with the supercomputer.',
+                scripts: [],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Local Magnetic Field Equation</div>
+                        <div class="text-gray-300 mb-4 text-center text-lg">
+                            $$B_{\mu} = B_{dip} + B_{C} + B_{L}$$
+                        </div>
+                        <ul class="math-breakdown text-slate-400 text-xs mt-4">
+                            <li><strong>$B_{dip}$</strong>: Classical dipolar sum from surrounding Cerium magnetic moments.</li>
+                            <li><strong>$B_{c}$</strong>: Quantum contact field (spin density overlap exactly at the muon).</li>
+                        </ul>
+                    </div>
+                `,
+                aiida_commands: String.raw`# 1. Start the Docker computing container
+~/.local/bin/aiidalab-launch start
+
+# 2. Wake up the AiiDA daemon (Background worker)
+verdi daemon start
+
+# 3. View the 5 most recent calculations
+verdi process list -a -l 5
+
+# 4. View all calculations from the last 5 days
+verdi process list -a -p 5
+
+# 5. Check exactly why a calculation failed
+verdi process report <PK>
+
+# 6. View inputs/outputs of a specific job
+verdi process show <PK>
+
+# 7. Run a script inside the AiiDA database environment
+verdi run <script_name>.py`
+            },
+            {
+                id: 'step1',
+                title: '1. Pristine Electrostatic Map',
+                goal: 'Calculate the unperturbed host lattice to find potential void traps.',
+                overview: 'We construct the 4-atom primitive CeIn₃ cell and calculate the baseline electrostatic potential. To bypass AiiDA restrictions that prevent direct .cube file extraction, we append a custom bash script directly to the Slurm submission.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Nodes</div>
+                                <div class="text-purple-400 font-mono text-xl">1</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">MPI Procs</div>
+                                <div class="text-purple-400 font-mono text-xl">32</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Wallclock</div>
+                                <div class="text-purple-400 font-mono text-xl">1 Hour</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Memory</div>
+                                <div class="text-purple-400 font-mono text-xl">Max (600 GB)</div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">Standard self-consistent field (SCF) calculation on the 4-atom primitive cell. 32 cores are sufficient to complete this quickly, but 1 hour is safely allocated to accommodate the scheduler queue and the custom AiiDA <code>pp.x</code> post-processing task injected via the smuggler hack.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step1_and_2_cein3.py',
+                        code: String.raw`from aiida.engine import submit
+from aiida.orm import StructureData, load_code, load_group, Dict
+from aiida.plugins import DataFactory
+from ase import Atoms
+
+# 1. Build the PRIMITIVE 4-atom CeIn3 Cell
+a = 4.689
+primitive_cell = Atoms('CeIn3',
+    scaled_positions=[(0,0,0), (0.5,0.5,0), (0.5,0,0.5), (0.0,0.5,0.5)],
+    cell=[a, a, a], pbc=True)
+structure = StructureData(ase=primitive_cell)
+
+# 2. Setup standard SCF calculation
+code = load_code('pw-7.5@rorqual')
+builder = code.get_builder()
+builder.structure = structure
+builder.pseudos = load_group('SSSP/1.3/PBE/efficiency').get_pseudos(structure=structure)
+
+builder.kpoints = DataFactory('core.array.kpoints')()
+builder.kpoints.set_kpoints_mesh([8, 8, 8])
+
+builder.parameters = Dict(dict={
+    'CONTROL': { 'calculation': 'scf' },
+    'SYSTEM': { 'ecutwfc': 40.0, 'ecutrho': 320.0, 'occupations': 'smearing', 'smearing': 'marzari-vanderbilt', 'degauss': 0.02 },
+    'ELECTRONS': { 'conv_thr': 1.0e-8 }
+})
+
+# 3. Slurm Settings AND The Smuggler Hack!
+builder.metadata.options = {
+    'resources': {'num_machines': 1, 'num_mpiprocs_per_machine': 32},
+    'max_wallclock_seconds': 1 * 60 * 60,
+    'custom_scheduler_commands': '#SBATCH --mem=0\n',
+    'withmpi': True,
+    'additional_retrieve_list': ['cein3_electrostatic.cube'],
+    'append_text': """
+cat > pp.in << 'EOF'
+&INPUTPP
+  outdir='./out/'
+  prefix='aiida'
+  plot_num=11
+/
+&PLOT
+  iflag=3
+  output_format=6
+  fileout='cein3_electrostatic.cube'
+/
+EOF
+pp.x < pp.in > pp.out
+"""
+}
+
+node = submit(builder)
+print(f"THE PERFECT HACK SUBMITTED! PK: {node.pk}")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># The Smuggler Hack</div>
+                        <p class="text-slate-400 text-xs mb-2">We hijack the <code>append_text</code> block to run a secondary post-processing calculation specifically requesting <code>plot_num=11</code> (electrostatic potential) and formatting it as a <code>.cube</code> file.</p>
+                    </div>
+                `,
+                commands: String.raw`verdi run step1_and_2_cein3.py`
+            },
+            {
+                id: 'step2',
+                title: '2. Scanning for Voids',
+                goal: 'Extract the map and locate the deepest electrostatic minimum.',
+                overview: 'Once the calculation finishes, we pry the file out of the AiiDA vault and use a custom Python script to scan the 3D grid for the deepest void while masking the intensely attractive positive nuclei. <br/><br/><em class="text-sky-400">Note: As highlighted in the Onuorah et al. presentation, relying *only* on the unperturbed map is often unreliable, validating the absolute necessity of our structural relaxation in the next step.</em>',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
+                        <div class="bg-slate-900/80 border border-slate-700/50 rounded-xl p-5 text-center mb-6">
+                            <div class="text-purple-400 font-mono text-lg font-bold">Local / Head Node</div>
+                            <div class="text-slate-400 text-sm mt-1">Jupyter Container Environment</div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">This step consists of purely post-processing Python scripts parsing existing data. It requires minimal RAM and CPU power, and executes nearly instantaneously on the local environment without needing a Slurm allocation on the supercomputer.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'extract_cube.py',
+                        code: String.raw`import sys
+from aiida.orm import load_node
+
+pk = int(sys.argv[1])
+calc = load_node(pk)
+
+cube_data = calc.outputs.retrieved.get_object_content('cein3_electrostatic.cube')
+with open('../exports/cein3_electrostatic.cube', 'w') as f:
+    f.write(cube_data)
+print("Success! Map safely in exports folder.")`
+                    },
+                    {
+                        name: 'step2_cein3_topography.py',
+                        code: String.raw`import numpy as np
+from ase.io.cube import read_cube_data
+
+with open('../exports/cein3_electrostatic.cube', 'r') as f:
+    data, atoms = read_cube_data(f)
+
+# Find minimum ignoring edges (simple bounding)
+nx, ny, nz = data.shape
+core_mask = 5  
+search_area = data[core_mask:-core_mask, core_mask:-core_mask, core_mask:-core_mask]
+min_idx = np.unravel_index(np.argmin(search_area), search_area.shape)
+
+frac_x = (min_idx[0] + core_mask) / nx
+frac_y = (min_idx[1] + core_mask) / ny
+frac_z = (min_idx[2] + core_mask) / nz
+
+print(f"Minimum Potential : {np.min(search_area):.6f} eV")
+print(f"Fractional Coords : x={frac_x:.5f}, y={frac_y:.5f}, z={frac_z:.5f}")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># The Physics Result</div>
+                        <ul class="math-breakdown text-slate-400 text-xs">
+                            <li><strong>Initial finding:</strong> (0.0, 0.0, 0.0) — The script found the core of the Cerium nucleus.</li>
+                            <li><strong>Symmetry inference:</strong> For a simple cubic $Pm\bar{3}m$ lattice, the largest void furthest from positive nuclei is the body-center octahedral site at <strong>(0.5, 0.5, 0.5)</strong>.</li>
+                        </ul>
+                    </div>
+                `,
+                commands: String.raw`verdi run extract_cube.py <PK>
+python step2_cein3_topography.py`
+            },
+            {
+                id: 'step3',
+                title: '3. Supercell Muon Relaxation',
+                goal: 'Expand the lattice, inject the muon, and minimize the atomic forces.',
+                overview: 'We build a 2x2x2 32-atom supercell to isolate the muon from its periodic replicas. We inject a Hydrogen atom (our muon proxy) directly into the mapped (0.25, 0.25, 0.25) supercell octahedral void and allow the atoms to physically deform around it.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Nodes</div>
+                                <div class="text-purple-400 font-mono text-xl">1</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">MPI Procs</div>
+                                <div class="text-purple-400 font-mono text-xl">32</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Wallclock</div>
+                                <div class="text-purple-400 font-mono text-xl">4 Hours</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Memory</div>
+                                <div class="text-purple-400 font-mono text-xl">Max (600 GB)</div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">Structural relaxation of a 33-atom supercell using the BFGS algorithm. Calculating the Hellmann-Feynman forces iteratively until all forces fall below the <code>1.0e-3</code> threshold is exceptionally computationally heavy. A 4-hour wallclock prevents the scheduler from killing the job prematurely.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step3_cein3_muon.py',
+                        code: String.raw`from aiida.engine import submit
+from aiida.orm import StructureData, load_code, load_group, Dict
+from aiida.plugins import DataFactory
+from ase import Atoms
+from ase.build import make_supercell
+
+# 1. Build primitive, then expand to 2x2x2 Supercell (32 atoms)
+a = 4.689
+primitive = Atoms('CeIn3', scaled_positions=[(0,0,0), (0.5,0.5,0), (0.5,0,0.5), (0.0,0.5,0.5)], cell=[a,a,a])
+supercell = make_supercell(primitive, [[2,0,0], [0,2,0], [0,0,2]])
+
+# 2. THE INJECTION: Drop Muon into (0.25, 0.25, 0.25) void
+supercell.append('H')
+supercell.positions[-1] = [a * 0.5, a * 0.5, a * 0.5] 
+
+builder = load_code('pw-7.5@rorqual').get_builder()
+builder.structure = StructureData(ase=supercell)
+builder.pseudos = load_group('SSSP/1.3/PBE/efficiency').get_pseudos(structure=builder.structure)
+
+builder.kpoints = DataFactory('core.array.kpoints')()
+builder.kpoints.set_kpoints_mesh([2, 2, 2])
+
+builder.parameters = Dict(dict={
+    'CONTROL': { 'calculation': 'relax', 'forc_conv_thr': 1.0e-3 },
+    'SYSTEM': { 'ecutwfc': 40.0, 'ecutrho': 320.0, 'occupations': 'smearing', 'smearing': 'marzari-vanderbilt', 'degauss': 0.02 },
+    'ELECTRONS': { 'conv_thr': 1.0e-8 },
+    'IONS': { 'ion_dynamics': 'bfgs' }
+})
+
+# 3. K-point pooling and memory settings for the supercell
+builder.settings = Dict(dict={'cmdline': ['-nk', '8']})
+builder.metadata.options = {
+    'resources': {'num_machines': 1, 'num_mpiprocs_per_machine': 32},
+    'max_wallclock_seconds': 4 * 60 * 60,
+    'custom_scheduler_commands': '#SBATCH --mem=0\n',
+    'withmpi': True,
+}
+
+node = submit(builder)
+print(f"STEP 3: Muon Supercell Relaxation Submitted! PK: {node.pk}")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Relaxation Engine</div>
+                        <p class="text-slate-400 text-xs mb-2">The <code>ion_dynamics = 'bfgs'</code> flag tells the supercomputer to move the surrounding Cerium and Indium atoms iteratively until the Hellmann-Feynman forces on every single atom hit zero.</p>
+                    </div>
+                `,
+                commands: String.raw`verdi run step3_cein3_muon.py`
+            },
+            {
+                id: 'step4',
+                title: '4. Extracting Relaxed Coordinates',
+                goal: 'Verify the final resting position of the muon.',
+                overview: 'Once the 2.5 hour calculation finishes, we extract the resulting structure (the <code>output_structure</code>) from the AiiDA database, export it as a CIF file for 3D visualization, and print the exact coordinate of the muon.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
+                        <div class="bg-slate-900/80 border border-slate-700/50 rounded-xl p-5 text-center mb-6">
+                            <div class="text-purple-400 font-mono text-lg font-bold">Local / Head Node</div>
+                            <div class="text-slate-400 text-sm mt-1">Jupyter Container Environment</div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">This step consists of purely post-processing Python scripts parsing existing data out of the AiiDA vault. It requires minimal RAM and CPU power, and executes instantaneously.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step4_extract_relaxation.py',
+                        code: String.raw`import sys
+from aiida.orm import load_node
+
+pk = 892  # UPDATE THIS WITH YOUR ACTUAL STEP 3 PK
+calc = load_node(pk)
+
+try:
+    # Extract the final relaxed geometry
+    relaxed_structure = calc.outputs.output_structure
+    
+    # Save it to your exports folder as a CIF file
+    export_path = '../exports/cein3_relaxed_muon.cif'
+    with open(export_path, 'w') as f:
+        f.write(relaxed_structure._exportcontent('cif')[0].decode('utf-8'))
+        
+    print(f"Success! Relaxed supercell saved to: {export_path}")
+    
+    # Peek at the final Muon coordinate
+    ase_atoms = relaxed_structure.get_ase()
+    muon = ase_atoms[-1] # Hydrogen was the last atom we added
+    print("-" * 40)
+    print(f"Final Muon Cartesian Coordinates (Angstroms):")
+    print(f"x = {muon.position[0]:.5f}")
+    print(f"y = {muon.position[1]:.5f}")
+    print(f"z = {muon.position[2]:.5f}")
+    print("-" * 40)
+
+except AttributeError:
+    print("Error: Could not find the output_structure.")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Zero Movement Observation</div>
+                        <p class="text-slate-400 text-xs mb-2">The final coordinates output <code>(2.34450, 2.34450, 2.34450)</code> matched the injection point exactly. Because the octahedral void is highly symmetric, the electrostatic forces pulling from all sides were perfectly balanced in all directions.</p>
+                    </div>
+                `,
+                commands: String.raw`verdi run step4_extract_relaxation.py`
+            },
+            {
+                id: 'step5',
+                title: '5. Magnetic Spin SCF',
+                goal: 'Polarize the electrons and measure the localized spin moments.',
+                overview: 'We take the perfectly relaxed structure and run one final Self-Consistent Field (SCF) calculation. By setting `nspin: 2` and defining a `starting_magnetization`, we trigger Quantum ESPRESSO to split the electrons into up-spin and down-spin populations.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Nodes</div>
+                                <div class="text-purple-400 font-mono text-xl">1</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">MPI Procs</div>
+                                <div class="text-purple-400 font-mono text-xl">32</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Wallclock</div>
+                                <div class="text-purple-400 font-mono text-xl">2 Hours</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Memory</div>
+                                <div class="text-purple-400 font-mono text-xl">Max (600 GB)</div>
+                            </div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">Spin-polarized SCF calculation (<code>nspin: 2</code>). This effectively doubles the number of electronic wavefunctions to evaluate and converge compared to non-magnetic DFT. We request 2 hours to ensure safe convergence of the fully polarized magnetic ground state.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step5_cein3_magnetic.py',
+                        code: String.raw`from aiida.engine import submit
+from aiida.orm import load_node, load_code, load_group, Dict
+from aiida.plugins import DataFactory
+
+# 1. Load the PERFECTLY RELAXED supercell
+relax_calc = load_node(892) # UPDATE THIS WITH YOUR ACTUAL STEP 3 PK
+relaxed_structure = relax_calc.outputs.output_structure
+
+builder = load_code('pw-7.5@rorqual').get_builder()
+builder.structure = relaxed_structure
+builder.pseudos = load_group('SSSP/1.3/PBE/efficiency').get_pseudos(structure=relaxed_structure)
+
+builder.kpoints = DataFactory('core.array.kpoints')()
+builder.kpoints.set_kpoints_mesh([2, 2, 2])
+
+# 2. Parameters (TURNING ON MAGNETISM!)
+builder.parameters = Dict(dict={
+    'CONTROL': { 'calculation': 'scf' },
+    'SYSTEM': {
+        'ecutwfc': 40.0, 'ecutrho': 320.0,
+        'occupations': 'smearing', 'smearing': 'marzari-vanderbilt', 'degauss': 0.02,
+        'nspin': 2,  # Activates spin-up/spin-down tracking
+        'starting_magnetization': { 'Ce': 0.5, 'In': 0.0, 'H': 0.0 }
+    },
+    'ELECTRONS': { 'conv_thr': 1.0e-8 }
+})
+
+builder.settings = Dict(dict={'cmdline': ['-nk', '8']})
+builder.metadata.options = {
+    'resources': {'num_machines': 1, 'num_mpiprocs_per_machine': 32},
+    'max_wallclock_seconds': 2 * 60 * 60,
+    'custom_scheduler_commands': '#SBATCH --mem=0\n',
+    'withmpi': True,
+}
+
+node = submit(builder)
+print(f"STEP 5: Magnetic Spin-Polarized SCF Submitted! PK: {node.pk}")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Magnetization Jumpstart</div>
+                        <ul class="math-breakdown text-slate-400 text-xs">
+                            <li><strong>Ce: 0.5</strong> → Forces the Cerium f-electrons to align to a ferromagnetic state.</li>
+                            <li><strong>nspin: 2</strong> → Instructs the code to separately calculate $\rho_{up}$ and $\rho_{down}$.</li>
+                        </ul>
+                    </div>
+                `,
+                commands: String.raw`verdi run step5_cein3_magnetic.py`
+            },
+            {
+                id: 'step6',
+                title: '6. Heavy-Duty Spin Smuggling',
+                goal: 'Extract the dense 3D Spin Polarization map without triggering OOM limits.',
+                overview: 'To calculate the contact field, we need the $\\rho_{up} - \\rho_{down}$ matrix. We deploy our most advanced script to satisfy AiiDA\'s validators, claim 32 supercomputer cores to prevent Linux Out-of-Memory (OOM) kills, and execute the spin extraction in parallel using <code>srun</code>.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Supercomputer Allocation (Rorqual Cluster)</h3>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Nodes</div>
+                                <div class="text-purple-400 font-mono text-xl">1</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">MPI Procs</div>
+                                <div class="text-purple-400 font-mono text-xl">32</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Wallclock</div>
+                                <div class="text-purple-400 font-mono text-xl">30 Mins</div>
+                            </div>
+                            <div class="bg-slate-900/80 border border-slate-700/50 p-4 rounded-xl text-center shadow-inner">
+                                <div class="text-slate-500 text-xs uppercase font-bold tracking-wider mb-1">Memory</div>
+                                <div class="text-purple-400 font-mono text-xl">Max (600 GB)</div>
+                            </div>
+                        </div>
+                        <div class="bg-amber-900/20 border border-amber-500/30 rounded-xl p-5">
+                            <h4 class="text-amber-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                                Critical OOM Fix Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">The 3D spin density grid (<code>.cube</code> file) is enormously dense. Running this exact script on a single core initially caused the Linux kernel to immediately snipe the job (Out-Of-Memory Kill). We had to explicitly claim an entire supercomputer node (32 cores) and use the <code>#SBATCH --mem=0</code> flag to grant the post-processing script access to all physical node RAM via <code>srun pp.x</code>.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step6_extract_spin_v3.py',
+                        code: String.raw`from aiida.engine import submit
+from aiida.orm import load_node, load_code, Dict
+
+parent_calc = load_node(901) # UPDATE THIS WITH YOUR ACTUAL STEP 5 PK
+builder = load_code('pp-7.5@rorqual').get_builder()
+builder.parent_folder = parent_calc.outputs.remote_folder
+
+# 1. Give AiiDA EXACTLY what it wants so it succeeds
+builder.parameters = Dict(dict={
+    'INPUTPP': { 'plot_num': 6 },  # 6 = Spin Polarization
+    'PLOT': { 'iflag': 3 }
+})
+
+# 2. The OOM Fix: Give it 32 cores and ALL the memory!
+builder.metadata.options = {
+    'resources': {'num_machines': 1, 'num_mpiprocs_per_machine': 32},
+    'max_wallclock_seconds': 30 * 60,
+    'custom_scheduler_commands': '#SBATCH --mem=0\n',
+    'withmpi': True,
+    'additional_retrieve_list': ['cein3_spin.cube'],
+    'append_text': """
+echo "Primary AiiDA job finished. Running secondary spin extraction..."
+cat > pp_spin.in << 'END_INPUT'
+&INPUTPP
+  outdir='./out/'
+  prefix='aiida'
+  plot_num=6
+/
+&PLOT
+  iflag=3
+  output_format=6
+  fileout='cein3_spin.cube'
+/
+END_INPUT
+
+# Run the smuggler in parallel so it doesn't OOM!
+srun pp.x < pp_spin.in > pp_spin.out
+"""
+}
+
+node = submit(builder)
+print(f"Heavy-Duty Spin Extraction submitted! PK: {node.pk}")`
+                    },
+                    {
+                        name: 'step7_check_vault.py',
+                        code: String.raw`import sys
+from aiida.orm import load_node
+
+pk = int(sys.argv[1])
+calc = load_node(pk)
+
+cube_data = calc.outputs.retrieved.get_object_content('cein3_spin.cube')
+with open('../exports/cein3_spin.cube', 'w') as f:
+    f.write(cube_data)
+print("SUCCESS! cein3_spin.cube is safely in your exports folder!")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Plot_Num 6</div>
+                        <p class="text-slate-400 text-xs mb-2">Setting <code>plot_num = 6</code> specifically commands Quantum ESPRESSO to subtract the down-spin density matrix from the up-spin density matrix.</p>
+                    </div>
+                `,
+                commands: String.raw`verdi run step6_extract_spin_v3.py
+verdi run step7_check_vault.py <PK>`
+            },
+            {
+                id: 'step7',
+                title: '7. Calculating Contact Field (Bc)',
+                goal: 'Convert raw localized spin density into a physical Tesla value.',
+                overview: 'With the `.cube` file safely exported, we use Python to extract the exact spin density value at the known fractional coordinates of the muon (0.25, 0.25, 0.25) and apply the physics conversion constants.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
+                        <div class="bg-slate-900/80 border border-slate-700/50 rounded-xl p-5 text-center mb-6">
+                            <div class="text-purple-400 font-mono text-lg font-bold">Local / Head Node</div>
+                            <div class="text-slate-400 text-sm mt-1">Jupyter Container Environment</div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">This step consists of purely post-processing Python scripts running <code>numpy</code> array slicing. It requires minimal RAM and CPU power, executing nearly instantaneously on the local environment without needing a Slurm allocation on the supercomputer.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step8_calculate_bc.py',
+                        code: String.raw`import numpy as np
+from ase.io.cube import read_cube_data
+
+# 1. Load the smuggled cube file
+with open('../exports/cein3_spin.cube', 'r') as f:
+    spin_data, atoms = read_cube_data(f)
+
+# 2. The Conversion Factor (e/Bohr^3 to Tesla)
+CONVERSION_FACTOR = 52.4272 
+
+nx, ny, nz = spin_data.shape
+
+# 3. Target the Muon Site (0.25, 0.25, 0.25)
+idx_x = int(round(0.25 * nx))
+idx_y = int(round(0.25 * ny))
+idx_z = int(round(0.25 * nz))
+
+# 4. Extract the physics!
+raw_spin_density = spin_data[idx_x, idx_y, idx_z]
+bc_tesla = raw_spin_density * CONVERSION_FACTOR
+
+print(f"Raw Spin Density : {raw_spin_density:.6e} e/Bohr^3")
+print(f"Calculated Bc    : {bc_tesla:.4f} Tesla")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Fermi Contact Formula</div>
+                        <div class="text-gray-300 mb-4 text-center text-lg">
+                            $$B_{c} = \frac{2\mu_{0}}{3}|\psi(0)|^{2}m$$
+                        </div>
+                        <ul class="math-breakdown text-slate-400 text-xs mt-2">
+                            <li><strong>Unit Conversion:</strong> $1 \text{ } e/a_0^3 = 52.4272 \text{ Tesla}$</li>
+                        </ul>
+                    </div>
+                `,
+                commands: String.raw`python step8_calculate_bc.py`
+            },
+            {
+                id: 'step8',
+                title: '8. Calculating Dipolar Field',
+                goal: 'Sum the classical magnetic interactions from the host lattice.',
+                overview: 'The dipolar field is a purely classical summation of the localized magnetic moments acting through space on the muon. We build a massive 10x10x10 supercell in Python and sum the field vectors from every Cerium atom.',
+                hpc_resources: String.raw`
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Execution Environment</h3>
+                        <div class="bg-slate-900/80 border border-slate-700/50 rounded-xl p-5 text-center mb-6">
+                            <div class="text-purple-400 font-mono text-lg font-bold">Local / Head Node</div>
+                            <div class="text-slate-400 text-sm mt-1">Jupyter Container Environment</div>
+                        </div>
+                        <div class="bg-purple-900/10 border border-purple-500/20 rounded-xl p-5">
+                            <h4 class="text-purple-400 text-sm font-bold mb-2 flex items-center gap-2">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                                Resource Context
+                            </h4>
+                            <p class="text-slate-300 text-sm leading-relaxed">This script performs a rapid classical math summation (dipolar field) rather than a quantum mechanical wave simulation. It is computationally lightweight and executes in seconds on the local node.</p>
+                        </div>
+                    </div>
+                `,
+                scripts: [
+                    {
+                        name: 'step9_calculate_bdip.py',
+                        code: String.raw`import numpy as np
+from ase import Atoms
+from ase.build import make_supercell
+
+# 1. Physics Constants
+mu_B = 9.274e-24  
+mu_0_4pi = 1e-7   
+conversion = (mu_0_4pi * mu_B) / (1e-30) 
+
+# 2. Build a 10x10x10 supercell of CeIn3
+a = 4.689
+primitive = Atoms('CeIn3',
+    scaled_positions=[(0,0,0), (0.5,0.5,0), (0.5,0,0.5), (0.0,0.5,0.5)], cell=[a, a, a])
+supercell = make_supercell(primitive, 10 * np.eye(3))
+
+# 3. Target the Muon Site (Body-Center)
+muon_pos = np.array([5.5, 5.5, 5.5]) * a 
+
+# 4. Ce Magnetic Moments 
+m_vector = np.array([0.0, 0.0, 0.5])
+
+# 5. The Dipolar Summation
+B_dip = np.zeros(3)
+cutoff_radius = 4.5 * a
+
+for atom in supercell:
+    if atom.symbol == 'Ce':
+        r_vec = muon_pos - atom.position
+        r = np.linalg.norm(r_vec)
+        
+        if 0.1 < r < cutoff_radius:
+            r_hat = r_vec / r
+            term = (3 * np.dot(m_vector, r_hat) * r_hat - m_vector) / (r**3)
+            B_dip += term * conversion
+
+print(f"Bx : {B_dip[0]:.6f} Tesla")
+print(f"By : {B_dip[1]:.6f} Tesla")
+print(f"Bz : {B_dip[2]:.6f} Tesla")`
+                    }
+                ],
+                math: String.raw`
+                    <div class="bg-[#0b1120] p-5 rounded-xl font-mono text-sm border border-slate-800 shadow-inner">
+                        <div class="text-sky-400/80 mb-3 text-xs tracking-wider uppercase font-bold"># Classical Dipolar Sum</div>
+                        <div class="text-gray-300 mb-4 text-center text-lg">
+                            $$B_{dip} = \frac{\mu_{0}}{4\pi} \sum_i \left( \frac{3(m_i \cdot \hat{r}_i)\hat{r}_i - m_i}{r_i^3} \right)$$
+                        </div>
+                        <p class="text-slate-400 text-xs">Because the muon resides perfectly in the center of the highly symmetric octahedral void, all classical magnetic vectors from the surrounding Ce atoms perfectly cancel each other out, resulting in exactly 0.00 T.</p>
+                    </div>
+                `,
+                commands: String.raw`python step9_calculate_bdip.py`
+            },
+            {
+                id: 'summary',
+                title: '9. Summary & Conclusion',
+                goal: 'Synthesize the calculated fields into the total muon local magnetic field.',
+                overview: 'By successfully executing the full DFT+μ cycle using Quantum ESPRESSO and AiiDA, we have mathematically solved for the local field felt by a muon in the ground state of CeIn₃.',
+                scripts: [],
+                math: String.raw`
+                    <div class="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden mt-6 shadow-2xl">
+                        <div class="bg-slate-800 px-6 py-4 border-b border-slate-700">
+                            <h3 class="text-sky-400 font-bold uppercase text-sm tracking-wider">Final CeIn₃ Magnetic Profile</h3>
+                        </div>
+                        <div class="p-6">
+                            <table class="w-full text-left border-collapse">
+                                <tbody>
+                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Host Material</td><td class="py-3 text-white font-medium">CeIn₃ (Simple Cubic)</td></tr>
+                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Stopping Site</td><td class="py-3 text-white font-medium">Octahedral Void (0.25, 0.25, 0.25)</td></tr>
+                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Contact Field ($B_c$)</td><td class="py-3 text-emerald-400 font-mono">-0.2015 Tesla</td></tr>
+                                    <tr class="border-b border-slate-800"><td class="py-3 text-slate-400">Dipolar Field ($B_{dip}$)</td><td class="py-3 text-slate-400 font-mono">0.0000 Tesla</td></tr>
+                                    <tr class="bg-sky-500/10 rounded"><td class="py-4 px-2 text-sky-400 font-bold text-lg rounded-l">Total Field ($B_\mu$)</td><td class="py-4 px-2 text-emerald-400 font-mono font-bold text-lg rounded-r">-0.2015 Tesla</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-sm mt-6 pl-4 border-l-2 border-sky-500">
+                        <strong>Physics Interpretation:</strong> The negative $B_c$ indicates conduction electron spin-polarization aligned anti-parallel to the primary Cerium magnetic moments. Because the site is perfectly symmetrical, $B_{dip}$ cancels to zero, leaving the quantum contact interaction as the sole driver of the muon's local field.
+                    </p>
+                `
+            }
+        ];
+
+        // SVGs for the UI (Explicit width and height added to fix rendering inside buttons)
+        const icons = {
+            code: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>',
+            terminal: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>',
+            copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>',
+            check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>',
+            book: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>',
+            tool: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>',
+            download: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>',
+            cpu: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line><line x1="20" y1="9" x2="23" y2="9"></line><line x1="20" y1="14" x2="23" y2="14"></line><line x1="1" y1="9" x2="4" y2="9"></line><line x1="1" y1="14" x2="4" y2="14"></line></svg>'
+        };
+
+        let activeId = 'intro';
+        let activeTab = 'overview';
+
+        function updateProgressBar() {
+            const index = steps.findIndex(s => s.id === activeId);
+            const percentage = ((index + 1) / steps.length) * 100;
+            document.getElementById('progress-bar').style.width = `${percentage}%`;
+        }
+
+        function renderSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.innerHTML = '<div class="timeline-line"></div>' + steps.map((s, idx) => {
+                const isActive = activeId === s.id;
+                return `
+                <div class="timeline-item relative pb-4">
+                    <button onclick="setActiveStep('${s.id}')" class="z-10 w-full text-left flex items-center p-3 rounded-2xl transition-all duration-300 ${isActive ? 'bg-slate-800 border border-sky-500/30 shadow-lg translate-x-2' : 'hover:bg-slate-800/40'}">
+                        <div class="w-10 h-10 rounded-full border-2 flex items-center justify-center flex-shrink-0 font-bold ${isActive ? 'bg-sky-500/20 border-sky-400 text-sky-400 shadow-md' : 'bg-slate-900 border-slate-700 text-slate-500'}">
+                            ${idx}
+                        </div>
+                        <div class="ml-4 flex-grow">
+                            <h4 class="font-semibold text-sm leading-tight ${isActive ? 'text-white' : 'text-slate-400'}">${s.title}</h4>
+                        </div>
+                    </button>
+                </div>`;
+            }).join('');
+        }
+
+        function setActiveStep(id) { activeId = id; activeTab = 'overview'; render(); }
+        function setActiveTab(tab) { activeTab = tab; render(); }
+
+        function copy(text, btn) {
+            navigator.clipboard.writeText(text);
+            const old = btn.innerHTML;
+            btn.innerHTML = `<div class="flex items-center gap-1 text-emerald-400">${icons.check}<span class="text-xs font-bold">Copied</span></div>`;
+            setTimeout(() => btn.innerHTML = old, 2000);
+        }
+
+        function downloadScript(filename, content) {
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function render() {
+            renderSidebar();
+            updateProgressBar();
+            
+            const data = steps.find(s => s.id === activeId);
+            const content = document.getElementById('content-area');
+
+            // Generate Tabs
+            const hasScripts = data.scripts && data.scripts.length > 0;
+            const tabs = `
+                <div class="flex flex-wrap gap-2 border-b border-slate-800 mb-6 pb-2">
+                    <button onclick="setActiveTab('overview')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'overview' ? 'bg-sky-500/10 text-sky-400 border border-sky-500/30' : 'text-slate-400 hover:bg-slate-800'}">
+                        <div class="flex items-center justify-center">${icons.book}</div> Theory & Physics
+                    </button>
+                    ${data.aiida_commands ? `<button onclick="setActiveTab('aiida')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'aiida' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.tool}</div> AiiDA Toolkit</button>` : ''}
+                    ${data.hpc_resources ? `<button onclick="setActiveTab('hpc')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'hpc' ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.cpu}</div> HPC Specs</button>` : ''}
+                    ${hasScripts ? `<button onclick="setActiveTab('code')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'code' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.code}</div> Python Script${data.scripts.length > 1 ? 's' : ''}</button>` : ''}
+                    ${data.commands ? `<button onclick="setActiveTab('cli')" class="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${activeTab === 'cli' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' : 'text-slate-400 hover:bg-slate-800'}"><div class="flex items-center justify-center">${icons.terminal}</div> CLI Execution</button>` : ''}
+                </div>`;
+
+            let mainBody = '';
+            
+            // Tab contents
+            if (activeTab === 'overview') {
+                mainBody = `
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Objective</h3>
+                        <p class="text-lg text-slate-200 leading-relaxed font-light">${data.goal}</p>
+                    </div>
+                    <div class="mb-8">
+                        <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Context</h3>
+                        <p class="text-slate-300 leading-relaxed mb-6">${data.overview}</p>
+                        ${data.math || ''}
+                    </div>`;
+            } else if (activeTab === 'aiida') {
+                 mainBody = `
+                    <div class="bg-black rounded-xl overflow-hidden border border-indigo-900/50 shadow-2xl mt-4">
+                        <div class="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-indigo-900/50">
+                            <span class="text-xs font-mono text-indigo-400">Essential AiiDA Operations</span>
+                            <button onclick='copy(steps.find(s=>s.id==="${activeId}").aiida_commands, this)' class="p-1.5 flex items-center justify-center hover:bg-slate-700 rounded transition-colors text-slate-400" title="Copy to clipboard">${icons.copy}</button>
+                        </div>
+                        <pre class="overflow-x-auto"><code class="language-bash">${data.aiida_commands.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>
+                    </div>`;
+            } else if (activeTab === 'hpc' && data.hpc_resources) {
+                 mainBody = data.hpc_resources;
+            } else if (activeTab === 'code' && hasScripts) {
+                mainBody = '<div class="space-y-6">' + data.scripts.map((script, index) => `
+                    <div class="bg-[#0b1120] rounded-xl overflow-hidden border border-emerald-900/50 shadow-2xl mt-4 relative">
+                        <div class="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-emerald-900/50">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs font-mono text-emerald-400">Script ${data.scripts.length > 1 ? index + 1 : ''}:</span>
+                                <span class="text-xs font-mono text-white bg-slate-800 px-2 py-0.5 rounded border border-slate-700 shadow-sm">${script.name}</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <button onclick='downloadScript("${script.name}", steps.find(s=>s.id==="${activeId}").scripts[${index}].code)' class="p-1.5 flex items-center justify-center hover:bg-slate-700 rounded transition-colors text-emerald-500/80 hover:text-emerald-400" title="Download Script as .py file">${icons.download}</button>
+                                <div class="w-px h-4 bg-slate-700 mx-1"></div>
+                                <button onclick='copy(steps.find(s=>s.id==="${activeId}").scripts[${index}].code, this)' class="p-1.5 flex items-center justify-center hover:bg-slate-700 rounded transition-colors text-slate-400 hover:text-white" title="Copy code">${icons.copy}</button>
+                            </div>
+                        </div>
+                        <pre class="overflow-x-auto"><code class="language-python">${script.code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>
+                    </div>
+                `).join('') + '</div>';
+            } else if (activeTab === 'cli') {
+                mainBody = `
+                    <div class="bg-black rounded-xl overflow-hidden border border-amber-900/50 shadow-2xl mt-4">
+                        <div class="flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-amber-900/50">
+                            <span class="text-xs font-mono text-slate-500">jovyan@rorqual:~/muon_workspace/CeIn3/scripts$</span>
+                            <button onclick='copy(steps.find(s=>s.id==="${activeId}").commands, this)' class="p-1.5 flex items-center justify-center hover:bg-slate-700 rounded transition-colors text-slate-400" title="Copy to clipboard">${icons.copy}</button>
+                        </div>
+                        <pre><code class="language-bash">${data.commands.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</code></pre>
+                    </div>`;
+            }
+
+            content.innerHTML = `
+                <div class="glass-panel rounded-2xl p-6 md:p-8 shadow-2xl animate-fade-in relative overflow-hidden min-h-[500px]">
+                    <div class="relative z-10">
+                        <div class="flex items-center gap-4 mb-6">
+                            <h2 class="text-2xl md:text-3xl font-bold text-white tracking-tight">${data.title}</h2>
+                        </div>
+                        ${tabs}
+                        <div>${mainBody}</div>
+                    </div>
+                </div>`;
+                
+            // Trigger MathJax re-render safely for LaTeX equations
+            if (window.MathJax && typeof window.MathJax.typesetPromise === 'function') {
+                MathJax.typesetPromise().catch(function (err) {
+                    console.log('MathJax typeset failed: ' + err.message);
+                });
+            }
+            
+            // Trigger PrismJS syntax highlighting
+            if (window.Prism) {
+                Prism.highlightAllUnder(content);
+            }
+        }
+
+        render();
+    </script>
+</body>
+</html>
