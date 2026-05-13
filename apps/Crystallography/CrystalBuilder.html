@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Builder from Wyckoff Positions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #0f172a;
+            color: #f1f5f9;
+        }
+
+        #viewer-container {
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        .sidebar {
+            max-height: 100vh;
+            overflow-y: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .scrollable-content {
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 4px;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+
+        input[type="number"],
+        input[type="text"],
+        select {
+            color-scheme: dark;
+        }
+
+        input:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Tab transitions */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Custom Tooltip */
+        #atom-tooltip {
+            position: absolute;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid #334155;
+            backdrop-filter: blur(4px);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 12px;
+            z-index: 100;
+            display: none;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+            transform: translate(-50%, -100%);
+            margin-top: -15px;
+        }
+
+        #atom-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: rgba(15, 23, 42, 0.95) transparent transparent transparent;
+        }
+    </style>
+</head>
+
+<body class="flex flex-col md:flex-row font-sans">
+
+    <!-- LEFT SIDEBAR: CONTROLS -->
+    <div
+        class="sidebar w-full md:w-1/3 lg:w-1/4 bg-slate-800 shadow-2xl z-10 border-r border-slate-700 h-screen flex flex-col">
+        <div class="p-6 pb-4 border-b border-slate-700 shrink-0">
+            <div class="flex justify-between items-start mb-2">
+                <h1 class="text-2xl font-bold text-slate-100">Crystal Builder</h1>
+            </div>
+
+            <div id="db-status"
+                class="mb-3 text-[10px] px-2 py-1 bg-indigo-900/50 text-indigo-300 rounded border border-indigo-700/50 flex items-center gap-2">
+                <span class="relative flex h-2 w-2">
+                    <span
+                        class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                Using Built-in Demo DB (Load JSON for all 230)
+            </div>
+
+            <!-- File Upload -->
+            <div id="upload-section">
+                <input type="file" id="file-upload" accept=".json" class="block w-full text-xs text-slate-400
+                    file:mr-3 file:py-1.5 file:px-3
+                    file:rounded file:border-0
+                    file:text-xs file:font-semibold
+                    file:bg-indigo-600 file:text-white
+                    hover:file:bg-indigo-500 cursor-pointer bg-slate-900 border border-slate-700 rounded p-1
+                " />
+            </div>
+        </div>
+
+        <div id="app-content" class="flex flex-col h-full overflow-hidden">
+            <!-- Tabs Navigation -->
+            <div class="flex border-b border-slate-700 bg-slate-800/50 shrink-0">
+                <button
+                    class="tab-btn flex-1 py-3 text-sm font-medium border-b-2 border-indigo-500 text-indigo-400 transition"
+                    data-target="tab-build">Build</button>
+                <button
+                    class="tab-btn flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition"
+                    data-target="tab-view">View & Style</button>
+                <button
+                    class="tab-btn flex-1 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 transition"
+                    data-target="tab-manage">Manage</button>
+            </div>
+
+            <div class="scrollable-content p-6">
+                <!-- TAB 1: BUILD -->
+                <div id="tab-build" class="tab-content active">
+                    <!-- Space Group & Lattice -->
+                    <div class="pb-5 border-b border-slate-700 mb-5">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-semibold text-slate-200">Space Group</label>
+                            <div id="crystal-system-badge"
+                                class="px-2 py-0.5 bg-slate-700 text-slate-300 text-[10px] font-semibold rounded border border-slate-600 uppercase">
+                            </div>
+                        </div>
+                        <select id="sg-select"
+                            class="w-full p-2 border border-slate-600 rounded bg-slate-900 text-slate-200 mb-4 focus:ring-2 focus:ring-indigo-500 outline-none text-sm cursor-pointer"></select>
+
+                        <label class="block text-sm font-semibold mb-2 text-slate-200">Lattice Parameters (Å /
+                            °)</label>
+                        <div class="grid grid-cols-3 gap-2 text-sm">
+                            <div><label class="block text-[10px] text-slate-400 mb-1">a</label><input type="number"
+                                    id="lat-a" value="4.0" step="0.1"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-[10px] text-slate-400 mb-1">b</label><input type="number"
+                                    id="lat-b" value="4.0" step="0.1"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-[10px] text-slate-400 mb-1">c</label><input type="number"
+                                    id="lat-c" value="4.0" step="0.1"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-[10px] text-slate-400 mb-1">α (alpha)</label><input
+                                    type="number" id="lat-alpha" value="90" step="1"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-[10px] text-slate-400 mb-1">β (beta)</label><input
+                                    type="number" id="lat-beta" value="90" step="1"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-[10px] text-slate-400 mb-1">γ (gamma)</label><input
+                                    type="number" id="lat-gamma" value="90" step="1"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 focus:border-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Atoms -->
+                    <div>
+                        <label class="block text-sm font-semibold mb-2 text-slate-200">Add Atoms</label>
+                        <div class="flex gap-2 mb-3">
+                            <div class="w-1/3">
+                                <label class="block text-[10px] text-slate-400 mb-1">Element</label>
+                                <input type="text" id="atom-el" value="Fe"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 text-sm focus:border-indigo-500 font-bold text-center"
+                                    placeholder="Fe">
+                            </div>
+                            <div class="w-2/3">
+                                <label class="block text-[10px] text-slate-400 mb-1">Wyckoff Position</label>
+                                <select id="wyckoff-select"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 text-sm focus:border-indigo-500 cursor-pointer"></select>
+                            </div>
+                        </div>
+
+                        <label class="block text-[10px] text-slate-400 mb-1">Fractional Coordinates (Accepts fractions
+                            like 1/4)</label>
+                        <div class="grid grid-cols-3 gap-2 mb-4">
+                            <div class="relative"><span
+                                    class="absolute left-2 top-1.5 text-xs text-slate-500 font-bold">x</span><input
+                                    type="text" id="atom-x" value="0"
+                                    class="w-full p-1.5 pl-6 border border-slate-600 rounded bg-slate-900 text-sm transition-opacity focus:border-indigo-500">
+                            </div>
+                            <div class="relative"><span
+                                    class="absolute left-2 top-1.5 text-xs text-slate-500 font-bold">y</span><input
+                                    type="text" id="atom-y" value="0"
+                                    class="w-full p-1.5 pl-6 border border-slate-600 rounded bg-slate-900 text-sm transition-opacity focus:border-indigo-500">
+                            </div>
+                            <div class="relative"><span
+                                    class="absolute left-2 top-1.5 text-xs text-slate-500 font-bold">z</span><input
+                                    type="text" id="atom-z" value="0"
+                                    class="w-full p-1.5 pl-6 border border-slate-600 rounded bg-slate-900 text-sm transition-opacity focus:border-indigo-500">
+                            </div>
+                        </div>
+
+                        <button id="btn-add-atom"
+                            class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2 px-4 rounded transition shadow-lg shadow-indigo-900/40 transform active:scale-95">
+                            Add to Structure
+                        </button>
+                    </div>
+                </div>
+
+                <!-- TAB 2: VIEW & STYLE -->
+                <div id="tab-view" class="tab-content">
+                    <div class="pb-5 border-b border-slate-700 mb-5">
+                        <label class="block text-sm font-semibold mb-3 text-slate-200">Supercell Expansion</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <div><label class="block text-xs text-slate-400 text-center mb-1">X-axis</label><input
+                                    type="number" id="sc-x" value="1" min="1" max="5"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 text-center focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-xs text-slate-400 text-center mb-1">Y-axis</label><input
+                                    type="number" id="sc-y" value="1" min="1" max="5"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 text-center focus:border-indigo-500">
+                            </div>
+                            <div><label class="block text-xs text-slate-400 text-center mb-1">Z-axis</label><input
+                                    type="number" id="sc-z" value="1" min="1" max="5"
+                                    class="w-full p-1.5 border border-slate-600 rounded bg-slate-900 text-center focus:border-indigo-500">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pb-5 border-b border-slate-700 mb-5">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-semibold text-slate-200">Atom Radius Scale</label>
+                            <span id="scale-val" class="text-xs text-slate-400 font-mono">0.30</span>
+                        </div>
+                        <input type="range" id="atom-scale" min="0.1" max="1.5" step="0.05" value="0.3"
+                            class="w-full accent-indigo-500 cursor-pointer">
+                    </div>
+
+                    <div class="pb-5 border-b border-slate-700 mb-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-sm font-semibold text-slate-200">Draw Bonds</label>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-bonds" class="sr-only peer">
+                                <div
+                                    class="w-9 h-5 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500">
+                                </div>
+                            </label>
+                        </div>
+                        <div id="bond-settings" class="opacity-50 pointer-events-none transition-opacity">
+                            <div class="flex justify-between items-center mt-2">
+                                <label class="text-[10px] text-slate-400">Tolerance Multiplier</label>
+                                <span id="bond-tol-val" class="text-[10px] text-slate-400 font-mono">1.2x</span>
+                            </div>
+                            <input type="range" id="bond-tolerance" min="0.5" max="2.0" step="0.1" value="1.2"
+                                class="w-full accent-emerald-500 h-1 mt-1 cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold mb-2 text-slate-200">Scene Background</label>
+                        <div class="flex gap-2">
+                            <button id="bg-dark"
+                                class="flex-1 py-1.5 border border-indigo-500 bg-slate-900 text-white rounded text-xs font-medium transition">Dark</button>
+                            <button id="bg-light"
+                                class="flex-1 py-1.5 border border-slate-600 bg-white text-slate-800 rounded text-xs font-medium hover:bg-slate-200 transition">Light</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 3: MANAGE / EXPORT -->
+                <div id="tab-manage" class="tab-content flex flex-col h-full min-h-[400px]">
+                    <div class="flex justify-between items-center mb-2 shrink-0">
+                        <label class="block text-sm font-semibold text-slate-200">Current Atoms</label>
+                        <button id="btn-clear"
+                            class="text-[10px] text-red-400 hover:text-red-300 font-medium bg-red-900/30 px-2 py-1 rounded transition">Clear
+                            All</button>
+                    </div>
+
+                    <div id="atoms-list-container"
+                        class="bg-slate-900/50 rounded border border-slate-700 p-2 overflow-y-auto text-sm mb-4 flex-grow max-h-[300px]">
+                        <p class="text-slate-500 text-xs text-center mt-10">No atoms added yet.</p>
+                    </div>
+
+                    <button id="btn-export-cif"
+                        class="w-full shrink-0 bg-emerald-600 hover:bg-emerald-500 text-white font-medium py-2 px-4 rounded transition shadow-lg flex items-center justify-center gap-2 mt-auto">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Export Unit Cell (CIF)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT SIDEBAR: 3D VIEW -->
+    <div class="w-full md:w-2/3 lg:w-3/4 relative bg-slate-950 transition-colors duration-500" id="viewer-container">
+
+        <!-- Hover Tooltip -->
+        <div id="atom-tooltip">
+            <div class="font-bold border-b border-slate-600 pb-1 mb-1 text-center"><span id="tt-el"
+                    class="text-indigo-300"></span> Site <span id="tt-wp"></span></div>
+            <div class="grid grid-cols-[auto_1fr] gap-x-2 text-left text-[10px]">
+                <span class="text-slate-400">Frac:</span> <span id="tt-frac" class="font-mono text-slate-200"></span>
+                <span class="text-slate-400">Cart:</span> <span id="tt-cart" class="font-mono text-slate-200"></span>
+            </div>
+        </div>
+
+        <!-- Viewer HUD -->
+        <div id="hud" class="absolute top-4 left-4 z-10 flex flex-col gap-2 pointer-events-none">
+            <div
+                class="bg-slate-800/80 backdrop-blur border border-slate-700 rounded px-3 py-2 pointer-events-auto shadow-lg">
+                <h3 id="hud-sg" class="text-indigo-300 font-bold text-sm">Space Group</h3>
+                <p id="hud-formula" class="text-slate-200 text-xs font-mono mt-1 font-bold">Formula: -</p>
+                <p id="hud-volume" class="text-slate-400 text-[10px] font-mono mt-1">Volume: -</p>
+            </div>
+            <button id="btn-reset-cam"
+                class="bg-slate-800/80 backdrop-blur border border-slate-700 rounded px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white pointer-events-auto transition text-left w-max">
+                Recenter Camera
+            </button>
+            <button id="btn-screenshot"
+                class="bg-indigo-600/90 backdrop-blur border border-indigo-500 rounded px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-500 pointer-events-auto transition flex items-center gap-2 w-max mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z">
+                    </path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Screenshot
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. GLOBALS & DATABASE ---
+        let spaceGroupsData = {};
+        let selectedSG = null;
+        let atomsList = [];
+        let idCounter = 0;
+
+        // A built-in mini DB of common cubic space groups so the app works instantly without a JSON file.
+        const builtinDB = {
+            "221": {
+                "space_group_symbol": "Pm-3m", "space_group_number": 221, "crystal_system": "cubic",
+                "wyckoff_positions": [
+                    { "letter": "a", "multiplicity": 1, "site_symmetry": "m-3m", "operations": ["0, 0, 0"] },
+                    { "letter": "b", "multiplicity": 1, "site_symmetry": "m-3m", "operations": ["1/2, 1/2, 1/2"] },
+                    { "letter": "c", "multiplicity": 3, "site_symmetry": "4/mmm", "operations": ["0, 1/2, 1/2", "1/2, 0, 1/2", "1/2, 1/2, 0"] },
+                    { "letter": "d", "multiplicity": 3, "site_symmetry": "4/mmm", "operations": ["1/2, 0, 0", "0, 1/2, 0", "0, 0, 1/2"] }
+                ]
+            },
+            "229": {
+                "space_group_symbol": "Im-3m", "space_group_number": 229, "crystal_system": "cubic",
+                "wyckoff_positions": [
+                    { "letter": "a", "multiplicity": 2, "site_symmetry": "m-3m", "operations": ["0, 0, 0", "1/2, 1/2, 1/2"] },
+                    { "letter": "b", "multiplicity": 6, "site_symmetry": "4/mmm", "operations": ["0, 1/2, 1/2", "1/2, 0, 1/2", "1/2, 1/2, 0", "1/2, 0, 0", "0, 1/2, 0", "0, 0, 1/2"] }
+                ]
+            }
+        };
+
+        // Three.js instances & Caches (Crucial for memory management)
+        let scene, camera, renderer, controls;
+        let cellGroup, atomsGroup, bondsGroup;
+        const materialsCache = {}; // Cache physical materials by color
+        const geometryCache = {};  // Cache geometries by type/size
+
+        // Raycaster
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        // Comprehensive CPK Colors & approximate covalent radii (Å)
+        const elementData = {
+            'H': { c: '#FFFFFF', r: 0.31 }, 'He': { c: '#D9FFFF', r: 0.28 }, 'Li': { c: '#CC80FF', r: 1.28 }, 'Be': { c: '#C2FF00', r: 0.96 },
+            'B': { c: '#FFB5B5', r: 0.84 }, 'C': { c: '#909090', r: 0.76 }, 'N': { c: '#3050F8', r: 0.71 }, 'O': { c: '#FF0D0D', r: 0.66 },
+            'F': { c: '#90E050', r: 0.57 }, 'Ne': { c: '#B3E3F5', r: 0.58 }, 'Na': { c: '#AB5CF2', r: 1.66 }, 'Mg': { c: '#8AFF00', r: 1.41 },
+            'Al': { c: '#BFA6A6', r: 1.21 }, 'Si': { c: '#F0C8A0', r: 1.11 }, 'P': { c: '#FF8000', r: 1.07 }, 'S': { c: '#FFFF30', r: 1.05 },
+            'Cl': { c: '#1FF01F', r: 1.02 }, 'Ar': { c: '#80D1E3', r: 1.06 }, 'K': { c: '#8F40D4', r: 2.03 }, 'Ca': { c: '#3DFF00', r: 1.76 },
+            'Sc': { c: '#E6E6E6', r: 1.70 }, 'Ti': { c: '#BFC2C7', r: 1.60 }, 'V': { c: '#A6A6AB', r: 1.53 }, 'Cr': { c: '#8A99C7', r: 1.39 },
+            'Mn': { c: '#9C7AC7', r: 1.39 }, 'Fe': { c: '#E06633', r: 1.32 }, 'Co': { c: '#F090A0', r: 1.26 }, 'Ni': { c: '#50D050', r: 1.24 },
+            'Cu': { c: '#C88033', r: 1.32 }, 'Zn': { c: '#7D80B0', r: 1.22 }, 'Ga': { c: '#C28F8F', r: 1.22 }, 'Ge': { c: '#668F8F', r: 1.20 },
+            'As': { c: '#BD80E3', r: 1.19 }, 'Se': { c: '#FFA100', r: 1.20 }, 'Br': { c: '#A62929', r: 1.20 }, 'Kr': { c: '#5CB8D1', r: 1.16 },
+            'Rb': { c: '#702EB0', r: 2.20 }, 'Sr': { c: '#00FF00', r: 1.95 }, 'Y': { c: '#94FFFF', r: 1.90 }, 'Zr': { c: '#94E0E0', r: 1.75 },
+            'Nb': { c: '#73C2C9', r: 1.64 }, 'Mo': { c: '#54B5B5', r: 1.54 }, 'Tc': { c: '#3B9E9E', r: 1.47 }, 'Ru': { c: '#248F8F', r: 1.46 },
+            'Rh': { c: '#0A7D8C', r: 1.42 }, 'Pd': { c: '#006985', r: 1.39 }, 'Ag': { c: '#C0C0C0', r: 1.45 }, 'Cd': { c: '#FFD98F', r: 1.44 },
+            'In': { c: '#A67573', r: 1.42 }, 'Sn': { c: '#668080', r: 1.39 }, 'Sb': { c: '#9E63B5', r: 1.39 }, 'Te': { c: '#D47A00', r: 1.38 },
+            'I': { c: '#940094', r: 1.39 }, 'Xe': { c: '#429EB0', r: 1.40 }, 'Cs': { c: '#57178F', r: 2.44 }, 'Ba': { c: '#00C900', r: 2.15 },
+            'La': { c: '#70D4FF', r: 2.07 }, 'Ce': { c: '#FFFFC7', r: 2.04 }, 'Pr': { c: '#D9FFC7', r: 2.03 }, 'Nd': { c: '#C7FFC7', r: 2.01 },
+            'Pm': { c: '#A3FFC7', r: 1.99 }, 'Sm': { c: '#8FFFC7', r: 1.98 }, 'Eu': { c: '#61FFC7', r: 1.98 }, 'Gd': { c: '#45FFC7', r: 1.96 },
+            'Tb': { c: '#30FFC7', r: 1.94 }, 'Dy': { c: '#1FFFC7', r: 1.92 }, 'Ho': { c: '#00FF9C', r: 1.92 }, 'Er': { c: '#00E675', r: 1.89 },
+            'Tm': { c: '#00D452', r: 1.90 }, 'Yb': { c: '#00BF38', r: 1.87 }, 'Lu': { c: '#00AB24', r: 1.87 }, 'Hf': { c: '#4DC2FF', r: 1.75 },
+            'Ta': { c: '#4DA6FF', r: 1.70 }, 'W': { c: '#2194D6', r: 1.62 }, 'Re': { c: '#267DAB', r: 1.51 }, 'Os': { c: '#266696', r: 1.44 },
+            'Ir': { c: '#175487', r: 1.41 }, 'Pt': { c: '#D0D0E0', r: 1.36 }, 'Au': { c: '#FFD123', r: 1.36 }, 'Hg': { c: '#B8B8D0', r: 1.32 },
+            'Tl': { c: '#A6544D', r: 1.45 }, 'Pb': { c: '#575961', r: 1.46 }, 'Bi': { c: '#9E4FB5', r: 1.48 }, 'Po': { c: '#AB5C00', r: 1.40 },
+            'At': { c: '#754F45', r: 1.50 }, 'Rn': { c: '#428296', r: 1.50 }, 'Fr': { c: '#420066', r: 2.60 }, 'Ra': { c: '#007D00', r: 2.21 },
+            'Ac': { c: '#70ABFA', r: 2.15 }, 'Th': { c: '#00BAFF', r: 2.06 }, 'Pa': { c: '#00A1FF', r: 2.00 }, 'U': { c: '#008FFF', r: 1.96 }
+        };
+
+        function getElementProps(symbol) {
+            let norm = symbol.trim();
+            if (norm.length > 0) norm = norm.charAt(0).toUpperCase() + norm.slice(1).toLowerCase();
+            if (elementData[norm]) return elementData[norm];
+
+            // Fallback generated color
+            let hash = 0;
+            for (let i = 0; i < norm.length; i++) hash = norm.charCodeAt(i) + ((hash << 5) - hash);
+            const color = new THREE.Color(`hsl(${Math.abs(hash) % 360}, 70%, 60%)`);
+            return { c: '#' + color.getHexString(), r: 1.2 };
+        }
+
+        // --- 2. INITIALIZATION ---
+        function init() {
+            initThreeJS();
+            setupEventListeners();
+            setupTabs();
+            loadLocalDatabase();
+        }
+
+        async function loadLocalDatabase() {
+            try {
+                // Prevent fetch in sandboxed iframe environments to avoid 'Failed to parse URL' errors
+                let response;
+                try {
+                    response = await fetch('all_wyckoff_positions.json?nocache=' + new Date().getTime());
+                } catch (fetchErr) {
+                    throw new Error("Environment blocks local fetching (e.g., sandboxed preview).");
+                }
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                spaceGroupsData = Object.assign({}, builtinDB, await response.json());
+
+                document.getElementById('db-status').innerHTML = `<span class="text-emerald-400">✅ Auto-loaded ${Object.keys(spaceGroupsData).length} Space Groups</span>`;
+                document.getElementById('upload-section').style.display = 'none';
+                populateSpaceGroupSelect();
+            } catch (err) {
+                // Use console.log to avoid triggering scary crash overlays in preview environments
+                console.log("Local fetch skipped or failed. This is expected in preview environments. Details:", err.message);
+                document.getElementById('db-status').innerHTML = `<span class="text-amber-400" title="${err.message}">⚠️ Auto-load unavailable here. Please upload JSON manually.</span>`;
+
+                // Keep the builtin DB available so the app still functions while waiting
+                spaceGroupsData = builtinDB;
+                populateSpaceGroupSelect();
+            }
+        }
+
+        function initThreeJS() {
+            const container = document.getElementById('viewer-container');
+            scene = new THREE.Scene();
+
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.set(8, 8, 12);
+
+            // preserveDrawingBuffer is CRITICAL for taking screenshots of WebGL
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.physicallyCorrectLights = true;
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            container.appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            // Advanced Lighting
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.5);
+            hemiLight.position.set(0, 20, 0);
+            scene.add(hemiLight);
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 2.5);
+            dirLight.position.set(10, 15, 10);
+            dirLight.castShadow = true;
+            dirLight.shadow.mapSize.width = 1024;
+            dirLight.shadow.mapSize.height = 1024;
+            scene.add(dirLight);
+
+            const dirLight2 = new THREE.DirectionalLight(0xaabbff, 1.0);
+            dirLight2.position.set(-10, -10, -10);
+            scene.add(dirLight2);
+
+            cellGroup = new THREE.Group();
+            atomsGroup = new THREE.Group();
+            bondsGroup = new THREE.Group();
+            scene.add(cellGroup);
+            scene.add(atomsGroup);
+            scene.add(bondsGroup);
+
+            // Pre-cache primary geometries
+            geometryCache['sphere'] = new THREE.SphereGeometry(1, 32, 32);
+
+            window.addEventListener('resize', onWindowResize, false);
+            container.addEventListener('mousemove', onMouseMove, false);
+
+            animate();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const container = document.getElementById('viewer-container');
+            camera.aspect = container.clientWidth / container.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(container.clientWidth, container.clientHeight);
+        }
+
+        function clearThreeGroup(group) {
+            while (group.children.length > 0) {
+                const obj = group.children[0];
+                group.remove(obj);
+                // We do NOT dispose geometries/materials here because we cache and reuse them for extreme performance!
+            }
+        }
+
+        function getCachedMaterial(colorHex) {
+            if (!materialsCache[colorHex]) {
+                materialsCache[colorHex] = new THREE.MeshStandardMaterial({
+                    color: colorHex, roughness: 0.25, metalness: 0.15
+                });
+            }
+            return materialsCache[colorHex];
+        }
+
+        // --- RAYCASTING TOOLTIP ---
+        function onMouseMove(event) {
+            const container = document.getElementById('viewer-container');
+            const rect = container.getBoundingClientRect();
+
+            mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+            mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(atomsGroup.children);
+            const tooltip = document.getElementById('atom-tooltip');
+
+            if (intersects.length > 0) {
+                const object = intersects[0].object;
+                if (object.userData && object.userData.element) {
+                    const data = object.userData;
+                    document.getElementById('tt-el').innerText = data.element;
+                    document.getElementById('tt-wp').innerText = data.wyckoff;
+                    document.getElementById('tt-frac').innerText = `${data.fx.toFixed(3)}, ${data.fy.toFixed(3)}, ${data.fz.toFixed(3)}`;
+                    document.getElementById('tt-cart').innerText = `${data.cx.toFixed(2)}, ${data.cy.toFixed(2)}, ${data.cz.toFixed(2)}`;
+
+                    tooltip.style.display = 'block';
+                    tooltip.style.left = (event.clientX - rect.left) + 'px';
+                    tooltip.style.top = (event.clientY - rect.top) + 'px';
+                    document.body.style.cursor = 'pointer';
+                }
+            } else {
+                tooltip.style.display = 'none';
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        // --- 3. EVENT LISTENERS ---
+        function setupTabs() {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('border-indigo-500', 'text-indigo-400');
+                        b.classList.add('border-transparent', 'text-slate-400');
+                    });
+                    e.target.classList.remove('border-transparent', 'text-slate-400');
+                    e.target.classList.add('border-indigo-500', 'text-indigo-400');
+
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    document.getElementById(e.target.getAttribute('data-target')).classList.add('active');
+                });
+            });
+        }
+
+        function setupEventListeners() {
+            document.getElementById('file-upload').addEventListener('change', handleFileUpload);
+            document.getElementById('sg-select').addEventListener('change', onSpaceGroupChange);
+            document.getElementById('wyckoff-select').addEventListener('change', updateWyckoffInputs);
+            document.getElementById('btn-add-atom').addEventListener('click', addAtom);
+            document.getElementById('btn-clear').addEventListener('click', clearAtoms);
+            document.getElementById('btn-export-cif').addEventListener('click', exportCIF);
+            document.getElementById('btn-reset-cam').addEventListener('click', () => enforceLatticeConstraintsAndRender(true));
+
+            document.getElementById('btn-screenshot').addEventListener('click', () => {
+                renderer.render(scene, camera); // Ensure buffer is fully up to date
+                const dataURL = renderer.domElement.toDataURL('image/png');
+                const link = document.createElement('a');
+                const formula = getChemicalFormula();
+                link.download = `${formula}_sg${selectedSG ? selectedSG.space_group_number : 'builder'}_render.png`;
+                link.href = dataURL;
+                link.click();
+            });
+
+            document.getElementById('atom-scale').addEventListener('input', (e) => {
+                document.getElementById('scale-val').innerText = parseFloat(e.target.value).toFixed(2);
+                buildAndRenderScene();
+            });
+
+            const bondCheck = document.getElementById('toggle-bonds');
+            const bondSet = document.getElementById('bond-settings');
+            bondCheck.addEventListener('change', (e) => {
+                bondSet.style.opacity = e.target.checked ? '1' : '0.5';
+                bondSet.style.pointerEvents = e.target.checked ? 'auto' : 'none';
+                buildAndRenderScene();
+            });
+
+            document.getElementById('bond-tolerance').addEventListener('input', (e) => {
+                document.getElementById('bond-tol-val').innerText = parseFloat(e.target.value).toFixed(1) + "x";
+                buildAndRenderScene();
+            });
+
+            const vc = document.getElementById('viewer-container');
+            document.getElementById('bg-dark').addEventListener('click', (e) => {
+                scene.background = new THREE.Color('#020617');
+                vc.classList.replace('bg-slate-100', 'bg-slate-950');
+                e.target.classList.replace('border-slate-600', 'border-indigo-500');
+                document.getElementById('bg-light').classList.replace('border-indigo-500', 'border-slate-600');
+            });
+            document.getElementById('bg-light').addEventListener('click', (e) => {
+                scene.background = new THREE.Color('#f1f5f9');
+                vc.classList.replace('bg-slate-950', 'bg-slate-100');
+                e.target.classList.replace('border-slate-600', 'border-indigo-500');
+                document.getElementById('bg-dark').classList.replace('border-indigo-500', 'border-slate-600');
+            });
+
+            const latInputs = ['lat-a', 'lat-b', 'lat-c', 'lat-alpha', 'lat-beta', 'lat-gamma'];
+            latInputs.forEach(id => document.getElementById(id)?.addEventListener('input', () => enforceLatticeConstraintsAndRender(false)));
+            document.getElementById('lat-a').addEventListener('input', () => enforceLatticeConstraintsAndRender(false));
+            ['sc-x', 'sc-y', 'sc-z'].forEach(id => document.getElementById(id).addEventListener('change', () => buildAndRenderScene(true)));
+        }
+
+        // --- 4. DATA HANDLING ---
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    // Merge uploaded data with built in data
+                    spaceGroupsData = Object.assign({}, builtinDB, JSON.parse(event.target.result));
+                    document.getElementById('db-status').innerHTML = `<span class="text-emerald-400">✅ Full Database Loaded (${Object.keys(spaceGroupsData).length} Space Groups)</span>`;
+                    populateSpaceGroupSelect();
+                } catch (err) {
+                    alert("Error parsing JSON file. Check format.");
+                    console.error(err);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function populateSpaceGroupSelect() {
+            const select = document.getElementById('sg-select');
+            select.innerHTML = '';
+
+            const sgNumbers = Object.keys(spaceGroupsData).map(Number).sort((a, b) => a - b);
+            sgNumbers.forEach(num => {
+                const sg = spaceGroupsData[num];
+                const opt = document.createElement('option');
+                opt.value = num;
+                opt.text = `No. ${num} - ${sg.space_group_symbol}`;
+                select.appendChild(opt);
+            });
+            onSpaceGroupChange();
+        }
+
+        function onSpaceGroupChange() {
+            const sgNum = document.getElementById('sg-select').value;
+            selectedSG = spaceGroupsData[sgNum];
+
+            document.getElementById('crystal-system-badge').innerText = selectedSG.crystal_system;
+            document.getElementById('hud-sg').innerText = `${selectedSG.space_group_symbol} (No. ${selectedSG.space_group_number})`;
+
+            const wSelect = document.getElementById('wyckoff-select');
+            wSelect.innerHTML = '';
+
+            if (selectedSG.wyckoff_positions) {
+                selectedSG.wyckoff_positions.forEach(wp => {
+                    const opt = document.createElement('option');
+                    opt.value = wp.letter;
+                    // Show the first operation as a hint
+                    const hint = wp.operations && wp.operations.length > 0 ? wp.operations[0] : "";
+                    opt.text = `${wp.multiplicity}${wp.letter} (${hint})`;
+                    wSelect.appendChild(opt);
+                });
+            }
+
+            applyCrystalSystemDefaults(selectedSG.crystal_system);
+            updateWyckoffInputs();
+            clearAtoms();
+        }
+
+        function updateWyckoffInputs() {
+            const wLetter = document.getElementById('wyckoff-select').value;
+            if (!wLetter || !selectedSG) return;
+            const wpData = selectedSG.wyckoff_positions.find(w => w.letter === wLetter);
+            if (!wpData || !wpData.operations || wpData.operations.length === 0) return;
+
+            const op0 = wpData.operations[0].toLowerCase();
+            const parts = op0.split(',');
+
+            const hasX = parts.some(p => p.includes('x'));
+            const hasY = parts.some(p => p.includes('y'));
+            const hasZ = parts.some(p => p.includes('z'));
+
+            const elX = document.getElementById('atom-x');
+            const elY = document.getElementById('atom-y');
+            const elZ = document.getElementById('atom-z');
+
+            // Evaluate the fixed coordinate base values (using 0,0,0 as dummy inputs for equations)
+            const baseC = evalWyckoffOperation(op0, 0, 0, 0);
+
+            // Set locked fields to their actual Wyckoff fractional values instead of '0'
+            if (!hasX) { elX.value = baseC[0]; elX.disabled = true; } else { elX.value = '0'; elX.disabled = false; }
+            if (!hasY) { elY.value = baseC[1]; elY.disabled = true; } else { elY.value = '0'; elY.disabled = false; }
+            if (!hasZ) { elZ.value = baseC[2]; elZ.disabled = true; } else { elZ.value = '0'; elZ.disabled = false; }
+        }
+
+        function applyCrystalSystemDefaults(sys) {
+            const a = document.getElementById('lat-a');
+            const b = document.getElementById('lat-b');
+            const c = document.getElementById('lat-c');
+            const alpha = document.getElementById('lat-alpha');
+            const beta = document.getElementById('lat-beta');
+            const gamma = document.getElementById('lat-gamma');
+
+            [a, b, c, alpha, beta, gamma].forEach(el => el.disabled = false);
+
+            sys = sys.toLowerCase();
+            if (sys === 'cubic') {
+                alpha.value = 90; beta.value = 90; gamma.value = 90;
+                b.disabled = true; c.disabled = true;
+                alpha.disabled = true; beta.disabled = true; gamma.disabled = true;
+            } else if (sys === 'tetragonal') {
+                alpha.value = 90; beta.value = 90; gamma.value = 90;
+                b.disabled = true;
+                alpha.disabled = true; beta.disabled = true; gamma.disabled = true;
+            } else if (sys === 'orthorhombic') {
+                alpha.value = 90; beta.value = 90; gamma.value = 90;
+                alpha.disabled = true; beta.disabled = true; gamma.disabled = true;
+            } else if (sys === 'hexagonal' || sys === 'trigonal') {
+                alpha.value = 90; beta.value = 90; gamma.value = 120;
+                b.disabled = true;
+                alpha.disabled = true; beta.disabled = true; gamma.disabled = true;
+            } else if (sys === 'monoclinic') {
+                alpha.value = 90; gamma.value = 90;
+                alpha.disabled = true; gamma.disabled = true;
+            }
+
+            enforceLatticeConstraintsAndRender(true);
+        }
+
+        function enforceLatticeConstraintsAndRender(resetCamera = false) {
+            if (!selectedSG) return;
+            const sys = selectedSG.crystal_system.toLowerCase();
+            const aVal = document.getElementById('lat-a').value;
+
+            if (sys === 'cubic') {
+                document.getElementById('lat-b').value = aVal;
+                document.getElementById('lat-c').value = aVal;
+            } else if (sys === 'tetragonal' || sys === 'hexagonal' || sys === 'trigonal') {
+                document.getElementById('lat-b').value = aVal;
+            }
+            buildAndRenderScene(resetCamera);
+        }
+
+        // --- 5. LOGIC: MATH & WYCKOFF EVALUATION ---
+        function parseFraction(str) {
+            if (typeof str === 'number') return str;
+            const s = str.toString().trim();
+            if (!s) return 0;
+            if (s.includes('/')) {
+                const p = s.split('/');
+                return parseFloat(p[0]) / parseFloat(p[1]);
+            }
+            return parseFloat(s) || 0;
+        }
+
+        function evalWyckoffOperation(opStr, x, y, z) {
+            const parts = opStr.split(',');
+            return parts.map(p => {
+                // Safely convert implicit math and fractions (e.g. "1/2", "-x", "2x")
+                let safeExpr = p.trim()
+                    .replace(/(\d)\/(\d)/g, '($1/$2)')
+                    .replace(/(\d)([xyz])/g, '$1*$2');
+                try {
+                    const fn = new Function('x', 'y', 'z', 'return ' + safeExpr + ';');
+                    let val = fn(x, y, z) % 1;
+                    if (val < 0) val += 1; // Wrap cleanly to positive unit cell
+                    // Fix float imprecisions
+                    if (Math.abs(val - 1.0) < 1e-4) val = 0.0;
+                    if (Math.abs(val) < 1e-4) val = 0.0;
+                    return val;
+                } catch (err) {
+                    console.error("Math eval error on:", safeExpr);
+                    return 0;
+                }
+            });
+        }
+
+        function getCartesian(fx, fy, fz, a, b, c, alphaDeg, betaDeg, gammaDeg) {
+            const rad = Math.PI / 180;
+            const al = alphaDeg * rad, be = betaDeg * rad, ga = gammaDeg * rad;
+
+            const cx = a, cy = 0, cz = 0;
+            const ux = b * Math.cos(ga), uy = b * Math.sin(ga), uz = 0;
+            const wx = c * Math.cos(be);
+            const wy = c * (Math.cos(al) - Math.cos(be) * Math.cos(ga)) / Math.sin(ga);
+
+            const term = 1 - Math.cos(al) ** 2 - Math.cos(be) ** 2 - Math.cos(ga) ** 2 + 2 * Math.cos(al) * Math.cos(be) * Math.cos(ga);
+            const V = a * b * c * Math.sqrt(Math.max(0, term));
+            const wz = Math.sin(ga) === 0 ? c : V / (a * b * Math.sin(ga));
+
+            return {
+                vec: new THREE.Vector3(fx * cx + fy * ux + fz * wx, fx * cy + fy * uy + fz * wy, fx * cz + fy * uz + fz * wz),
+                vA: new THREE.Vector3(cx, cy, cz),
+                vB: new THREE.Vector3(ux, uy, uz),
+                vC: new THREE.Vector3(wx, wy, wz),
+                V: V
+            };
+        }
+
+        // --- 6. APP INTERACTIONS ---
+        function addAtom() {
+            let el = document.getElementById('atom-el').value.trim() || 'X';
+            el = el.charAt(0).toUpperCase() + el.slice(1).toLowerCase();
+
+            const wLetter = document.getElementById('wyckoff-select').value;
+            const xStr = document.getElementById('atom-x').value;
+            const yStr = document.getElementById('atom-y').value;
+            const zStr = document.getElementById('atom-z').value;
+
+            const rawX = parseFraction(xStr);
+            const rawY = parseFraction(yStr);
+            const rawZ = parseFraction(zStr);
+
+            if (!wLetter) { alert("Select a space group first."); return; }
+
+            const wpData = selectedSG.wyckoff_positions.find(w => w.letter === wLetter);
+
+            // Evaluate true base coordinates using the first symmetry operation of the site
+            // This ensures constants (like 1/2) are properly captured in the UI data and CIF
+            const baseC = evalWyckoffOperation(wpData.operations[0], rawX, rawY, rawZ);
+
+            atomsList.push({
+                id: idCounter++, element: el, wyckoffLetter: wLetter,
+                multiplicity: wpData.multiplicity,
+                x: rawX, y: rawY, z: rawZ, // Raw params required for mathematical orbit generation
+                baseCoords: baseC,         // Evaluated base coords for UI display and CIF Export
+                visible: true,             // Keep track of visualization visibility
+                origStrings: {
+                    x: baseC[0].toFixed(4).replace(/\.?0+$/, '') || '0',
+                    y: baseC[1].toFixed(4).replace(/\.?0+$/, '') || '0',
+                    z: baseC[2].toFixed(4).replace(/\.?0+$/, '') || '0'
+                },
+                props: getElementProps(el)
+            });
+
+            updateAtomsUI();
+            buildAndRenderScene();
+        }
+
+        function removeAtom(id) { atomsList = atomsList.filter(a => a.id !== id); updateAtomsUI(); buildAndRenderScene(); }
+        function clearAtoms() { atomsList = []; updateAtomsUI(); buildAndRenderScene(); }
+
+        window.updateAtomColor = function (id, newColor) {
+            const atom = atomsList.find(a => a.id === id);
+            if (atom) {
+                atom.props.c = newColor;
+                buildAndRenderScene();
+            }
+        };
+
+        window.toggleAtomVisibility = function (id, isVisible) {
+            const atom = atomsList.find(a => a.id === id);
+            if (atom) {
+                atom.visible = isVisible;
+                buildAndRenderScene();
+                updateAtomsUI(); // Refresh the icon state
+            }
+        };
+
+        function getChemicalFormula() {
+            if (atomsList.length === 0) return "Empty";
+            let counts = {};
+            atomsList.forEach(a => counts[a.element] = (counts[a.element] || 0) + a.multiplicity);
+            return Object.entries(counts).map(([el, cnt]) => `${el}${cnt}`).join('');
+        }
+
+        function updateAtomsUI() {
+            const container = document.getElementById('atoms-list-container');
+            container.innerHTML = '';
+
+            if (atomsList.length === 0) {
+                container.innerHTML = '<p class="text-slate-500 text-xs text-center mt-10">No atoms added yet.</p>';
+                document.getElementById('hud-formula').innerText = "Formula: -";
+                return;
+            }
+
+            document.getElementById('hud-formula').innerText = "Formula: " + getChemicalFormula();
+
+            atomsList.forEach(atom => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-2 mb-1.5 bg-slate-800 border border-slate-700 rounded shadow";
+
+                // SVG Eye icon depending on visibility state
+                const eyeIcon = atom.visible !== false ?
+                    `<svg class="w-4 h-4 text-slate-400 hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>` :
+                    `<svg class="w-4 h-4 text-slate-600 hover:text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>`;
+
+                div.innerHTML = `
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleAtomVisibility(${atom.id}, ${atom.visible === false ? 'true' : 'false'})" class="shrink-0 focus:outline-none" title="Toggle Visibility">
+                            ${eyeIcon}
+                        </button>
+                        <input type="color" value="${atom.props.c}" onchange="updateAtomColor(${atom.id}, this.value)" class="w-5 h-5 p-0 border border-slate-600 rounded cursor-pointer shrink-0" title="Change Atom Color">
+                        <span class="font-bold text-slate-200 text-xs w-6">${atom.element}</span>
+                        <span class="text-[10px] text-slate-400 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-700">${atom.multiplicity}${atom.wyckoffLetter}</span>
+                        <span class="text-[10px] text-slate-500">(${atom.origStrings.x}, ${atom.origStrings.y}, ${atom.origStrings.z})</span>
+                    </div>
+                    <button class="text-slate-500 hover:text-red-400 px-2 py-1 transition" onclick="removeAtom(${atom.id})">×</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        // --- 7. RENDERING ENGINE (Supercell & Bonds) ---
+        function buildAndRenderScene(resetCamera = false) {
+            clearThreeGroup(cellGroup);
+            clearThreeGroup(atomsGroup);
+            clearThreeGroup(bondsGroup);
+
+            const a = parseFloat(document.getElementById('lat-a').value) || 5;
+            const b = parseFloat(document.getElementById('lat-b').value) || 5;
+            const c = parseFloat(document.getElementById('lat-c').value) || 5;
+            const alpha = parseFloat(document.getElementById('lat-alpha').value) || 90;
+            const beta = parseFloat(document.getElementById('lat-beta').value) || 90;
+            const gamma = parseFloat(document.getElementById('lat-gamma').value) || 90;
+
+            const scX = parseInt(document.getElementById('sc-x').value) || 1;
+            const scY = parseInt(document.getElementById('sc-y').value) || 1;
+            const scZ = parseInt(document.getElementById('sc-z').value) || 1;
+
+            const radiusScale = parseFloat(document.getElementById('atom-scale').value) || 0.3;
+            const drawBonds = document.getElementById('toggle-bonds').checked;
+            const bondTol = parseFloat(document.getElementById('bond-tolerance').value) || 1.2;
+
+            const baseMetrics = getCartesian(0, 0, 0, a, b, c, alpha, beta, gamma);
+            document.getElementById('hud-volume').innerText = `Volume: ${baseMetrics.V.toFixed(2)} Å³`;
+
+            // Draw unit cell box boundaries
+            for (let i = 0; i < scX; i++) {
+                for (let j = 0; j < scY; j++) {
+                    for (let k = 0; k < scZ; k++) {
+                        const offset = new THREE.Vector3()
+                            .addScaledVector(baseMetrics.vA, i)
+                            .addScaledVector(baseMetrics.vB, j)
+                            .addScaledVector(baseMetrics.vC, k);
+                        drawUnitCellBox(a, b, c, alpha, beta, gamma, offset, i === 0 && j === 0 && k === 0);
+                    }
+                }
+            }
+
+            let generatedAtoms = [];
+            const unitCellAtoms = [];
+
+            // 1. Resolve symmetry in unit cell
+            atomsList.forEach(atomData => {
+                if (atomData.visible === false) return; // Skip building hidden atoms entirely
+
+                const wpInfo = selectedSG.wyckoff_positions.find(w => w.letter === atomData.wyckoffLetter);
+                if (!wpInfo) return;
+
+                let uniqueFrac = [];
+                wpInfo.operations.forEach(opStr => {
+                    let f = evalWyckoffOperation(opStr, atomData.x, atomData.y, atomData.z);
+                    if (!uniqueFrac.some(uc => Math.abs(uc[0] - f[0]) < 1e-3 && Math.abs(uc[1] - f[1]) < 1e-3 && Math.abs(uc[2] - f[2]) < 1e-3)) {
+                        uniqueFrac.push(f);
+                    }
+                });
+
+                // Periodic boundaries across the primary cell (0.0 and 1.0)
+                uniqueFrac.forEach(f => {
+                    let dx = [0]; if (Math.abs(f[0]) < 1e-4) dx.push(1);
+                    let dy = [0]; if (Math.abs(f[1]) < 1e-4) dy.push(1);
+                    let dz = [0]; if (Math.abs(f[2]) < 1e-4) dz.push(1);
+                    dx.forEach(x => dy.forEach(y => dz.forEach(z => {
+                        unitCellAtoms.push({ f: [f[0] + x, f[1] + y, f[2] + z], data: atomData });
+                    })));
+                });
+            });
+
+            // 2. Expand to Supercell
+            for (let i = 0; i < scX; i++) {
+                for (let j = 0; j < scY; j++) {
+                    for (let k = 0; k < scZ; k++) {
+
+                        unitCellAtoms.forEach(uAt => {
+                            // Fix boundary logic: Ensure we only skip right-side overlap boundaries if it's not the absolute edge
+                            if ((Math.abs(uAt.f[0] - 1) < 1e-4 && i !== scX - 1) ||
+                                (Math.abs(uAt.f[1] - 1) < 1e-4 && j !== scY - 1) ||
+                                (Math.abs(uAt.f[2] - 1) < 1e-4 && k !== scZ - 1)) return;
+
+                            const cart = getCartesian(uAt.f[0], uAt.f[1], uAt.f[2], a, b, c, alpha, beta, gamma);
+                            const offsetCart = new THREE.Vector3()
+                                .addScaledVector(baseMetrics.vA, i)
+                                .addScaledVector(baseMetrics.vB, j)
+                                .addScaledVector(baseMetrics.vC, k)
+                                .add(cart.vec);
+
+                            const r = (uAt.data.props.r || 1.2) * radiusScale;
+                            const mat = getCachedMaterial(uAt.data.props.c);
+                            const mesh = new THREE.Mesh(geometryCache['sphere'], mat);
+
+                            mesh.scale.set(r, r, r);
+                            mesh.position.copy(offsetCart);
+                            mesh.castShadow = true;
+                            mesh.receiveShadow = true;
+
+                            // Data for raycaster tooltips
+                            mesh.userData = {
+                                element: uAt.data.element,
+                                wyckoff: uAt.data.wyckoffLetter,
+                                fx: uAt.f[0] + i, fy: uAt.f[1] + j, fz: uAt.f[2] + k,
+                                cx: offsetCart.x, cy: offsetCart.y, cz: offsetCart.z
+                            };
+
+                            atomsGroup.add(mesh);
+
+                            if (drawBonds) {
+                                generatedAtoms.push({
+                                    vec: offsetCart,
+                                    r: uAt.data.props.r || 1.2,
+                                    c: uAt.data.props.c
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            // 3. Draw Bonds (Optimized)
+            if (drawBonds && generatedAtoms.length < 2500) {
+                const bondMat = getCachedMaterial('#94a3b8');
+
+                for (let i = 0; i < generatedAtoms.length; i++) {
+                    for (let j = i + 1; j < generatedAtoms.length; j++) {
+                        const dist = generatedAtoms[i].vec.distanceTo(generatedAtoms[j].vec);
+                        const rSum = generatedAtoms[i].r + generatedAtoms[j].r;
+
+                        if (dist > 0.4 && dist <= rSum * bondTol) {
+                            const center = new THREE.Vector3().addVectors(generatedAtoms[i].vec, generatedAtoms[j].vec).multiplyScalar(0.5);
+                            const distKey = dist.toFixed(2);
+
+                            if (!geometryCache[`cyl_${distKey}`]) {
+                                geometryCache[`cyl_${distKey}`] = new THREE.CylinderGeometry(0.08, 0.08, dist, 8);
+                            }
+
+                            const cylinder = new THREE.Mesh(geometryCache[`cyl_${distKey}`], bondMat);
+                            cylinder.position.copy(center);
+                            cylinder.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3().subVectors(generatedAtoms[j].vec, generatedAtoms[i].vec).normalize());
+                            cylinder.castShadow = true;
+                            bondsGroup.add(cylinder);
+                        }
+                    }
+                }
+            }
+
+            // Center Camera
+            const centerPoint = new THREE.Vector3()
+                .addScaledVector(baseMetrics.vA, scX / 2)
+                .addScaledVector(baseMetrics.vB, scY / 2)
+                .addScaledVector(baseMetrics.vC, scZ / 2);
+
+            controls.target.copy(centerPoint);
+
+            if (resetCamera) {
+                const maxDim = Math.max(a * scX, b * scY, c * scZ);
+                camera.position.set(centerPoint.x + maxDim * 1.2, centerPoint.y + maxDim * 0.8, centerPoint.z + maxDim * 1.5);
+            }
+        }
+
+        function drawUnitCellBox(a, b, c, alpha, beta, gamma, offsetVec, isPrimary = true) {
+            const frac = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1], [1, 0, 1], [0, 1, 1], [1, 1, 1]];
+            const corners = frac.map(f => getCartesian(f[0], f[1], f[2], a, b, c, alpha, beta, gamma).vec.add(offsetVec));
+
+            const edges = [[0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [4, 5], [4, 6], [3, 7], [5, 7], [6, 7]];
+            const mat = new THREE.LineBasicMaterial({
+                color: isPrimary ? 0x64748b : 0x334155,
+                transparent: true,
+                opacity: isPrimary ? 0.8 : 0.2,
+                linewidth: isPrimary ? 2 : 1
+            });
+
+            edges.forEach(idx => {
+                const geometry = new THREE.BufferGeometry().setFromPoints([corners[idx[0]], corners[idx[1]]]);
+                cellGroup.add(new THREE.Line(geometry, mat));
+            });
+        }
+
+        // --- 8. EXPORT SYSTEM ---
+        function exportCIF() {
+            if (!selectedSG) return;
+            const a = document.getElementById('lat-a').value;
+            const b = document.getElementById('lat-b').value;
+            const c = document.getElementById('lat-c').value;
+            const formula = getChemicalFormula();
+
+            let cif = `data_${formula !== "Empty" ? formula : "crystal_builder_export"}\n`;
+            cif += `_chemical_formula_sum             '${formula}'\n\n`;
+            cif += `_cell_length_a                    ${parseFloat(a).toFixed(4)}\n`;
+            cif += `_cell_length_b                    ${parseFloat(b).toFixed(4)}\n`;
+            cif += `_cell_length_c                    ${parseFloat(c).toFixed(4)}\n`;
+            cif += `_cell_angle_alpha                 ${parseFloat(document.getElementById('lat-alpha').value).toFixed(4)}\n`;
+            cif += `_cell_angle_beta                  ${parseFloat(document.getElementById('lat-beta').value).toFixed(4)}\n`;
+            cif += `_cell_angle_gamma                 ${parseFloat(document.getElementById('lat-gamma').value).toFixed(4)}\n\n`;
+            cif += `_symmetry_space_group_name_H-M   '${selectedSG.space_group_symbol}'\n`;
+            cif += `_symmetry_Int_Tables_number       ${selectedSG.space_group_number}\n\n`;
+
+            // Include symmetry operations so CIF readers can correctly generate the full unit cell
+            const generalWP = selectedSG.wyckoff_positions.reduce((prev, curr) => (prev.multiplicity > curr.multiplicity) ? prev : curr);
+            cif += "loop_\n_space_group_symop_id\n_space_group_symop_operation_xyz\n";
+            generalWP.operations.forEach((op, i) => {
+                cif += `${i + 1} '${op}'\n`;
+            });
+            cif += "\n";
+
+            cif += "loop_\n_atom_site_label\n_atom_site_type_symbol\n_atom_site_fract_x\n_atom_site_fract_y\n_atom_site_fract_z\n";
+
+            atomsList.forEach((atom, i) => {
+                // Export the true evaluated base coordinates rather than the user's raw inputs
+                cif += `${atom.element}${i + 1} ${atom.element} ${atom.baseCoords[0].toFixed(5)} ${atom.baseCoords[1].toFixed(5)} ${atom.baseCoords[2].toFixed(5)}\n`;
+            });
+
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(new Blob([cif], { type: "text/plain" }));
+            link.download = `${formula}_sg${selectedSG.space_group_number}.cif`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        window.onload = init;
+    </script>
+</body>
+
+</html>
