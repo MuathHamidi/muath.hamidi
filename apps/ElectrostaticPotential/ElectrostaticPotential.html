@@ -1,0 +1,1529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Electrostatic Potential Simulator</title>
+    <style>
+        :root {
+            --bg-color: #050608;
+            --panel-bg: rgba(15, 20, 30, 0.75);
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #00e5ff;
+            --ce-color: #b026ff;
+            --in-color: #00bcd4;
+            --max-color: #ff3333;
+            --min-color: #3333ff;
+            --select-color: #ffeb3b;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text-main);
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        #ui-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            width: 320px;
+            max-height: calc(100vh - 40px);
+            overflow-y: auto;
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 24px;
+            z-index: 10;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            margin: 0 0 8px 0;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        p.subtitle {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin: 0 0 24px 0;
+            line-height: 1.4;
+        }
+
+        /* Buttons & Inputs */
+        #upload-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 16px;
+            transition: opacity 0.2s;
+        }
+        #upload-btn:hover { opacity: 0.8; }
+        
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            flex: 1;
+        }
+        .action-btn:hover { background: rgba(255, 255, 255, 0.2); border-color: var(--accent); }
+        .action-row { display: flex; margin-bottom: 16px; gap: 8px; }
+
+        input[type=number], select.ui-select {
+            width: 100%;
+            background: rgba(0,0,0,0.4);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 6px;
+            border-radius: 4px;
+            outline: none;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 0.8rem;
+        }
+        input[type=number]:focus, select.ui-select:focus { border-color: var(--accent); }
+
+        .range-container input[type=range] { width: 100%; margin-top: 6px; }
+
+        /* Details / Accordion */
+        details { 
+            background: rgba(0, 0, 0, 0.2); 
+            border-radius: 8px; 
+            padding: 10px 14px; 
+            margin-bottom: 12px; 
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+        summary { 
+            font-weight: 600; 
+            cursor: pointer; 
+            outline: none; 
+            color: var(--accent);
+            user-select: none;
+        }
+        details[open] summary { margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px; }
+        
+        .slider-row { display: flex; flex-direction: column; margin-bottom: 12px; }
+        .slider-row label { font-size: 0.85rem; display: flex; justify-content: space-between; margin-bottom: 4px; color: var(--text-main); }
+        .slider-row input[type=range] { accent-color: var(--accent); }
+        
+        #data-info { 
+            font-size: 0.8rem; 
+            color: #fff; 
+            margin-bottom: 16px; 
+            background: rgba(0,229,255,0.1); 
+            padding: 10px; 
+            border-radius: 6px; 
+            display: none; 
+            line-height: 1.5;
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Toggle Switch Styles */
+        .control-group {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+        }
+
+        .control-label { font-size: 0.95rem; font-weight: 500; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255, 255, 255, 0.2); transition: .4s; border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px;
+            background-color: white; transition: .4s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        input:checked + .slider { background-color: var(--accent); box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); }
+        input:checked + .slider:before { transform: translateX(20px); }
+
+        /* Extrema Details specific */
+        .extrema-config { padding-left: 8px; border-left: 2px solid rgba(255,255,255,0.1); margin-bottom: 12px;}
+        .val-input-group { display: flex; gap: 8px; margin-top: 4px; }
+
+        /* Comparison Panel */
+        #comparison-panel {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--select-color);
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 12px;
+            font-size: 0.85rem;
+            display: none;
+        }
+        #comparison-panel h3 { margin: 0 0 10px 0; font-size: 0.95rem; color: var(--select-color); }
+        .comp-point { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px dashed rgba(255,255,255,0.2); }
+        .comp-result { color: #fff; font-weight: bold; margin-top: 10px; }
+        .clear-btn { background: rgba(255,235,59,0.2); border: 1px solid var(--select-color); color: #fff; width: 100%; margin-top: 10px; padding: 6px; cursor: pointer; border-radius: 4px;}
+        .clear-btn:hover { background: rgba(255,235,59,0.4); }
+
+        /* Legend */
+        .legend { margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+        .legend-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 0.85rem; }
+        .color-box { width: 14px; height: 14px; border-radius: 4px; margin-right: 10px; flex-shrink: 0;}
+        .color-ce { background-color: var(--ce-color); box-shadow: 0 0 8px var(--ce-color); }
+        .color-in { background-color: var(--in-color); box-shadow: 0 0 8px var(--in-color); }
+        .color-max { background-color: var(--max-color); border-radius: 50%; }
+        .color-min { background-color: var(--min-color); border-radius: 50%; }
+        .color-pot { background: linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000); width: 80px; height: 10px; margin-right: 0; box-shadow: 0 0 4px rgba(255,255,255,0.2); }
+
+        /* Floating Tooltip */
+        #tooltip {
+            position: absolute;
+            background: rgba(10, 15, 25, 0.9);
+            color: #fff;
+            padding: 10px 14px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 0.85rem;
+            z-index: 1000;
+            display: none;
+            border: 1px solid var(--accent);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        /* Scrollbar styles for the panel */
+        #ui-panel::-webkit-scrollbar { width: 6px; }
+        #ui-panel::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); border-radius: 4px;}
+        #ui-panel::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        #ui-panel::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+
+        /* Color Bar Styles */
+        #color-bar-container {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+            background: var(--panel-bg);
+            padding: 15px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: none; /* Hidden until data loads */
+        }
+        #color-bar {
+            width: 20px;
+            height: 250px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background: linear-gradient(to top, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000);
+            box-shadow: inset 0 0 4px rgba(0,0,0,0.5);
+        }
+        .cb-label {
+            font-size: 0.8rem;
+            color: #fff;
+            font-weight: 600;
+            font-family: monospace;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="canvas-container"></div>
+    <div id="tooltip"></div>
+
+    <div id="color-bar-container">
+        <span class="cb-label" id="cb-max">Max</span>
+        <div id="color-bar"></div>
+        <span class="cb-label" id="cb-min">Min</span>
+    </div>
+
+    <div id="ui-panel">
+        <h1 id="app-title">Electrostatic Potential Simulator</h1>
+        <p class="subtitle" id="status-text">Interactive visualization of the DFT electrostatic potential cell. Upload your data below.</p>
+
+        <div class="action-row">
+            <button id="upload-btn" onclick="document.getElementById('file-input').click()" style="margin-bottom:0; flex:1;">Upload .cube File</button>
+            <input type="file" id="file-input" accept=".cube" style="display: none;">
+        </div>
+
+        <div class="action-row" id="view-tools">
+            <button class="action-btn" id="btn-reset">Reset View</button>
+            <button class="action-btn" id="btn-screenshot">Screenshot</button>
+            <button class="action-btn" id="btn-pdf">Export PDF</button>
+        </div>
+
+        <div id="data-info"></div>
+        
+        <details>
+            <summary>Export Settings (PDF)</summary>
+            <div class="slider-row" style="flex-direction: row; justify-content: space-between;">
+                <label style="margin: 0; align-self: center;">Width (pt)</label>
+                <input type="number" id="export-width" value="842" style="width: 80px; margin: 0;">
+            </div>
+            <div class="slider-row" style="flex-direction: row; justify-content: space-between;">
+                <label style="margin: 0; align-self: center;">Height (pt)</label>
+                <input type="number" id="export-height" value="595" style="width: 80px; margin: 0;">
+            </div>
+        </details>
+
+        <!-- NEW Comparison Panel -->
+        <div id="comparison-panel">
+            <h3>Extrema Comparison</h3>
+            <div id="comp-pt1" class="comp-point"><strong>Point A:</strong> Click a node</div>
+            <div id="comp-pt2" class="comp-point"><strong>Point B:</strong> Click a node</div>
+            <div id="comp-results" class="comp-result" style="display:none;"></div>
+            <button class="clear-btn" id="btn-clear-comp">Clear Selection</button>
+        </div>
+
+        <details open>
+            <summary>Visibility & Scene</summary>
+            <div class="control-group">
+                <span class="control-label">Show Atoms</span>
+                <label class="switch"><input type="checkbox" id="toggle-atoms" checked><span class="slider"></span></label>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Potential Cloud</span>
+                <label class="switch"><input type="checkbox" id="toggle-potential" checked><span class="slider"></span></label>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Unit Cell Box</span>
+                <label class="switch"><input type="checkbox" id="toggle-box" checked><span class="slider"></span></label>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Show Axes</span>
+                <label class="switch"><input type="checkbox" id="toggle-axes"><span class="slider"></span></label>
+            </div>
+            <div class="control-group">
+                <span class="control-label">Auto-Rotate</span>
+                <label class="switch"><input type="checkbox" id="toggle-rotate"><span class="slider"></span></label>
+            </div>
+        </details>
+
+        <div id="advanced-controls" style="display: none;">
+            <details open>
+                <summary>Extrema Analysis & Ranges</summary>
+                <p style="font-size: 0.75rem; color: var(--text-muted); margin-top:0;">Hover nodes for exact values. Click to compare.</p>
+                
+                <!-- Maxima Settings -->
+                <div class="control-group">
+                    <span class="control-label" style="color: var(--max-color);">Show Maxima (Red)</span>
+                    <label class="switch"><input type="checkbox" id="toggle-maxima" checked><span class="slider"></span></label>
+                </div>
+                <div class="extrema-config" id="maxima-config">
+                    <div class="slider-row">
+                        <label>Max Nodes: <input type="number" id="maxima-count-input" value="1" min="1" max="100000" style="width: 80px; padding: 2px; text-align: right; margin:0;"></label>
+                        <input type="range" id="maxima-count" min="1" max="100000" step="1" value="1">
+                    </div>
+                    <div class="slider-row">
+                        <label>Value Range Threshold</label>
+                        <div class="val-input-group">
+                            <input type="number" id="maxima-val-min" step="any" placeholder="Min Limit" title="Only show maxima >= this value">
+                            <input type="number" id="maxima-val-max" step="any" placeholder="Max Limit" title="Only show maxima <= this value">
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--max-color); margin-top: 4px;" id="maxima-plotted-range">Plotted Range: N/A</div>
+                </div>
+
+                <!-- Minima Settings -->
+                <div class="control-group">
+                    <span class="control-label" style="color: var(--min-color);">Show Minima (Blue)</span>
+                    <label class="switch"><input type="checkbox" id="toggle-minima"><span class="slider"></span></label>
+                </div>
+                <div class="extrema-config" id="minima-config" style="display: none;">
+                    <div class="slider-row">
+                        <label>Max Nodes: <input type="number" id="minima-count-input" value="1" min="1" max="100000" style="width: 80px; padding: 2px; text-align: right; margin:0;"></label>
+                        <input type="range" id="minima-count" min="1" max="100000" step="1" value="1">
+                    </div>
+                    <div class="slider-row">
+                        <label>Value Range Threshold</label>
+                        <div class="val-input-group">
+                            <input type="number" id="minima-val-min" step="any" placeholder="Min Limit" title="Only show minima >= this value">
+                            <input type="number" id="minima-val-max" step="any" placeholder="Max Limit" title="Only show minima <= this value">
+                        </div>
+                    </div>
+                    <div style="font-size: 0.75rem; color: var(--min-color); margin-top: 4px;" id="minima-plotted-range">Plotted Range: N/A</div>
+                </div>
+            </details>
+
+            <details open>
+                <summary>Data Rendering Limits</summary>
+                <div class="slider-row">
+                    <label>Min Render Threshold: <span id="min-val">0.00</span></label>
+                    <input type="range" id="min-thresh" step="any">
+                </div>
+                <div class="slider-row">
+                    <label>Max Render Threshold: <span id="max-val">0.00</span></label>
+                    <input type="range" id="max-thresh" step="any">
+                </div>
+            </details>
+
+            <details>
+                <summary>Appearance</summary>
+                <div class="slider-row">
+                    <label>Colormap</label>
+                    <select class="ui-select" id="colormap-select">
+                        <option value="0">Jet (Scientific)</option>
+                        <option value="1">Viridis (Perceptual)</option>
+                        <option value="2">CoolWarm (Diverging)</option>
+                        <option value="3">Magma (Dark)</option>
+                    </select>
+                </div>
+                <div class="slider-row">
+                    <label>Point Size: <span id="pt-size-val">300.0</span></label>
+                    <input type="range" id="pt-size" min="1.0" max="300.0" step="0.5" value="300.0">
+                </div>
+                <div class="slider-row">
+                    <label>Opacity Multiplier: <span id="pt-opacity-val">0.03</span></label>
+                    <input type="range" id="pt-opacity" min="0.01" max="1.0" step="0.01" value="0.03">
+                </div>
+            </details>
+
+            <details>
+                <summary>Slicing Bounds (%)</summary>
+                <div class="slider-row">
+                    <label>X-Axis (Min/Max)</label>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="range" id="clip-x-min" min="0" max="1" step="0.01" value="0" title="Min X">
+                        <input type="range" id="clip-x-max" min="0" max="1" step="0.01" value="1" title="Max X">
+                    </div>
+                </div>
+                <div class="slider-row">
+                    <label>Y-Axis (Min/Max)</label>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="range" id="clip-y-min" min="0" max="1" step="0.01" value="0" title="Min Y">
+                        <input type="range" id="clip-y-max" min="0" max="1" step="0.01" value="1" title="Max Y">
+                    </div>
+                </div>
+                <div class="slider-row">
+                    <label>Z-Axis (Min/Max)</label>
+                    <div style="display: flex; gap: 4px;">
+                        <input type="range" id="clip-z-min" min="0" max="1" step="0.01" value="0" title="Min Z">
+                        <input type="range" id="clip-z-max" min="0" max="1" step="0.01" value="1" title="Max Z">
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><div class="color-box color-ce"></div><span id="leg-atom1">Cerium (Ce) Atom</span></div>
+            <div class="legend-item"><div class="color-box color-in"></div><span id="leg-atom2">Indium (In) Atoms</span></div>
+            <div class="legend-item" id="legend-max"><div class="color-box color-max"></div><span>Maxima Node</span></div>
+            <div class="legend-item" id="legend-min"><div class="color-box color-min"></div><span>Minima Node</span></div>
+            <div class="legend-item" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+                <span>Field Value (Low &rarr; High)</span>
+                <div class="color-box color-pot"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <!-- Include jsPDF for PDF export functionality -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let mainGroup, atomsGroup, potentialGroup, boxGroup, axesHelper, extremaGroup;
+        let isAutoRotating = false;
+        let realPotentialPoints = null;
+        let currentFormula = "Crystal";
+        let currentPrimaryEl = "Ce", currentSecondaryEl = "In";
+        
+        let maximaGroup = null, minimaGroup = null;
+        const MAX_GENERATED_EXTREMA = 100000;
+
+        // Raycasting & Interaction state
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let hoveredObject = null;
+        let selectedExtrema = []; // Holds up to 2 items for comparison
+        
+        // Tracking mouse movement to prevent accidental clicks while dragging the camera
+        let mouseDownPos = new THREE.Vector2();
+
+        // Constants from the cube file
+        const CELL_SIZE = 8.860926;
+        const HALF_CELL = CELL_SIZE / 2;
+        
+        // Atomic positions (Procedural fallback)
+        const atomData = [
+            { type: 'Ce', pos: [8.860926, 8.860926, 8.860926] },
+            { type: 'In', pos: [4.430463, 4.430463, 8.860926] },
+            { type: 'In', pos: [4.430463, 8.860926, 4.430463] },
+            { type: 'In', pos: [8.860926, 4.430463, 4.430463] }
+        ];
+
+        function init() {
+            // 1. Scene Setup
+            const container = document.getElementById('canvas-container');
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x050608, 0.03);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(12, 8, 16);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            container.appendChild(renderer.domElement);
+
+            // 2. Lighting
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
+            scene.add(ambientLight);
+
+            const pointLight1 = new THREE.PointLight(0x00e5ff, 2, 50);
+            pointLight1.position.set(10, 10, 10);
+            scene.add(pointLight1);
+
+            const pointLight2 = new THREE.PointLight(0xb026ff, 2, 50);
+            pointLight2.position.set(-10, -10, -10);
+            scene.add(pointLight2);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(5, 10, 7);
+            scene.add(directionalLight);
+
+            // 3. Object Groups
+            mainGroup = new THREE.Group();
+            atomsGroup = new THREE.Group();
+            potentialGroup = new THREE.Group();
+            boxGroup = new THREE.Group();
+
+            mainGroup.add(atomsGroup);
+            mainGroup.add(potentialGroup);
+            mainGroup.add(boxGroup);
+            
+            axesHelper = new THREE.AxesHelper(12);
+            axesHelper.visible = false;
+            mainGroup.add(axesHelper);
+            
+            extremaGroup = new THREE.Group();
+            mainGroup.add(extremaGroup);
+
+            scene.add(mainGroup);
+
+            // Center procedural structure
+            mainGroup.position.set(-HALF_CELL, -HALF_CELL, -HALF_CELL);
+
+            // 4. Procedural Geometry
+            const materialCe = new THREE.MeshPhysicalMaterial({ color: 0x9c27b0, metalness: 0.8, roughness: 0.2 });
+            const materialIn = new THREE.MeshPhysicalMaterial({ color: 0x00bcd4, metalness: 0.6, roughness: 0.3 });
+            const sphereGeoCe = new THREE.SphereGeometry(1.0, 64, 64);
+            const sphereGeoIn = new THREE.SphereGeometry(0.75, 64, 64);
+
+            atomData.forEach(atom => {
+                const isCe = atom.type === 'Ce';
+                const mesh = new THREE.Mesh(isCe ? sphereGeoCe : sphereGeoIn, isCe ? materialCe : materialIn);
+                mesh.position.set(atom.pos[0], atom.pos[1], atom.pos[2]);
+                atomsGroup.add(mesh);
+            });
+
+            const boxGeometry = new THREE.BoxGeometry(CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            const boxLine = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeometry), new THREE.LineBasicMaterial({ color: 0x334466, linewidth: 2, transparent: true, opacity: 0.6 }));
+            boxLine.position.set(HALF_CELL, HALF_CELL, HALF_CELL);
+            boxGroup.add(boxLine);
+
+            const gridHelper = new THREE.GridHelper(CELL_SIZE, 10, 0x00e5ff, 0xffffff);
+            gridHelper.position.set(HALF_CELL, 0, HALF_CELL);
+            gridHelper.material.opacity = 0.1;
+            gridHelper.material.transparent = true;
+            boxGroup.add(gridHelper);
+
+            // 5. Orbit Controls
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.autoRotate = isAutoRotating;
+            controls.autoRotateSpeed = 1.0;
+
+            // 6. Event Listeners
+            window.addEventListener('resize', onWindowResize, false);
+            
+            // Interaction listeners replacing regular 'click' to avoid firing on camera drag
+            renderer.domElement.addEventListener('mousemove', onMouseMove, false);
+            renderer.domElement.addEventListener('mousedown', onMouseDown, false);
+            renderer.domElement.addEventListener('mouseup', onMouseUp, false);
+            
+            setupUI();
+
+            // Start Animation Loop
+            animate();
+        }
+
+        // UI & INTERACTION SETUP
+        function setupUI() {
+            document.getElementById('toggle-atoms').addEventListener('change', (e) => atomsGroup.visible = e.target.checked);
+            document.getElementById('toggle-potential').addEventListener('change', (e) => potentialGroup.visible = e.target.checked);
+            document.getElementById('toggle-box').addEventListener('change', (e) => boxGroup.visible = e.target.checked);
+            document.getElementById('toggle-axes').addEventListener('change', (e) => axesHelper.visible = e.target.checked);
+            document.getElementById('toggle-rotate').addEventListener('change', (e) => { controls.autoRotate = e.target.checked; isAutoRotating = e.target.checked; });
+
+            // File Upload
+            document.getElementById('file-input').addEventListener('change', handleFileUpload);
+            
+            // View & Export Controls
+            document.getElementById('btn-reset').addEventListener('click', () => {
+                controls.reset();
+                camera.position.set(12, 8, 16);
+                controls.target.set(0, 0, 0);
+            });
+            document.getElementById('btn-screenshot').addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.download = `${currentFormula}_Simulation.png`;
+                link.href = renderer.domElement.toDataURL('image/png');
+                link.click();
+            });
+            document.getElementById('btn-pdf').addEventListener('click', () => {
+                const { jsPDF } = window.jspdf;
+                
+                // User-defined Dimensions
+                const pdfW = parseFloat(document.getElementById('export-width').value) || 841.89;
+                const pdfH = parseFloat(document.getElementById('export-height').value) || 595.28;
+                const orientation = pdfW > pdfH ? 'landscape' : 'portrait';
+                
+                const doc = new jsPDF({ orientation: orientation, unit: 'pt', format: [pdfW, pdfH] });
+                
+                // Prepare scene for a white background rendering
+                const origBg = scene.background;
+                const origFogHex = scene.fog ? scene.fog.color.getHex() : null;
+                scene.background = new THREE.Color(0xffffff);
+                if (scene.fog) scene.fog.color.setHex(0xffffff);
+                
+                // Darken wireframes/axes so they are clearly visible on white background
+                const origColors = [];
+                boxGroup.children.forEach(c => {
+                    if (c.material && c.material.color) {
+                        origColors.push({ obj: c, color: c.material.color.getHex() });
+                        c.material.color.setHex(0x333333);
+                    }
+                });
+
+                // --- SMART ASPECT RATIO RESIZE FIX ---
+                // We want to force the webGL renderer to perfectly match the PDF space 
+                // we plan to use, so it captures perfectly without any letterboxing.
+                
+                const margin = 40;
+                const titleH = 60;
+                const bottomH = 60;   // space for Atom Legend
+                const rightMargin = 100; // space for Colorbar
+                
+                const pdfImgW = pdfW - margin - rightMargin;
+                const pdfImgH = pdfH - titleH - bottomH;
+                const pdfImgX = margin;
+                const pdfImgY = titleH;
+
+                const origWidth = window.innerWidth;
+                const origHeight = window.innerHeight;
+                const origAspect = camera.aspect;
+
+                // Adjust camera and renderer to match PDF area aspect exactly (high-res)
+                camera.aspect = pdfImgW / pdfImgH;
+                camera.updateProjectionMatrix();
+                // Passing false prevents the CSS styling from visually disrupting the page
+                renderer.setSize(pdfImgW * 2, pdfImgH * 2, false); 
+                renderer.render(scene, camera); 
+                
+                const imgData = renderer.domElement.toDataURL('image/png', 1.0);
+                
+                // Restore original scene size and appearance
+                scene.background = origBg;
+                if (scene.fog) scene.fog.color.setHex(origFogHex);
+                origColors.forEach(item => item.obj.material.color.setHex(item.color));
+                
+                camera.aspect = origAspect;
+                camera.updateProjectionMatrix();
+                renderer.setSize(origWidth, origHeight);
+                renderer.render(scene, camera);
+                
+                // Draw High-Res Raster Plot inside PDF
+                doc.addImage(imgData, 'PNG', pdfImgX, pdfImgY, pdfImgW, pdfImgH);
+                
+                // Draw Vector Title
+                doc.setFontSize(22);
+                doc.setTextColor(0, 0, 0); // Black text for white background
+                doc.text(`${currentFormula} Electrostatic Potential`, pdfW / 2, 45, { align: 'center' });
+                
+                // Draw Vector Atom Legend under the plot
+                const legendY = pdfImgY + pdfImgH + 25;
+                doc.setFontSize(11);
+                
+                let currentLegendX = pdfImgX + 10;
+
+                // Primary Atom
+                doc.setFillColor(156, 39, 176); 
+                doc.circle(currentLegendX, legendY - 4, 6, 'F');
+                doc.text(`= ${currentPrimaryEl} Atom(s)`, currentLegendX + 12, legendY);
+                currentLegendX += 120;
+
+                // Secondary Atom
+                doc.setFillColor(0, 188, 212);
+                doc.circle(currentLegendX, legendY - 4, 6, 'F');
+                doc.text(`= ${currentSecondaryEl} Atom(s)`, currentLegendX + 12, legendY);
+                currentLegendX += 130;
+
+                // Maxima
+                if (document.getElementById('toggle-maxima').checked) {
+                    doc.setFillColor(255, 51, 51);
+                    doc.circle(currentLegendX, legendY - 4, 6, 'F');
+                    doc.text(`= Maxima Nodes`, currentLegendX + 12, legendY);
+                    currentLegendX += 120;
+                }
+
+                // Minima
+                if (document.getElementById('toggle-minima').checked) {
+                    doc.setFillColor(51, 51, 255);
+                    doc.circle(currentLegendX, legendY - 4, 6, 'F');
+                    doc.text(`= Minima Nodes`, currentLegendX + 12, legendY);
+                }
+                
+
+                // Draw Vector Colorbar Next to Plot
+                if (document.getElementById('color-bar-container').style.display === 'flex') {
+                    const maxVal = document.getElementById('cb-max').textContent;
+                    const minVal = document.getElementById('cb-min').textContent;
+                    const valCmap = parseInt(document.getElementById('colormap-select').value);
+                    
+                    const colorbarX = pdfImgX + pdfImgW + 25;
+                    const colorbarY = pdfImgY + (pdfImgH / 2) - 100;
+                    const barW = 15;
+                    const barH = 200;
+
+                    doc.setFontSize(10);
+                    doc.text(maxVal, colorbarX - 10, colorbarY - 10);
+                    doc.text(minVal, colorbarX - 10, colorbarY + barH + 20);
+
+                    // Procedural generation of the Vector Gradient Block
+                    const steps = 100;
+                    for (let i = 0; i < steps; i++) {
+                        const t = 1.0 - (i / steps);
+                        let r, g, b;
+                        const clamp = (v) => Math.min(Math.max(v, 0), 1);
+                        if (valCmap === 0) {
+                            r = clamp(1.5 - Math.abs(4.0 * t - 3.0)); g = clamp(1.5 - Math.abs(4.0 * t - 2.0)); b = clamp(1.5 - Math.abs(4.0 * t - 1.0));
+                        } else if (valCmap === 1) {
+                            const c0 = [0.277, 0.005, 0.334]; const c1 = [0.105, 1.404, 1.384]; const c2 = [-0.330, 0.214, 0.095]; const c3 = [-4.634, -5.799, -19.332]; const c4 = [6.228, 14.179, 56.690]; const c5 = [4.776, -13.745, -65.353]; const c6 = [-5.435, 4.645, 26.312];
+                            r = clamp(c0[0]+t*(c1[0]+t*(c2[0]+t*(c3[0]+t*(c4[0]+t*(c5[0]+t*c6[0])))))); g = clamp(c0[1]+t*(c1[1]+t*(c2[1]+t*(c3[1]+t*(c4[1]+t*(c5[1]+t*c6[1])))))); b = clamp(c0[2]+t*(c1[2]+t*(c2[2]+t*(c3[2]+t*(c4[2]+t*(c5[2]+t*c6[2]))))));
+                        } else if (valCmap === 2) {
+                            const mix = (x, y, a) => x+(y-x)*a;
+                            r = t < 0.5 ? mix(0.23, 0.86, t*2) : mix(0.86, 0.70, (t-0.5)*2);
+                            g = t < 0.5 ? mix(0.29, 0.86, t*2) : mix(0.86, 0.01, (t-0.5)*2);
+                            b = t < 0.5 ? mix(0.75, 0.86, t*2) : mix(0.86, 0.15, (t-0.5)*2);
+                        } else if (valCmap === 3) {
+                            const c0 = [0.001, 0.001, 0.018]; const c1 = [0.525, -0.091, 1.488]; const c2 = [1.309, 1.637, 2.062]; const c3 = [-4.685, 3.424, -13.064]; const c4 = [6.213, -13.626, 21.031]; const c5 = [-2.684, 11.231, -11.023];
+                            r = clamp(c0[0]+t*(c1[0]+t*(c2[0]+t*(c3[0]+t*(c4[0]+t*c5[0]))))); g = clamp(c0[1]+t*(c1[1]+t*(c2[1]+t*(c3[1]+t*(c4[1]+t*c5[1]))))); b = clamp(c0[2]+t*(c1[2]+t*(c2[2]+t*(c3[2]+t*(c4[2]+t*c5[2])))));
+                        }
+                        doc.setFillColor(Math.round(r*255), Math.round(g*255), Math.round(b*255));
+                        doc.rect(colorbarX, colorbarY + (i * (barH/steps)), barW, Math.ceil(barH/steps), 'F');
+                    }
+                }
+
+                doc.save(`${currentFormula}_Electrostatic_Potential.pdf`);
+            });
+
+            // Extrema Visualization Settings
+            document.getElementById('toggle-maxima').addEventListener('change', (e) => {
+                document.getElementById('maxima-config').style.display = e.target.checked ? 'block' : 'none';
+                updateExtremaVisibility();
+            });
+            document.getElementById('toggle-minima').addEventListener('change', (e) => {
+                document.getElementById('minima-config').style.display = e.target.checked ? 'block' : 'none';
+                updateExtremaVisibility();
+            });
+
+            // Count Sliders & Inputs sync
+            const maxSlider = document.getElementById('maxima-count');
+            const maxInput = document.getElementById('maxima-count-input');
+            maxSlider.addEventListener('input', (e) => {
+                maxInput.value = e.target.value;
+                updateExtremaVisibility();
+            });
+            maxInput.addEventListener('input', (e) => {
+                maxSlider.value = e.target.value;
+                updateExtremaVisibility();
+            });
+
+            const minSlider = document.getElementById('minima-count');
+            const minInput = document.getElementById('minima-count-input');
+            minSlider.addEventListener('input', (e) => {
+                minInput.value = e.target.value;
+                updateExtremaVisibility();
+            });
+            minInput.addEventListener('input', (e) => {
+                minSlider.value = e.target.value;
+                updateExtremaVisibility();
+            });
+
+            // Threshold Value Inputs
+            ['maxima-val-min', 'maxima-val-max', 'minima-val-min', 'minima-val-max'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateExtremaVisibility);
+            });
+
+            // Colormap listener
+            document.getElementById('colormap-select').addEventListener('change', (e) => {
+                const val = parseInt(e.target.value);
+                if (getUniforms()) getUniforms().uColorMap.value = val;
+                
+                const legendBox = document.querySelector('.color-pot');
+                const colorBar = document.getElementById('color-bar');
+                
+                let gradRight = '';
+                let gradTop = '';
+                
+                if (val === 0) {
+                    gradRight = 'linear-gradient(to right, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)'; // Jet
+                    gradTop = 'linear-gradient(to top, #0000ff, #00ffff, #00ff00, #ffff00, #ff0000)';
+                } else if (val === 1) {
+                    gradRight = 'linear-gradient(to right, #440154, #31688e, #35b779, #fde725)'; // Viridis
+                    gradTop = 'linear-gradient(to top, #440154, #31688e, #35b779, #fde725)';
+                } else if (val === 2) {
+                    gradRight = 'linear-gradient(to right, #3b4cc0, #dddddd, #b40426)'; // CoolWarm
+                    gradTop = 'linear-gradient(to top, #3b4cc0, #dddddd, #b40426)';
+                } else if (val === 3) {
+                    gradRight = 'linear-gradient(to right, #000004, #51127c, #b63679, #fc8961, #fcfdbf)'; // Magma
+                    gradTop = 'linear-gradient(to top, #000004, #51127c, #b63679, #fc8961, #fcfdbf)';
+                }
+                
+                legendBox.style.background = gradRight;
+                colorBar.style.background = gradTop;
+            });
+            
+            // Appearance Sliders
+            document.getElementById('pt-size').addEventListener('input', (e) => {
+                document.getElementById('pt-size-val').textContent = e.target.value;
+                if (getUniforms()) getUniforms().uPointSize.value = parseFloat(e.target.value);
+            });
+            document.getElementById('pt-opacity').addEventListener('input', (e) => {
+                document.getElementById('pt-opacity-val').textContent = e.target.value;
+                if (getUniforms()) getUniforms().uOpacity.value = parseFloat(e.target.value);
+            });
+            document.getElementById('min-thresh').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById('min-val').textContent = val.toFixed(4);
+                document.getElementById('cb-min').textContent = val.toExponential(2);
+                if (getUniforms()) getUniforms().uMin.value = val;
+            });
+            document.getElementById('max-thresh').addEventListener('input', (e) => {
+                const val = parseFloat(e.target.value);
+                document.getElementById('max-val').textContent = val.toFixed(4);
+                document.getElementById('cb-max').textContent = val.toExponential(2);
+                if (getUniforms()) getUniforms().uMax.value = val;
+            });
+
+            // Clipping / Slicing Plane Logic
+            const updateClipping = () => {
+                if (!getUniforms()) return;
+                getUniforms().uClipMin.value.set(
+                    parseFloat(document.getElementById('clip-x-min').value),
+                    parseFloat(document.getElementById('clip-y-min').value),
+                    parseFloat(document.getElementById('clip-z-min').value)
+                );
+                getUniforms().uClipMax.value.set(
+                    parseFloat(document.getElementById('clip-x-max').value),
+                    parseFloat(document.getElementById('clip-y-max').value),
+                    parseFloat(document.getElementById('clip-z-max').value)
+                );
+            };
+            ['x', 'y', 'z'].forEach(axis => {
+                document.getElementById(`clip-${axis}-min`).addEventListener('input', updateClipping);
+                document.getElementById(`clip-${axis}-max`).addEventListener('input', updateClipping);
+            });
+
+            // Comparison clear button
+            document.getElementById('btn-clear-comp').addEventListener('click', clearComparison);
+        }
+
+        const getUniforms = () => realPotentialPoints ? realPotentialPoints.material.uniforms : null;
+
+        // --- EXTREMA FILTERING LOGIC ---
+        function updateExtremaVisibility() {
+            if (!maximaGroup || !minimaGroup) return;
+            
+            const showMax = document.getElementById('toggle-maxima').checked;
+            const maxCount = parseInt(document.getElementById('maxima-count-input').value);
+            const maxValMin = parseFloat(document.getElementById('maxima-val-min').value);
+            const maxValMax = parseFloat(document.getElementById('maxima-val-max').value);
+
+            let maxShown = 0;
+            let selectionChanged = false;
+            let actualMaxRangeMin = Infinity;
+            let actualMaxRangeMax = -Infinity;
+
+            maximaGroup.children.forEach(child => {
+                if (!showMax) { child.visible = false; }
+                else {
+                    const v = child.userData.value;
+                    const passesMin = isNaN(maxValMin) || v >= maxValMin;
+                    const passesMax = isNaN(maxValMax) || v <= maxValMax;
+                    
+                    if (maxShown < maxCount && passesMin && passesMax) {
+                        child.visible = true;
+                        maxShown++;
+                        if (v < actualMaxRangeMin) actualMaxRangeMin = v;
+                        if (v > actualMaxRangeMax) actualMaxRangeMax = v;
+                    } else {
+                        child.visible = false;
+                    }
+                }
+                
+                // If the node got hidden but was previously selected, remove it from the comparison to fix logical bugs.
+                if (!child.visible && selectedExtrema.includes(child)) {
+                    selectedExtrema = selectedExtrema.filter(obj => obj !== child);
+                    child.material.emissive.setHex(child.userData.originalEmissive);
+                    child.scale.setScalar(1.0);
+                    selectionChanged = true;
+                }
+            });
+            
+            const maxRangeDisplay = document.getElementById('maxima-plotted-range');
+            if (maxShown > 0) {
+                maxRangeDisplay.textContent = `Plotted Range: ${actualMaxRangeMin.toExponential(4)} to ${actualMaxRangeMax.toExponential(4)}`;
+            } else {
+                maxRangeDisplay.textContent = 'Plotted Range: N/A';
+            }
+            
+            if (document.getElementById('legend-max')) {
+                document.getElementById('legend-max').style.display = showMax ? 'flex' : 'none';
+            }
+
+            const showMin = document.getElementById('toggle-minima').checked;
+            const minCount = parseInt(document.getElementById('minima-count-input').value);
+            const minValMin = parseFloat(document.getElementById('minima-val-min').value);
+            const minValMax = parseFloat(document.getElementById('minima-val-max').value);
+
+            let minShown = 0;
+            let actualMinRangeMin = Infinity;
+            let actualMinRangeMax = -Infinity;
+
+            minimaGroup.children.forEach(child => {
+                if (!showMin) { child.visible = false; }
+                else {
+                    const v = child.userData.value;
+                    const passesMin = isNaN(minValMin) || v >= minValMin;
+                    const passesMax = isNaN(minValMax) || v <= minValMax;
+
+                    if (minShown < minCount && passesMin && passesMax) {
+                        child.visible = true;
+                        minShown++;
+                        if (v < actualMinRangeMin) actualMinRangeMin = v;
+                        if (v > actualMinRangeMax) actualMinRangeMax = v;
+                    } else {
+                        child.visible = false;
+                    }
+                }
+                
+                if (!child.visible && selectedExtrema.includes(child)) {
+                    selectedExtrema = selectedExtrema.filter(obj => obj !== child);
+                    child.material.emissive.setHex(child.userData.originalEmissive);
+                    child.scale.setScalar(1.0);
+                    selectionChanged = true;
+                }
+            });
+            
+            const minRangeDisplay = document.getElementById('minima-plotted-range');
+            if (minShown > 0) {
+                minRangeDisplay.textContent = `Plotted Range: ${actualMinRangeMin.toExponential(4)} to ${actualMinRangeMax.toExponential(4)}`;
+            } else {
+                minRangeDisplay.textContent = 'Plotted Range: N/A';
+            }
+            
+            if (document.getElementById('legend-min')) {
+                document.getElementById('legend-min').style.display = showMin ? 'flex' : 'none';
+            }
+            
+            if (selectionChanged) {
+                updateComparisonUI();
+                // Clean up hover states for newly hidden nodes
+                if (hoveredObject && !hoveredObject.visible) {
+                    document.getElementById('tooltip').style.display = 'none';
+                    document.body.style.cursor = 'default';
+                    hoveredObject = null;
+                }
+            }
+        }
+
+        // --- RAYCASTING & TOOLTIPS ---
+        let currentMouseX = 0;
+        let currentMouseY = 0;
+
+        function onMouseMove(event) {
+            currentMouseX = event.clientX;
+            currentMouseY = event.clientY;
+
+            // Normalized device coordinates for Raycaster
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        }
+        
+        function onMouseDown(event) {
+            mouseDownPos.set(event.clientX, event.clientY);
+        }
+        
+        function onMouseUp(event) {
+            // Only fire node selection if the distance moved was small (meaning a click, not a drag)
+            const dist = Math.hypot(event.clientX - mouseDownPos.x, event.clientY - mouseDownPos.y);
+            if (dist < 5 && hoveredObject) {
+                handleNodeSelection(hoveredObject);
+            }
+        }
+
+        function checkIntersections() {
+            if (!extremaGroup || !extremaGroup.children.length) return;
+
+            raycaster.setFromCamera(mouse, camera);
+            
+            // Collect all meshes inside the maxima/minima groups
+            let interactables = [];
+            if(maximaGroup && maximaGroup.visible) interactables.push(...maximaGroup.children.filter(c => c.visible));
+            if(minimaGroup && minimaGroup.visible) interactables.push(...minimaGroup.children.filter(c => c.visible));
+
+            const intersects = raycaster.intersectObjects(interactables, false);
+
+            const tooltip = document.getElementById('tooltip');
+
+            if (intersects.length > 0) {
+                // Find nearest visible intersection
+                const firstHit = intersects[0];
+                const object = firstHit.object;
+                
+                if (hoveredObject !== object) {
+                    // Reset previous hover state if not selected
+                    if (hoveredObject && !selectedExtrema.includes(hoveredObject)) {
+                        hoveredObject.material.emissive.setHex(hoveredObject.userData.originalEmissive);
+                        hoveredObject.scale.setScalar(1.0);
+                    }
+                    hoveredObject = object;
+                    // Apply hover state
+                    if (!selectedExtrema.includes(hoveredObject)) {
+                        hoveredObject.material.emissive.setHex(0xffffff);
+                        hoveredObject.scale.setScalar(1.5);
+                    }
+                    
+                    // Show Tooltip
+                    const data = object.userData;
+                    const typeColor = data.type === 'Maximum' ? '#ff3333' : '#3333ff';
+                    tooltip.innerHTML = `
+                        <strong style="color:${typeColor}; font-size:1.1em">${data.type} Node</strong><br/>
+                        <span style="color:#aaa">Rank:</span> #${data.rank}<br/>
+                        <span style="color:#aaa">Value:</span> <strong>${data.value.toExponential(4)}</strong><br/>
+                        <span style="color:#aaa">Pos:</span> (${object.position.x.toFixed(2)}, ${object.position.y.toFixed(2)}, ${object.position.z.toFixed(2)})
+                    `;
+                    document.body.style.cursor = 'pointer';
+                }
+
+                // Update Tooltip Position
+                tooltip.style.display = 'block';
+                tooltip.style.left = (currentMouseX + 15) + 'px';
+                tooltip.style.top = (currentMouseY + 15) + 'px';
+
+            } else {
+                if (hoveredObject) {
+                    if (!selectedExtrema.includes(hoveredObject)) {
+                        hoveredObject.material.emissive.setHex(hoveredObject.userData.originalEmissive);
+                        hoveredObject.scale.setScalar(1.0);
+                    }
+                    hoveredObject = null;
+                }
+                tooltip.style.display = 'none';
+                document.body.style.cursor = 'default';
+            }
+        }
+
+        // --- COMPARISON LOGIC ---
+        function handleNodeSelection(object) {
+            document.getElementById('comparison-panel').style.display = 'block';
+
+            // If already selected, deselect
+            const existingIdx = selectedExtrema.indexOf(object);
+            if (existingIdx > -1) {
+                selectedExtrema.splice(existingIdx, 1);
+                // Return to hover state (not original state) because the mouse is still actively positioned on it
+                object.material.emissive.setHex(0xffffff);
+                object.scale.setScalar(1.5);
+            } else {
+                // Add to selection (Max 2)
+                if (selectedExtrema.length >= 2) {
+                    // Remove first item
+                    const removed = selectedExtrema.shift();
+                    removed.material.emissive.setHex(removed.userData.originalEmissive);
+                    removed.scale.setScalar(1.0);
+                }
+                selectedExtrema.push(object);
+                // Mark visually as selected
+                object.material.emissive.setHex(0xffeb3b);
+                object.scale.setScalar(1.8);
+            }
+            updateComparisonUI();
+        }
+
+        function clearComparison() {
+            selectedExtrema.forEach(obj => {
+                if (obj.material) obj.material.emissive.setHex(obj.userData.originalEmissive);
+                obj.scale.setScalar(1.0);
+            });
+            selectedExtrema = [];
+            
+            // Re-apply hover context if the mouse is still hovering an object when clear is pressed
+            if (hoveredObject) {
+                hoveredObject.material.emissive.setHex(0xffffff);
+                hoveredObject.scale.setScalar(1.5);
+            }
+            updateComparisonUI();
+        }
+
+        function updateComparisonUI() {
+            const pt1Div = document.getElementById('comp-pt1');
+            const pt2Div = document.getElementById('comp-pt2');
+            const resDiv = document.getElementById('comp-results');
+
+            if (selectedExtrema.length > 0) {
+                const p1 = selectedExtrema[0];
+                pt1Div.innerHTML = `<strong>Point A (${p1.userData.type}):</strong> ${p1.userData.value.toExponential(4)}`;
+            } else {
+                pt1Div.innerHTML = `<strong>Point A:</strong> None selected`;
+            }
+
+            if (selectedExtrema.length > 1) {
+                const p2 = selectedExtrema[1];
+                pt2Div.innerHTML = `<strong>Point B (${p2.userData.type}):</strong> ${p2.userData.value.toExponential(4)}`;
+                
+                // Calculate differences based on local position vector in the unified cell group 
+                const p1 = selectedExtrema[0];
+                const dV = Math.abs(p1.userData.value - p2.userData.value);
+                const dist = p1.position.distanceTo(p2.position);
+                
+                resDiv.style.display = 'block';
+                resDiv.innerHTML = `
+                    &Delta;V: ${dV.toExponential(4)}<br>
+                    Distance: ${dist.toFixed(3)} Bohr
+                `;
+            } else {
+                pt2Div.innerHTML = `<strong>Point B:</strong> None selected`;
+                resDiv.style.display = 'none';
+            }
+        }
+
+
+        // --- RENDERING LOOP ---
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            checkIntersections(); // Run raycasting every frame
+            renderer.render(scene, camera);
+        }
+
+        // --- CUBE FILE PROCESSING ---
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            document.getElementById('status-text').textContent = "Parsing " + file.name + "... Please wait.";
+            document.getElementById('status-text').style.display = 'block';
+            document.getElementById('advanced-controls').style.display = 'none';
+            document.getElementById('data-info').style.display = 'none';
+            clearComparison();
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                setTimeout(() => {
+                    try {
+                        const cubeData = processCubeData(text);
+                        loadRealData(cubeData);
+                        
+                        document.getElementById('status-text').style.display = 'none';
+                        const infoBox = document.getElementById('data-info');
+                        infoBox.style.display = 'block';
+                        infoBox.innerHTML = `
+                            <strong>System:</strong> ${cubeData.htmlFormula} <br>
+                            <strong>File:</strong> ${file.name} <br>
+                            <strong>Grid:</strong> ${cubeData.nx} &times; ${cubeData.ny} &times; ${cubeData.nz} <br>
+                            <strong>Atoms:</strong> ${cubeData.atoms.length} <br>
+                            <strong>Data Pts:</strong> ${(cubeData.nx * cubeData.ny * cubeData.nz).toLocaleString()}
+                        `;
+                    } catch (err) {
+                        console.error(err);
+                        document.getElementById('status-text').textContent = "Error parsing file. Ensure it is a valid Gaussian cube.";
+                    }
+                }, 50);
+            };
+            reader.readAsText(file);
+        }
+
+        function processCubeData(text) {
+            const lines = text.split('\n');
+            let idx = 2; // skip comments
+            const h = lines[idx++].trim().split(/\s+/).map(Number);
+            const natoms = Math.abs(h[0]);
+            const origin = [h[1], h[2], h[3]];
+            const nxLine = lines[idx++].trim().split(/\s+/).map(Number);
+            const nx = nxLine[0]; const dx = [nxLine[1], nxLine[2], nxLine[3]];
+            const nyLine = lines[idx++].trim().split(/\s+/).map(Number);
+            const ny = nyLine[0]; const dy = [nyLine[1], nyLine[2], nyLine[3]];
+            const nzLine = lines[idx++].trim().split(/\s+/).map(Number);
+            const nz = nzLine[0]; const dz = [nzLine[1], nzLine[2], nzLine[3]];
+
+            const parsedAtoms = [];
+            for (let i = 0; i < natoms; i++) {
+                const aLine = lines[idx++].trim().split(/\s+/).map(Number);
+                parsedAtoms.push({ element: aLine[0], pos: [aLine[2], aLine[3], aLine[4]] });
+            }
+            
+            // Empirical Formula detection based on atomic numbers
+            const periodicTable = {1:'H',2:'He',3:'Li',4:'Be',5:'B',6:'C',7:'N',8:'O',9:'F',10:'Ne',11:'Na',12:'Mg',13:'Al',14:'Si',15:'P',16:'S',17:'Cl',18:'Ar',19:'K',20:'Ca',21:'Sc',22:'Ti',23:'V',24:'Cr',25:'Mn',26:'Fe',27:'Co',28:'Ni',29:'Cu',30:'Zn',31:'Ga',32:'Ge',33:'As',34:'Se',35:'Br',36:'Kr',37:'Rb',38:'Sr',39:'Y',40:'Zr',41:'Nb',42:'Mo',43:'Tc',44:'Ru',45:'Rh',46:'Pd',47:'Ag',48:'Cd',49:'In',50:'Sn',51:'Sb',52:'Te',53:'I',54:'Xe',55:'Cs',56:'Ba',57:'La',58:'Ce',59:'Pr',60:'Nd',61:'Pm',62:'Sm',63:'Eu',64:'Gd',65:'Tb',66:'Dy',67:'Ho',68:'Er',69:'Tm',70:'Yb',71:'Lu',72:'Hf',73:'Ta',74:'W',75:'Re',76:'Os',77:'Ir',78:'Pt',79:'Au',80:'Hg',81:'Tl',82:'Pb',83:'Bi',84:'Po',85:'At',86:'Rn',87:'Fr',88:'Ra',89:'Ac',90:'Th',91:'Pa',92:'U',93:'Np',94:'Pu'};
+            let elementCounts = {};
+            parsedAtoms.forEach(a => {
+                let el = periodicTable[a.element] || 'X';
+                elementCounts[el] = (elementCounts[el] || 0) + 1;
+            });
+            let uniqueElements = Object.keys(elementCounts).sort((a,b) => elementCounts[a] - elementCounts[b]);
+            let primaryEl = uniqueElements[0] || 'Ce'; // Lowest count is usually central atom
+            let secondaryEl = uniqueElements[1] || (uniqueElements.length === 1 ? uniqueElements[0] : 'In');
+            
+            let detectedFormula = Object.keys(elementCounts).sort().map(el => elementCounts[el] > 1 ? `${el}${elementCounts[el]}` : el).join('');
+            let htmlFormula = Object.keys(elementCounts).sort().map(el => elementCounts[el] > 1 ? `${el}<sub>${elementCounts[el]}</sub>` : el).join('');
+
+            const dataStr = lines.slice(idx).join(' ');
+            const dataMatches = dataStr.match(/[+-]?\d*\.?\d+(?:[Ee][+-]?\d+)?/g);
+            let data = new Float32Array(0);
+            if(dataMatches) {
+                data = new Float32Array(dataMatches.length);
+                for(let i=0; i<dataMatches.length; i++){
+                    data[i] = parseFloat(dataMatches[i]);
+                }
+            }
+            return { nx, ny, nz, dx, dy, dz, origin, atoms: parsedAtoms, data, formula: detectedFormula, htmlFormula: htmlFormula, primaryEl, secondaryEl };
+        }
+
+        function loadRealData(cube) {
+            // Clear prior data
+            clearGroup(atomsGroup);
+            clearGroup(potentialGroup);
+            clearGroup(boxGroup);
+            
+            if(extremaGroup) {
+                extremaGroup.children.forEach(group => clearGroup(group));
+                clearGroup(extremaGroup);
+            }
+
+            const { nx, ny, nz, dx, dy, dz, origin, data, atoms } = cube;
+            
+            // Assign parsed formula and legend definitions
+            currentFormula = cube.formula;
+            currentPrimaryEl = cube.primaryEl;
+            currentSecondaryEl = cube.secondaryEl;
+            
+            document.getElementById('app-title').innerHTML = `${cube.htmlFormula} Simulator`;
+            document.getElementById('leg-atom1').textContent = `Primary Atom (${currentPrimaryEl})`;
+            document.getElementById('leg-atom2').textContent = `Secondary Atoms (${currentSecondaryEl})`;
+
+            // 1. Atoms
+            const materialCe = new THREE.MeshPhysicalMaterial({ color: 0x9c27b0, metalness: 0.8, roughness: 0.2, clearcoat: 1.0 });
+            const materialIn = new THREE.MeshPhysicalMaterial({ color: 0x00bcd4, metalness: 0.6, roughness: 0.3, clearcoat: 0.8 });
+            const sphereGeoCe = new THREE.SphereGeometry(1.0, 32, 32);
+            const sphereGeoIn = new THREE.SphereGeometry(0.75, 32, 32);
+
+            atoms.forEach(atom => {
+                const isCe = atom.element === 58;
+                const mesh = new THREE.Mesh(isCe ? sphereGeoCe : sphereGeoIn, isCe ? materialCe : materialIn);
+                mesh.position.set(atom.pos[0], atom.pos[1], atom.pos[2]);
+                atomsGroup.add(mesh);
+            });
+
+            // 2. Point Cloud Geometry & Values
+            const positions = new Float32Array(nx * ny * nz * 3);
+            const values = new Float32Array(nx * ny * nz);
+            
+            let ptIdx = 0, dataIdx = 0;
+            for (let i = 0; i < nx; i++) {
+                for (let j = 0; j < ny; j++) {
+                    for (let k = 0; k < nz; k++) {
+                        positions[ptIdx * 3] = origin[0] + i * dx[0] + j * dy[0] + k * dz[0];
+                        positions[ptIdx * 3 + 1] = origin[1] + i * dx[1] + j * dy[1] + k * dz[1];
+                        positions[ptIdx * 3 + 2] = origin[2] + i * dx[2] + j * dy[2] + k * dz[2];
+                        values[ptIdx] = data[dataIdx];
+                        ptIdx++; dataIdx++;
+                    }
+                }
+            }
+
+            // --- EXTREMA GENERATION ---
+            let sortedDataIndices = Array.from({length: values.length}, (_, i) => i);
+            sortedDataIndices.sort((a,b) => values[b] - values[a]); 
+
+            const maxGeo = new THREE.OctahedronGeometry(0.25, 0); 
+            const minGeo = new THREE.OctahedronGeometry(0.25, 0);
+            const maxEmissive = 0x880000;
+            const minEmissive = 0x000088;
+            const maxMat = new THREE.MeshPhysicalMaterial({ color: 0xff3333, emissive: maxEmissive, metalness: 0.5, roughness: 0.2 });
+            const minMat = new THREE.MeshPhysicalMaterial({ color: 0x3333ff, emissive: minEmissive, metalness: 0.5, roughness: 0.2 });
+
+            maximaGroup = new THREE.Group();
+            minimaGroup = new THREE.Group();
+
+            const genLimit = Math.min(MAX_GENERATED_EXTREMA, Math.floor(values.length / 2));
+            
+            // Fix: dynamically update slider scales so it won't exceed physical max amount generated
+            const maxSliderNode = document.getElementById('maxima-count');
+            const minSliderNode = document.getElementById('minima-count');
+            const maxInputNode = document.getElementById('maxima-count-input');
+            const minInputNode = document.getElementById('minima-count-input');
+            const calculatedMax = Math.max(1, genLimit);
+            
+            maxSliderNode.max = calculatedMax;
+            minSliderNode.max = calculatedMax;
+            maxInputNode.max = calculatedMax;
+            minInputNode.max = calculatedMax;
+            
+            if (parseInt(maxSliderNode.value) > calculatedMax) {
+                maxSliderNode.value = calculatedMax;
+                maxInputNode.value = calculatedMax;
+            }
+            if (parseInt(minSliderNode.value) > calculatedMax) {
+                minSliderNode.value = calculatedMax;
+                minInputNode.value = calculatedMax;
+            }
+
+            // Populate Top Maxima up to genLimit
+            for(let i=0; i < genLimit; i++) {
+                const maxIdx = sortedDataIndices[i];
+                const val = values[maxIdx];
+                const mesh = new THREE.Mesh(maxGeo, maxMat.clone()); // Clone so emissive changes don't affect all
+                mesh.position.set(positions[maxIdx*3], positions[maxIdx*3+1], positions[maxIdx*3+2]);
+                mesh.userData = { rank: i+1, index: maxIdx, value: val, type: 'Maximum', originalEmissive: maxEmissive };
+                maximaGroup.add(mesh);
+            }
+
+            // Populate Bottom Minima up to genLimit
+            for(let i=0; i < genLimit; i++) {
+                const minIdx = sortedDataIndices[values.length - 1 - i];
+                const val = values[minIdx];
+                const mesh = new THREE.Mesh(minGeo, minMat.clone());
+                mesh.position.set(positions[minIdx*3], positions[minIdx*3+1], positions[minIdx*3+2]);
+                mesh.userData = { rank: i+1, index: minIdx, value: val, type: 'Minimum', originalEmissive: minEmissive };
+                minimaGroup.add(mesh);
+            }
+
+            extremaGroup.add(maximaGroup);
+            extremaGroup.add(minimaGroup);
+
+            // Establish reasonable default thresholds
+            let sortedData = Float32Array.from(data).sort();
+            const absoluteMax = sortedData[sortedData.length - 1];
+            
+            // Set User Requested Initial Values
+            const p5 = -1.5; 
+            const p95 = absoluteMax;
+
+            // Setup Extrema Range placeholders
+            document.getElementById('maxima-val-min').value = ""; document.getElementById('maxima-val-max').value = "";
+            document.getElementById('minima-val-min').value = ""; document.getElementById('minima-val-max').value = "";
+            
+            // Setup Visualization Sliders
+            const minSlider = document.getElementById('min-thresh');
+            const maxSlider = document.getElementById('max-thresh');
+            minSlider.min = Math.min(sortedData[0], p5); 
+            minSlider.max = p95; 
+            minSlider.value = p5;
+            
+            maxSlider.min = p5; 
+            maxSlider.max = p95; 
+            maxSlider.value = p95;
+            
+            document.getElementById('min-val').textContent = p5.toFixed(4);
+            document.getElementById('max-val').textContent = p95.toFixed(4);
+            
+            // Update color bar text and display it
+            document.getElementById('cb-min').textContent = p5.toExponential(2);
+            document.getElementById('cb-max').textContent = p95.toExponential(2);
+            document.getElementById('color-bar-container').style.display = 'flex';
+            
+            document.getElementById('advanced-controls').style.display = 'block';
+
+            updateExtremaVisibility();
+
+            // 3. Render Shader Point Cloud
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('value', new THREE.BufferAttribute(values, 1));
+
+            const bdx = nx * dx[0]; const bdy = ny * dy[1]; const bdz = nz * dz[2];
+            const gridSize = new THREE.Vector3(bdx, bdy, bdz);
+            const gridOrigin = new THREE.Vector3(origin[0], origin[1], origin[2]);
+
+            const shaderMaterial = new THREE.ShaderMaterial({
+                uniforms: {
+                    uMin: { value: p5 },
+                    uMax: { value: p95 },
+                    uColorMap: { value: parseInt(document.getElementById('colormap-select').value) },
+                    uPointSize: { value: parseFloat(document.getElementById('pt-size').value) },
+                    uOpacity: { value: parseFloat(document.getElementById('pt-opacity').value) },
+                    uGridOrigin: { value: gridOrigin },
+                    uGridSize: { value: gridSize },
+                    uClipMin: { value: new THREE.Vector3(0, 0, 0) },
+                    uClipMax: { value: new THREE.Vector3(1, 1, 1) }
+                },
+                vertexShader: `
+                    attribute float value;
+                    varying float vValue;
+                    varying vec3 vLocalPos;
+                    uniform float uPointSize;
+                    void main() {
+                        vValue = value;
+                        vLocalPos = position;
+                        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+                        gl_Position = projectionMatrix * mvPosition;
+                        gl_PointSize = uPointSize * (1.0 / -mvPosition.z);
+                    }
+                `,
+                fragmentShader: `
+                    varying float vValue;
+                    varying vec3 vLocalPos;
+                    uniform float uMin; uniform float uMax; uniform float uOpacity;
+                    uniform vec3 uGridOrigin; uniform vec3 uGridSize;
+                    uniform vec3 uClipMin; uniform vec3 uClipMax; uniform int uColorMap;
+                    
+                    vec3 getJetColor(float t) {
+                        float r = clamp(1.5 - abs(4.0 * t - 3.0), 0.0, 1.0);
+                        float g = clamp(1.5 - abs(4.0 * t - 2.0), 0.0, 1.0);
+                        float b = clamp(1.5 - abs(4.0 * t - 1.0), 0.0, 1.0);
+                        return vec3(r, g, b);
+                    }
+                    vec3 getViridisColor(float t) {
+                        return clamp(vec3(0.277, 0.005, 0.334)+t*(vec3(0.105, 1.404, 1.384)+t*(vec3(-0.330, 0.214, 0.095)+t*(vec3(-4.634, -5.799, -19.332)+t*(vec3(6.228, 14.179, 56.690)+t*(vec3(4.776, -13.745, -65.353)+t*vec3(-5.435, 4.645, 26.312)))))), 0.0, 1.0);
+                    }
+                    vec3 getCoolWarmColor(float t) {
+                        vec3 cold = vec3(0.23, 0.29, 0.75); vec3 mid = vec3(0.86, 0.86, 0.86); vec3 hot = vec3(0.70, 0.01, 0.15);
+                        return t < 0.5 ? mix(cold, mid, t * 2.0) : mix(mid, hot, (t - 0.5) * 2.0);
+                    }
+                    vec3 getMagmaColor(float t) {
+                        return clamp(vec3(0.001, 0.001, 0.018)+t*(vec3(0.525, -0.091, 1.488)+t*(vec3(1.309, 1.637, 2.062)+t*(vec3(-4.685, 3.424, -13.064)+t*(vec3(6.213, -13.626, 21.031)+t*vec3(-2.684, 11.231, -11.023))))), 0.0, 1.0);
+                    }
+
+                    void main() {
+                        if (vValue < uMin || vValue > uMax) discard;
+                        vec3 normPos = (vLocalPos - uGridOrigin) / uGridSize;
+                        if (normPos.x < uClipMin.x || normPos.x > uClipMax.x || normPos.y < uClipMin.y || normPos.y > uClipMax.y || normPos.z < uClipMin.z || normPos.z > uClipMax.z) discard;
+                        
+                        float t = clamp((vValue - uMin) / (uMax - uMin), 0.0, 1.0);
+                        vec3 finalColor;
+                        if (uColorMap == 1) finalColor = getViridisColor(t);
+                        else if (uColorMap == 2) finalColor = getCoolWarmColor(t);
+                        else if (uColorMap == 3) finalColor = getMagmaColor(t);
+                        else finalColor = getJetColor(t);
+                        
+                        vec2 coord = gl_PointCoord - vec2(0.5);
+                        float dist = length(coord);
+                        if(dist > 0.5) discard;
+                        float alpha = (0.5 - dist) * 2.0 * uOpacity;
+                        gl_FragColor = vec4(finalColor, alpha);
+                    }
+                `,
+                transparent: true, blending: THREE.NormalBlending, depthWrite: false
+            });
+
+            realPotentialPoints = new THREE.Points(geometry, shaderMaterial);
+            potentialGroup.add(realPotentialPoints);
+
+            // 4. Render precise Unit Cell Box
+            const boxGeo = new THREE.BoxGeometry(bdx, bdy, bdz);
+            const boxLine = new THREE.LineSegments(new THREE.EdgesGeometry(boxGeo), new THREE.LineBasicMaterial({ color: 0x334466, transparent: true, opacity: 0.6 }));
+            boxLine.position.set(origin[0] + bdx/2, origin[1] + bdy/2, origin[2] + bdz/2);
+            boxGroup.add(boxLine);
+
+            mainGroup.position.set(-(origin[0] + bdx/2), -(origin[1] + bdy/2), -(origin[2] + bdz/2));
+        }
+
+        function clearGroup(group) {
+            while(group.children.length > 0) {
+                const child = group.children[0];
+                group.remove(child);
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) child.material.dispose();
+            }
+        }
+
+        window.onload = () => {
+            init();
+            autoLoadCube();
+        };
+
+        // Attempts to automatically fetch the specific file on load
+        function autoLoadCube() {
+            document.getElementById('status-text').textContent = "Attempting to auto-load cein3_fr_electrostatic.cube...";
+            document.getElementById('status-text').style.display = 'block';
+            
+            fetch('cein3_fr_electrostatic.cube')
+                .then(response => {
+                    if (!response.ok) throw new Error("File not found on server.");
+                    return response.text();
+                })
+                .then(text => {
+                    document.getElementById('status-text').textContent = "Parsing auto-loaded file...";
+                    setTimeout(() => {
+                        try {
+                            const cubeData = processCubeData(text);
+                            loadRealData(cubeData);
+                            
+                            document.getElementById('status-text').style.display = 'none';
+                            const infoBox = document.getElementById('data-info');
+                            infoBox.style.display = 'block';
+                            infoBox.innerHTML = `
+                                <strong>System:</strong> ${cubeData.htmlFormula} <br>
+                                <strong>File:</strong> cein3_fr_electrostatic.cube (Auto-Loaded)<br>
+                                <strong>Grid:</strong> ${cubeData.nx} &times; ${cubeData.ny} &times; ${cubeData.nz} <br>
+                                <strong>Atoms:</strong> ${cubeData.atoms.length} <br>
+                                <strong>Data Pts:</strong> ${(cubeData.nx * cubeData.ny * cubeData.nz).toLocaleString()}
+                            `;
+                        } catch(e) {
+                            console.error(e);
+                            document.getElementById('status-text').textContent = "Error parsing auto-loaded file.";
+                        }
+                    }, 50);
+                })
+                .catch(err => {
+                    console.warn(err);
+                    document.getElementById('status-text').textContent = "Interactive visualization of the DFT electrostatic potential cell. Upload your data below.";
+                });
+        }
+    </script>
+</body>
+</html>
