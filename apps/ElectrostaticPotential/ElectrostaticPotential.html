@@ -601,9 +601,165 @@
                 controls.target.set(0, 0, 0);
             });
             document.getElementById('btn-screenshot').addEventListener('click', () => {
+                // User-defined Dimensions (same as PDF logic)
+                const baseW = parseFloat(document.getElementById('export-width').value) || 841.89;
+                const baseH = parseFloat(document.getElementById('export-height').value) || 595.28;
+                
+                // 3x Scale for high-resolution crisp PNG export
+                const scale = 3; 
+                const canvasW = baseW * scale;
+                const canvasH = baseH * scale;
+                
+                const expCanvas = document.createElement('canvas');
+                expCanvas.width = canvasW;
+                expCanvas.height = canvasH;
+                const ctx = expCanvas.getContext('2d');
+                
+                // Fill White Background
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvasW, canvasH);
+                
+                // Prepare scene for a white background rendering
+                const origBg = scene.background;
+                const origFogHex = scene.fog ? scene.fog.color.getHex() : null;
+                scene.background = new THREE.Color(0xffffff);
+                if (scene.fog) scene.fog.color.setHex(0xffffff);
+                
+                // Darken wireframes/axes so they are clearly visible
+                const origColors = [];
+                boxGroup.children.forEach(c => {
+                    if (c.material && c.material.color) {
+                        origColors.push({ obj: c, color: c.material.color.getHex() });
+                        c.material.color.setHex(0x333333);
+                    }
+                });
+
+                // Layout math to match PDF framing
+                const margin = 40 * scale;
+                const titleH = 60 * scale;
+                const bottomH = 60 * scale;
+                const rightMargin = 100 * scale;
+                
+                const imgW = canvasW - margin - rightMargin;
+                const imgH = canvasH - titleH - bottomH;
+                const imgX = margin;
+                const imgY = titleH;
+
+                const origWidth = window.innerWidth;
+                const origHeight = window.innerHeight;
+                const origAspect = camera.aspect;
+
+                // Adjust camera and renderer to match export area aspect exactly
+                camera.aspect = imgW / imgH;
+                camera.updateProjectionMatrix();
+                renderer.setSize(imgW, imgH, false); 
+                renderer.render(scene, camera); 
+                
+                // Draw WebGL plot onto our high-res 2D Canvas
+                ctx.drawImage(renderer.domElement, imgX, imgY, imgW, imgH);
+                
+                // Restore original scene size and appearance
+                scene.background = origBg;
+                if (scene.fog) scene.fog.color.setHex(origFogHex);
+                origColors.forEach(item => item.obj.material.color.setHex(item.color));
+                
+                camera.aspect = origAspect;
+                camera.updateProjectionMatrix();
+                renderer.setSize(origWidth, origHeight);
+                renderer.render(scene, camera);
+                
+                // Draw Title Overlay
+                ctx.fillStyle = '#000000';
+                ctx.font = `bold ${22 * scale}px sans-serif`;
+                ctx.textAlign = 'center';
+                ctx.fillText(`${currentFormula} Electrostatic Potential`, canvasW / 2, 45 * scale);
+                
+                // Draw Legend Overlay
+                const legendY = imgY + imgH + 25 * scale;
+                ctx.font = `${11 * scale}px sans-serif`;
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                
+                let currentLegendX = imgX + 10 * scale;
+
+                // Primary Atom
+                ctx.fillStyle = '#9c27b0';
+                ctx.beginPath(); ctx.arc(currentLegendX, legendY, 6 * scale, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.fillText(`= ${currentPrimaryEl} Atom(s)`, currentLegendX + 12 * scale, legendY);
+                currentLegendX += 120 * scale;
+
+                // Secondary Atom
+                ctx.fillStyle = '#00bcd4';
+                ctx.beginPath(); ctx.arc(currentLegendX, legendY, 6 * scale, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#000000';
+                ctx.fillText(`= ${currentSecondaryEl} Atom(s)`, currentLegendX + 12 * scale, legendY);
+                currentLegendX += 130 * scale;
+
+                // Maxima
+                if (document.getElementById('toggle-maxima').checked) {
+                    ctx.fillStyle = '#ff3333';
+                    ctx.beginPath(); ctx.arc(currentLegendX, legendY, 6 * scale, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000000';
+                    ctx.fillText(`= Maxima Nodes`, currentLegendX + 12 * scale, legendY);
+                    currentLegendX += 120 * scale;
+                }
+
+                // Minima
+                if (document.getElementById('toggle-minima').checked) {
+                    ctx.fillStyle = '#3333ff';
+                    ctx.beginPath(); ctx.arc(currentLegendX, legendY, 6 * scale, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = '#000000';
+                    ctx.fillText(`= Minima Nodes`, currentLegendX + 12 * scale, legendY);
+                }
+
+                // Draw Colorbar Overlay
+                if (document.getElementById('color-bar-container').style.display === 'flex') {
+                    const maxVal = document.getElementById('cb-max').textContent;
+                    const minVal = document.getElementById('cb-min').textContent;
+                    const valCmap = parseInt(document.getElementById('colormap-select').value);
+                    
+                    const colorbarX = imgX + imgW + 25 * scale;
+                    const colorbarY = imgY + (imgH / 2) - 100 * scale;
+                    const barW = 15 * scale;
+                    const barH = 200 * scale;
+
+                    ctx.fillStyle = '#000000';
+                    ctx.font = `${10 * scale}px sans-serif`;
+                    ctx.textBaseline = 'alphabetic';
+                    ctx.fillText(maxVal, colorbarX - 10 * scale, colorbarY - 10 * scale);
+                    ctx.fillText(minVal, colorbarX - 10 * scale, colorbarY + barH + 20 * scale);
+
+                    // Procedural generation of the Gradient Block
+                    const steps = 100;
+                    const stepH = barH / steps;
+                    for (let i = 0; i < steps; i++) {
+                        const t = 1.0 - (i / steps);
+                        let r, g, b;
+                        const clamp = (v) => Math.min(Math.max(v, 0), 1);
+                        if (valCmap === 0) {
+                            r = clamp(1.5 - Math.abs(4.0 * t - 3.0)); g = clamp(1.5 - Math.abs(4.0 * t - 2.0)); b = clamp(1.5 - Math.abs(4.0 * t - 1.0));
+                        } else if (valCmap === 1) {
+                            const c0 = [0.277, 0.005, 0.334]; const c1 = [0.105, 1.404, 1.384]; const c2 = [-0.330, 0.214, 0.095]; const c3 = [-4.634, -5.799, -19.332]; const c4 = [6.228, 14.179, 56.690]; const c5 = [4.776, -13.745, -65.353]; const c6 = [-5.435, 4.645, 26.312];
+                            r = clamp(c0[0]+t*(c1[0]+t*(c2[0]+t*(c3[0]+t*(c4[0]+t*(c5[0]+t*c6[0])))))); g = clamp(c0[1]+t*(c1[1]+t*(c2[1]+t*(c3[1]+t*(c4[1]+t*(c5[1]+t*c6[1])))))); b = clamp(c0[2]+t*(c1[2]+t*(c2[2]+t*(c3[2]+t*(c4[2]+t*(c5[2]+t*c6[2]))))));
+                        } else if (valCmap === 2) {
+                            const mix = (x, y, a) => x+(y-x)*a;
+                            r = t < 0.5 ? mix(0.23, 0.86, t*2) : mix(0.86, 0.70, (t-0.5)*2);
+                            g = t < 0.5 ? mix(0.29, 0.86, t*2) : mix(0.86, 0.01, (t-0.5)*2);
+                            b = t < 0.5 ? mix(0.75, 0.86, t*2) : mix(0.86, 0.15, (t-0.5)*2);
+                        } else if (valCmap === 3) {
+                            const c0 = [0.001, 0.001, 0.018]; const c1 = [0.525, -0.091, 1.488]; const c2 = [1.309, 1.637, 2.062]; const c3 = [-4.685, 3.424, -13.064]; const c4 = [6.213, -13.626, 21.031]; const c5 = [-2.684, 11.231, -11.023];
+                            r = clamp(c0[0]+t*(c1[0]+t*(c2[0]+t*(c3[0]+t*(c4[0]+t*c5[0]))))); g = clamp(c0[1]+t*(c1[1]+t*(c2[1]+t*(c3[1]+t*(c4[1]+t*c5[1]))))); b = clamp(c0[2]+t*(c1[2]+t*(c2[2]+t*(c3[2]+t*(c4[2]+t*c5[2])))));
+                        }
+                        ctx.fillStyle = `rgb(${Math.round(r*255)}, ${Math.round(g*255)}, ${Math.round(b*255)})`;
+                        ctx.fillRect(colorbarX, colorbarY + (i * stepH), barW, Math.ceil(stepH));
+                    }
+                }
+
+                // Trigger Download
                 const link = document.createElement('a');
                 link.download = `${currentFormula}_Simulation.png`;
-                link.href = renderer.domElement.toDataURL('image/png');
+                link.href = expCanvas.toDataURL('image/png');
                 link.click();
             });
             document.getElementById('btn-pdf').addEventListener('click', () => {
