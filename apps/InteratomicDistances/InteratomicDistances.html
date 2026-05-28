@@ -1,0 +1,1680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COD Interatomic Bond Lengths Explorer</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    :root {
+      --bg-dark: #0b0f19;
+      --bg-light-dark: #121826;
+      --bg-card: rgba(22, 28, 45, 0.45);
+      --border-glass: rgba(255, 255, 255, 0.07);
+      --text-main: #f8fafc;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      
+      /* Chemical Families Accent Colors (Glowing pastels) */
+      --c-nonmetal: #22d3ee;
+      --c-noble-gas: #c084fc;
+      --c-alkali-metal: #f43f5e;
+      --c-alkaline-earth: #fb923c;
+      --c-metalloid: #2dd4bf;
+      --c-halogen: #818cf8;
+      --c-transition: #facc15;
+      --c-post-transition: #34d399;
+      --c-lanthanide: #f472b6;
+      --c-actinide: #e879f9;
+      --c-isotope: #06b6d4;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.08) 0px, transparent 50%),
+        radial-gradient(at 100% 0%, rgba(16, 185, 129, 0.05) 0px, transparent 50%),
+        radial-gradient(at 50% 100%, rgba(139, 92, 246, 0.08) 0px, transparent 50%);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      line-height: 1.5;
+      overflow-x: hidden;
+    }
+
+    header {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-glass);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .header-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      font-size: 2rem;
+      background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+    }
+
+    .logo-text h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      background: linear-gradient(to right, #f8fafc, #cbd5e1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .logo-text p {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .badge-stats {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      color: #a5b4fc;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+    }
+
+    main {
+      max-width: 1400px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* CORS alert banner */
+    .cors-banner {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      margin-bottom: 0.5rem;
+      box-shadow: 0 4px 20px rgba(239, 68, 68, 0.05);
+    }
+
+    .banner-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .banner-icon {
+      font-size: 1.5rem;
+    }
+
+    .banner-text {
+      flex: 1;
+      font-size: 0.9rem;
+      color: #fca5a5;
+    }
+
+    .banner-text strong {
+      color: #fee2e2;
+    }
+
+    .code-badge {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      color: #f8fafc;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .banner-action {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Glass Cards */
+    .glass-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-glass);
+      border-radius: 16px;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
+      padding: 1.5rem;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 0.75rem;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Periodic Table Styling */
+    .periodic-table-container {
+      position: relative;
+      overflow-x: auto;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.1) transparent;
+      padding-bottom: 8px;
+    }
+
+    .periodic-table {
+      display: grid;
+      grid-template-columns: repeat(18, minmax(65px, 1fr));
+      grid-template-rows: repeat(10, minmax(65px, auto));
+      gap: 5px;
+      min-width: 1200px;
+    }
+
+    /* Element Card */
+    .element-card {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      aspect-ratio: 1;
+      border-radius: 8px;
+      background: rgba(30, 41, 59, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      padding: 4px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .element-card:hover {
+      transform: translateY(-3px) scale(1.05);
+      z-index: 10;
+      background: rgba(30, 41, 59, 0.5);
+    }
+
+    .element-card .atomic-number {
+      position: absolute;
+      top: 4px;
+      left: 5px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .element-card .symbol {
+      font-size: 1.2rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-top: 2px;
+    }
+
+    .element-card .name {
+      font-size: 0.55rem;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      width: 100%;
+      color: var(--text-dim);
+      margin-top: 1px;
+    }
+
+    .element-card .mass {
+      font-size: 0.5rem;
+      color: var(--text-muted);
+      margin-top: 1px;
+    }
+
+    /* Element Groups Styling */
+    .element-card.nonmetal { border-color: rgba(34, 211, 238, 0.15); }
+    .element-card.nonmetal .symbol { color: var(--c-nonmetal); }
+    .element-card.nonmetal:hover { border-color: var(--c-nonmetal); box-shadow: 0 0 12px rgba(34, 211, 238, 0.35); }
+
+    .element-card.noble-gas { border-color: rgba(192, 132, 252, 0.15); }
+    .element-card.noble-gas .symbol { color: var(--c-noble-gas); }
+    .element-card.noble-gas:hover { border-color: var(--c-noble-gas); box-shadow: 0 0 12px rgba(192, 132, 252, 0.35); }
+
+    .element-card.alkali-metal { border-color: rgba(244, 63, 94, 0.15); }
+    .element-card.alkali-metal .symbol { color: var(--c-alkali-metal); }
+    .element-card.alkali-metal:hover { border-color: var(--c-alkali-metal); box-shadow: 0 0 12px rgba(244, 63, 94, 0.35); }
+
+    .element-card.alkaline-earth { border-color: rgba(251, 146, 60, 0.15); }
+    .element-card.alkaline-earth .symbol { color: var(--c-alkaline-earth); }
+    .element-card.alkaline-earth:hover { border-color: var(--c-alkaline-earth); box-shadow: 0 0 12px rgba(251, 146, 60, 0.35); }
+
+    .element-card.metalloid { border-color: rgba(45, 212, 191, 0.15); }
+    .element-card.metalloid .symbol { color: var(--c-metalloid); }
+    .element-card.metalloid:hover { border-color: var(--c-metalloid); box-shadow: 0 0 12px rgba(45, 212, 191, 0.35); }
+
+    .element-card.halogen { border-color: rgba(129, 140, 248, 0.15); }
+    .element-card.halogen .symbol { color: var(--c-halogen); }
+    .element-card.halogen:hover { border-color: var(--c-halogen); box-shadow: 0 0 12px rgba(129, 140, 248, 0.35); }
+
+    .element-card.transition { border-color: rgba(250, 204, 21, 0.15); }
+    .element-card.transition .symbol { color: var(--c-transition); }
+    .element-card.transition:hover { border-color: var(--c-transition); box-shadow: 0 0 12px rgba(250, 204, 21, 0.35); }
+
+    .element-card.post-transition { border-color: rgba(52, 211, 153, 0.15); }
+    .element-card.post-transition .symbol { color: var(--c-post-transition); }
+    .element-card.post-transition:hover { border-color: var(--c-post-transition); box-shadow: 0 0 12px rgba(52, 211, 153, 0.35); }
+
+    .element-card.lanthanide { border-color: rgba(244, 114, 182, 0.15); }
+    .element-card.lanthanide .symbol { color: var(--c-lanthanide); }
+    .element-card.lanthanide:hover { border-color: var(--c-lanthanide); box-shadow: 0 0 12px rgba(244, 114, 182, 0.35); }
+
+    .element-card.actinide { border-color: rgba(232, 121, 249, 0.15); }
+    .element-card.actinide .symbol { color: var(--c-actinide); }
+    .element-card.actinide:hover { border-color: var(--c-actinide); box-shadow: 0 0 12px rgba(232, 121, 249, 0.35); }
+
+    /* Spacers */
+    .element-card.lanthanide-spacer, .element-card.actinide-spacer {
+      border: 1px dashed rgba(255,255,255,0.08);
+      background: rgba(255,255,255,0.01);
+      cursor: default;
+    }
+    .element-card.lanthanide-spacer:hover, .element-card.actinide-spacer:hover {
+      transform: none;
+      box-shadow: none;
+      background: rgba(255,255,255,0.01);
+    }
+    .element-card.lanthanide-spacer .symbol, .element-card.actinide-spacer .symbol {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Active Selection States */
+    .element-card.selected-a {
+      border-color: #8b5cf6 !important;
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.7) !important;
+      background: rgba(139, 92, 246, 0.15) !important;
+      transform: translateY(-3px) scale(1.05);
+    }
+    .element-card.selected-b {
+      border-color: #10b981 !important;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.7) !important;
+      background: rgba(16, 185, 129, 0.15) !important;
+      transform: translateY(-3px) scale(1.05);
+    }
+    .element-card.selected-both {
+      border-color: #06b6d4 !important;
+      box-shadow: 0 0 16px rgba(6, 182, 212, 0.7) !important;
+      background: rgba(6, 182, 212, 0.15) !important;
+      transform: translateY(-3px) scale(1.05);
+    }
+    .element-card.inactive-element {
+      opacity: 0.15;
+      filter: grayscale(85%);
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Periodic Table Legend */
+    .table-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 1rem;
+      justify-content: center;
+      font-size: 0.75rem;
+      background: rgba(0, 0, 0, 0.15);
+      padding: 10px;
+      border-radius: 8px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-dim);
+    }
+
+    .legend-color {
+      width: 10px;
+      height: 10px;
+      border-radius: 3px;
+    }
+
+    /* Selection & Controls Area */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    @media (min-width: 900px) {
+      .controls-grid {
+        grid-template-columns: 3fr 2fr;
+      }
+    }
+
+    /* Selection Display */
+    .selection-display-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .selection-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .atom-select-card {
+      flex: 1;
+      aspect-ratio: 1;
+      border-radius: 16px;
+      border: 1px solid var(--border-glass);
+      background: rgba(15, 23, 42, 0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .atom-select-card.empty {
+      border-style: dashed;
+      background: transparent;
+      color: var(--text-muted);
+    }
+
+    .atom-select-card.atom-a {
+      border-color: rgba(139, 92, 246, 0.4);
+      box-shadow: inset 0 0 15px rgba(139, 92, 246, 0.05);
+    }
+    .atom-select-card.atom-a:not(.empty) {
+      border-color: #8b5cf6;
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+    }
+
+    .atom-select-card.atom-b {
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: inset 0 0 15px rgba(16, 185, 129, 0.05);
+    }
+    .atom-select-card.atom-b:not(.empty) {
+      border-color: #10b981;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    }
+
+    .atom-select-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      position: absolute;
+      top: 12px;
+    }
+    
+    .atom-select-card.atom-a .atom-select-label { color: #a78bfa; }
+    .atom-select-card.atom-b .atom-select-label { color: #34d399; }
+
+    .atom-select-symbol {
+      font-size: 3rem;
+      font-weight: 800;
+      margin-top: 0.5rem;
+    }
+    
+    .atom-select-card.atom-a .atom-select-symbol { color: #c084fc; }
+    .atom-select-card.atom-b .atom-select-symbol { color: #34d399; }
+
+    .atom-select-name {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .selection-connector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .connector-line {
+      width: 2px;
+      height: 30px;
+      background: linear-gradient(to bottom, rgba(139, 92, 246, 0.2), rgba(16, 185, 129, 0.2));
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(139, 92, 246, 0.2);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-main);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.25);
+      border-color: rgba(239, 68, 68, 0.5);
+    }
+
+    .btn-icon {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 1.1rem;
+    }
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: rotate(180deg);
+    }
+
+    .btn-quick {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      color: var(--text-dim);
+      border-radius: 6px;
+    }
+    .btn-quick:hover {
+      background: rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      transform: translateY(-1px);
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Form control / select */
+    .search-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .search-inputs {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+
+    .search-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .search-group label {
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      font-weight: 500;
+    }
+
+    .form-control {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-glass);
+      color: var(--text-main);
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      width: 100%;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .form-control:focus {
+      border-color: rgba(139, 92, 246, 0.5);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Results layout */
+    .results-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.5rem;
+    }
+    
+    @media (min-width: 1024px) {
+      .results-grid {
+        grid-template-columns: 3fr 2fr;
+      }
+    }
+
+    .chart-card {
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      flex-grow: 1;
+      width: 100%;
+      height: 100%;
+      min-height: 320px;
+    }
+
+    .stats-panel {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 1rem;
+    }
+
+    .stat-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 1.25rem;
+    }
+
+    .stat-icon {
+      font-size: 1.75rem;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.04);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-glass);
+    }
+    
+    .stat-card:nth-child(1) .stat-icon { background: rgba(99, 102, 241, 0.1); border-color: rgba(99, 102, 241, 0.2); }
+    .stat-card:nth-child(2) .stat-icon { background: rgba(236, 72, 153, 0.1); border-color: rgba(236, 72, 153, 0.2); }
+    .stat-card:nth-child(3) .stat-icon { background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+    .stat-card:nth-child(4) .stat-icon { background: rgba(250, 204, 21, 0.1); border-color: rgba(250, 204, 21, 0.2); }
+    .stat-card:nth-child(5) .stat-icon { background: rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.2); }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-value {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 2px;
+    }
+
+    /* Onboarding / Placeholder Card */
+    .onboarding-card {
+      text-align: center;
+      padding: 4rem 2rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      border-style: dashed;
+      background: rgba(30, 41, 59, 0.15);
+    }
+
+    .onboarding-card h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f8fafc, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .onboarding-card p {
+      color: var(--text-dim);
+      max-width: 500px;
+    }
+
+    .quick-links {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 1rem;
+      width: 100%;
+      max-width: 600px;
+    }
+
+    .quick-links h4 {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .quick-links-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .cursor-pointer {
+      cursor: pointer;
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.1);
+      border-top-color: #8b5cf6;
+      border-radius: 50%;
+      animation: spin 1s infinite linear;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-weight: 500;
+      color: var(--text-dim);
+      font-size: 1.1rem;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-glass);
+      padding: 1.5rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 3rem;
+      background: rgba(15, 23, 42, 0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading Screen -->
+  <div id="loading" class="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading Interatomic Bonds Database...</div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <div class="logo-area">
+        <span class="logo-icon">⚛</span>
+        <div class="logo-text">
+          <h1>COD Interatomic Distances Explorer</h1>
+          <p>Statistical distribution of bond lengths computed from Crystallography Open Database</p>
+        </div>
+      </div>
+      <div class="badge-stats">
+        Database: <strong>521,901</strong> crystals | <strong>219,008,819</strong> bonds
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- CORS File Fallback Alert -->
+    <div id="cors-alert" class="cors-banner hidden">
+      <div class="banner-content">
+        <span class="banner-icon">⚠️</span>
+        <div class="banner-text">
+          <strong>Local File CORS Policy Active</strong>: Your browser blocked loading <code class="code-badge">cif_bonds_distribution.json</code> automatically because the HTML page was opened directly via the filesystem (<code class="code-badge">file://</code>).
+          <br>To view statistics, please run a local web server (like VS Code's <strong>Live Server</strong> extension, npm's <code class="code-badge">http-server</code>, or by running <code class="code-badge">python serve.py</code> in this directory), or select the database file manually:
+        </div>
+        <div class="banner-action">
+          <label for="json-file-input" class="btn btn-primary cursor-pointer">
+            Select cif_bonds_distribution.json
+          </label>
+          <input type="file" id="json-file-input" accept=".json" class="hidden" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 1: Periodic Table -->
+    <section class="glass-card">
+      <div class="card-header-row">
+        <h3 class="card-title">🔬 Select Elements from Periodic Table</h3>
+        <span class="text-sm color-muted" style="font-size: 0.8rem; color: var(--text-muted);">Click two elements to visualize their bond lengths distribution.</span>
+      </div>
+      
+      <div class="periodic-table-container">
+        <div class="periodic-table" id="periodic-table">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Table Legend -->
+      <div class="table-legend">
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-nonmetal);"></div>Reactive Nonmetals</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-noble-gas);"></div>Noble Gases</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-alkali-metal);"></div>Alkali Metals</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-alkaline-earth);"></div>Alkaline Earth Metals</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-metalloid);"></div>Metalloids</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-halogen);"></div>Halogens</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-transition);"></div>Transition Metals</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-post-transition);"></div>Post-Transition Metals</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-lanthanide);"></div>Lanthanides</div>
+        <div class="legend-item"><div class="legend-color" style="background-color: var(--c-actinide);"></div>Actinides</div>
+      </div>
+    </section>
+
+    <!-- Section 2: Controls & Active Selection -->
+    <section class="controls-grid">
+      <!-- Active Atoms Card -->
+      <div class="glass-card selection-display-card">
+        <div class="selection-container">
+          <div id="card-atom-a" class="atom-select-card atom-a empty">
+            <div class="atom-select-label">Atom A</div>
+            <div class="atom-select-symbol">-</div>
+            <div class="atom-select-name">Select element</div>
+          </div>
+          
+          <div class="selection-connector">
+            <div class="connector-line"></div>
+            <button id="btn-swap" class="btn btn-icon" title="Swap Atoms">🔄</button>
+            <div class="connector-line"></div>
+          </div>
+          
+          <div id="card-atom-b" class="atom-select-card atom-b empty">
+            <div class="atom-select-label">Atom B</div>
+            <div class="atom-select-symbol">-</div>
+            <div class="atom-select-name">Select element</div>
+          </div>
+        </div>
+
+        <div class="action-row">
+          <button id="btn-clear" class="btn btn-danger">Clear Selection</button>
+        </div>
+      </div>
+
+      <!-- Selection Search Card -->
+      <div class="glass-card search-card">
+        <div>
+          <h3 class="card-title">🔍 Search / Keyboard Select</h3>
+          <p class="text-sm" style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">Prefer typing? Select elements using the search fields below.</p>
+          
+          <div class="search-inputs">
+            <div class="search-group">
+              <label for="select-atom-a">Element A</label>
+              <select id="select-atom-a" class="form-control">
+                <option value="">-- Select Element --</option>
+              </select>
+            </div>
+            
+            <div class="search-group">
+              <label for="select-atom-b">Element B</label>
+              <select id="select-atom-b" class="form-control">
+                <option value="">-- Select Element --</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 3: Onboarding Panel -->
+    <section id="onboarding-card" class="glass-card onboarding-card">
+      <h2>Select Atom Pair</h2>
+      <p>Click two elements in the periodic table above, select from the search dropdowns, or try one of the common chemical bond combinations below:</p>
+      
+      <div class="quick-links">
+        <div class="quick-links-buttons">
+          <button class="btn btn-quick" data-pair="Si-O">Si - O (Silicates)</button>
+          <button class="btn btn-quick" data-pair="C-C">C - C (Organic Carbon)</button>
+          <button class="btn btn-quick" data-pair="C-O">C - O (Carbonates/Organics)</button>
+          <button class="btn btn-quick" data-pair="C-H">C - H (Hydrocarbons)</button>
+          <button class="btn btn-quick" data-pair="H-O">H - O (Water/Hydroxides)</button>
+          <button class="btn btn-quick" data-pair="Fe-O">Fe - O (Iron Oxides)</button>
+          <button class="btn btn-quick" data-pair="Al-O">Al - O (Alumina)</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 4: No Data Panel -->
+    <section id="no-data-card" class="glass-card onboarding-card hidden">
+      <h2 style="color: #fca5a5;">No Recorded Bonds Found</h2>
+      <p>There are no bonds recorded in the compiled database for <strong id="no-data-pair" style="color:#f8fafc; font-size:1.2rem;"></strong>.</p>
+      <p style="font-size: 0.85rem; color: var(--text-dim); margin-top: -8px;">This pair does not form bonds within the chemical structures present in the COD database, or they do not fit the covalent radius cutoffs (Bond distance &le; Covalent Radii sum + 0.45Å).</p>
+      
+      <div class="quick-links">
+        <h4>Try one of these active pairs:</h4>
+        <div class="quick-links-buttons">
+          <button class="btn btn-quick" data-pair="Si-O">Si - O</button>
+          <button class="btn btn-quick" data-pair="C-C">C - C</button>
+          <button class="btn btn-quick" data-pair="C-O">C - O</button>
+          <button class="btn btn-quick" data-pair="C-H">C - H</button>
+          <button class="btn btn-quick" data-pair="Fe-O">Fe - O</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section 5: Stats and Chart Dashboard -->
+    <section id="results-dashboard" class="results-grid hidden">
+      <!-- Chart Card -->
+      <div class="glass-card chart-card">
+        <h3 class="card-title">📈 Bond Length Distribution (Å)</h3>
+        <div class="chart-wrapper">
+          <canvas id="distribution-chart"></canvas>
+        </div>
+      </div>
+      
+      <!-- Stats Panel -->
+      <div class="stats-panel">
+        <div class="glass-card stat-card">
+          <div class="stat-icon">📊</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-count">0</div>
+            <div class="stat-label">Total Observations</div>
+          </div>
+        </div>
+        
+        <div class="glass-card stat-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-peak">-</div>
+            <div class="stat-label">Peak (Mode) Distance</div>
+          </div>
+        </div>
+        
+        <div class="glass-card stat-card">
+          <div class="stat-icon">📈</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-mean">-</div>
+            <div class="stat-label">Mean Distance (Average)</div>
+          </div>
+        </div>
+        
+        <div class="glass-card stat-card">
+          <div class="stat-icon">📉</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-stddev">-</div>
+            <div class="stat-label">Std Deviation (σ)</div>
+          </div>
+        </div>
+        
+        <div class="glass-card stat-card">
+          <div class="stat-icon">↔️</div>
+          <div class="stat-info">
+            <div class="stat-value" id="stat-range">-</div>
+            <div class="stat-label">Observed Range</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    COD Crystallography Interatomic Bonds Explorer | Compiled and Refined Database Visualizer | 2026
+  </footer>
+
+  <script>
+    // Full periodic table elements dataset
+    const elements = [
+      // Row 1
+      { number: 1, symbol: 'H', name: 'Hydrogen', mass: 1.008, category: 'nonmetal', row: 1, col: 1 },
+      { number: '', symbol: 'D', name: 'Deuterium', mass: 2.014, category: 'nonmetal', row: 1, col: 2 },
+      { number: '', symbol: 'T', name: 'Tritium', mass: 3.016, category: 'nonmetal', row: 1, col: 3 },
+      { number: 2, symbol: 'He', name: 'Helium', mass: 4.0026, category: 'noble-gas', row: 1, col: 18 },
+      // Row 2
+      { number: 3, symbol: 'Li', name: 'Lithium', mass: 6.94, category: 'alkali-metal', row: 2, col: 1 },
+      { number: 4, symbol: 'Be', name: 'Beryllium', mass: 9.0122, category: 'alkaline-earth', row: 2, col: 2 },
+      { number: 5, symbol: 'B', name: 'Boron', mass: 10.81, category: 'metalloid', row: 2, col: 13 },
+      { number: 6, symbol: 'C', name: 'Carbon', mass: 12.011, category: 'nonmetal', row: 2, col: 14 },
+      { number: 7, symbol: 'N', name: 'Nitrogen', mass: 14.007, category: 'nonmetal', row: 2, col: 15 },
+      { number: 8, symbol: 'O', name: 'Oxygen', mass: 15.999, category: 'nonmetal', row: 2, col: 16 },
+      { number: 9, symbol: 'F', name: 'Fluorine', mass: 18.998, category: 'halogen', row: 2, col: 17 },
+      { number: 10, symbol: 'Ne', name: 'Neon', mass: 20.180, category: 'noble-gas', row: 2, col: 18 },
+      // Row 3
+      { number: 11, symbol: 'Na', name: 'Sodium', mass: 22.990, category: 'alkali-metal', row: 3, col: 1 },
+      { number: 12, symbol: 'Mg', name: 'Magnesium', mass: 24.305, category: 'alkaline-earth', row: 3, col: 2 },
+      { number: 13, symbol: 'Al', name: 'Aluminium', mass: 26.982, category: 'post-transition', row: 3, col: 13 },
+      { number: 14, symbol: 'Si', name: 'Silicon', mass: 28.085, category: 'metalloid', row: 3, col: 14 },
+      { number: 15, symbol: 'P', name: 'Phosphorus', mass: 30.974, category: 'nonmetal', row: 3, col: 15 },
+      { number: 16, symbol: 'S', name: 'Sulfur', mass: 32.06, category: 'nonmetal', row: 3, col: 16 },
+      { number: 17, symbol: 'Cl', name: 'Chlorine', mass: 35.45, category: 'halogen', row: 3, col: 17 },
+      { number: 18, symbol: 'Ar', name: 'Argon', mass: 39.948, category: 'noble-gas', row: 3, col: 18 },
+      // Row 4
+      { number: 19, symbol: 'K', name: 'Potassium', mass: 39.098, category: 'alkali-metal', row: 4, col: 1 },
+      { number: 20, symbol: 'Ca', name: 'Calcium', mass: 40.078, category: 'alkaline-earth', row: 4, col: 2 },
+      { number: 21, symbol: 'Sc', name: 'Scandium', mass: 44.956, category: 'transition', row: 4, col: 3 },
+      { number: 22, symbol: 'Ti', name: 'Titanium', mass: 47.867, category: 'transition', row: 4, col: 4 },
+      { number: 23, symbol: 'V', name: 'Vanadium', mass: 50.942, category: 'transition', row: 4, col: 5 },
+      { number: 24, symbol: 'Cr', name: 'Chromium', mass: 51.996, category: 'transition', row: 4, col: 6 },
+      { number: 25, symbol: 'Mn', name: 'Manganese', mass: 54.938, category: 'transition', row: 4, col: 7 },
+      { number: 26, symbol: 'Fe', name: 'Iron', mass: 55.845, category: 'transition', row: 4, col: 8 },
+      { number: 27, symbol: 'Co', name: 'Cobalt', mass: 58.933, category: 'transition', row: 4, col: 9 },
+      { number: 28, symbol: 'Ni', name: 'Nickel', mass: 58.693, category: 'transition', row: 4, col: 10 },
+      { number: 29, symbol: 'Cu', name: 'Copper', mass: 63.546, category: 'transition', row: 4, col: 11 },
+      { number: 30, symbol: 'Zn', name: 'Zinc', mass: 65.38, category: 'transition', row: 4, col: 12 },
+      { number: 31, symbol: 'Ga', name: 'Gallium', mass: 69.723, category: 'post-transition', row: 4, col: 13 },
+      { number: 32, symbol: 'Ge', name: 'Germanium', mass: 72.63, category: 'metalloid', row: 4, col: 14 },
+      { number: 33, symbol: 'As', name: 'Arsenic', mass: 74.922, category: 'metalloid', row: 4, col: 15 },
+      { number: 34, symbol: 'Se', name: 'Selenium', mass: 78.971, category: 'nonmetal', row: 4, col: 16 },
+      { number: 35, symbol: 'Br', name: 'Bromine', mass: 79.904, category: 'halogen', row: 4, col: 17 },
+      { number: 36, symbol: 'Kr', name: 'Krypton', mass: 83.798, category: 'noble-gas', row: 4, col: 18 },
+      // Row 5
+      { number: 37, symbol: 'Rb', name: 'Rubidium', mass: 85.468, category: 'alkali-metal', row: 5, col: 1 },
+      { number: 38, symbol: 'Sr', name: 'Strontium', mass: 87.62, category: 'alkaline-earth', row: 5, col: 2 },
+      { number: 39, symbol: 'Y', name: 'Yttrium', mass: 88.906, category: 'transition', row: 5, col: 3 },
+      { number: 40, symbol: 'Zr', name: 'Zirconium', mass: 91.224, category: 'transition', row: 5, col: 4 },
+      { number: 41, symbol: 'Nb', name: 'Niobium', mass: 92.906, category: 'transition', row: 5, col: 5 },
+      { number: 42, symbol: 'Mo', name: 'Molybdenum', mass: 95.95, category: 'transition', row: 5, col: 6 },
+      { number: 43, symbol: 'Tc', name: 'Technetium', mass: 98, category: 'transition', row: 5, col: 7 },
+      { number: 44, symbol: 'Ru', name: 'Ruthenium', mass: 101.07, category: 'transition', row: 5, col: 8 },
+      { number: 45, symbol: 'Rh', name: 'Rhodium', mass: 102.91, category: 'transition', row: 5, col: 9 },
+      { number: 46, symbol: 'Pd', name: 'Palladium', mass: 106.42, category: 'transition', row: 5, col: 10 },
+      { number: 47, symbol: 'Ag', name: 'Silver', mass: 107.87, category: 'transition', row: 5, col: 11 },
+      { number: 48, symbol: 'Cd', name: 'Cadmium', mass: 112.41, category: 'transition', row: 5, col: 12 },
+      { number: 49, symbol: 'In', name: 'Indium', mass: 114.82, category: 'post-transition', row: 5, col: 13 },
+      { number: 50, symbol: 'Sn', name: 'Tin', mass: 118.71, category: 'post-transition', row: 5, col: 14 },
+      { number: 51, symbol: 'Sb', name: 'Antimony', mass: 121.76, category: 'metalloid', row: 5, col: 15 },
+      { number: 52, symbol: 'Te', name: 'Tellurium', mass: 127.60, category: 'metalloid', row: 5, col: 16 },
+      { number: 53, symbol: 'I', name: 'Iodine', mass: 126.90, category: 'halogen', row: 5, col: 17 },
+      { number: 54, symbol: 'Xe', name: 'Xenon', mass: 131.29, category: 'noble-gas', row: 5, col: 18 },
+      // Row 6
+      { number: 55, symbol: 'Cs', name: 'Caesium', mass: 132.91, category: 'alkali-metal', row: 6, col: 1 },
+      { number: 56, symbol: 'Ba', name: 'Barium', mass: 137.33, category: 'alkaline-earth', row: 6, col: 2 },
+      { symbol: 'La-Lu', name: 'Lanthanides', number: '57-71', category: 'lanthanide-spacer', row: 6, col: 3 },
+      { number: 72, symbol: 'Hf', name: 'Hafnium', mass: 178.49, category: 'transition', row: 6, col: 4 },
+      { number: 73, symbol: 'Ta', name: 'Tantalum', mass: 180.95, category: 'transition', row: 6, col: 5 },
+      { number: 74, symbol: 'W', name: 'Tungsten', mass: 183.84, category: 'transition', row: 6, col: 6 },
+      { number: 75, symbol: 'Re', name: 'Rhenium', mass: 186.21, category: 'transition', row: 6, col: 7 },
+      { number: 76, symbol: 'Os', name: 'Osmium', mass: 190.23, category: 'transition', row: 6, col: 8 },
+      { number: 77, symbol: 'Ir', name: 'Iridium', mass: 192.22, category: 'transition', row: 6, col: 9 },
+      { number: 78, symbol: 'Pt', name: 'Platinum', mass: 195.08, category: 'transition', row: 6, col: 10 },
+      { number: 79, symbol: 'Au', name: 'Gold', mass: 196.97, category: 'transition', row: 6, col: 11 },
+      { number: 80, symbol: 'Hg', name: 'Mercury', mass: 200.59, category: 'transition', row: 6, col: 12 },
+      { number: 81, symbol: 'Tl', name: 'Thallium', mass: 204.38, category: 'post-transition', row: 6, col: 13 },
+      { number: 82, symbol: 'Pb', name: 'Lead', mass: 207.2, category: 'post-transition', row: 6, col: 14 },
+      { number: 83, symbol: 'Bi', name: 'Bismuth', mass: 208.98, category: 'post-transition', row: 6, col: 15 },
+      { number: 84, symbol: 'Po', name: 'Polonium', mass: 209, category: 'metalloid', row: 6, col: 16 },
+      { number: 85, symbol: 'At', name: 'Astatine', mass: 210, category: 'halogen', row: 6, col: 17 },
+      { number: 86, symbol: 'Rn', name: 'Radon', mass: 222, category: 'noble-gas', row: 6, col: 18 },
+      // Row 7
+      { number: 87, symbol: 'Fr', name: 'Francium', mass: 223, category: 'alkali-metal', row: 7, col: 1 },
+      { number: 88, symbol: 'Ra', name: 'Radium', mass: 226, category: 'alkaline-earth', row: 7, col: 2 },
+      { symbol: 'Ac-Lr', name: 'Actinides', number: '89-103', category: 'actinide-spacer', row: 7, col: 3 },
+      { number: 104, symbol: 'Rf', name: 'Rutherfordium', mass: 267, category: 'transition', row: 7, col: 4 },
+      { number: 105, symbol: 'Db', name: 'Dubnium', mass: 268, category: 'transition', row: 7, col: 5 },
+      { number: 106, symbol: 'Sg', name: 'Seaborgium', mass: 269, category: 'transition', row: 7, col: 6 },
+      { number: 107, symbol: 'Bh', name: 'Bohrium', mass: 270, category: 'transition', row: 7, col: 7 },
+      { number: 108, symbol: 'Hs', name: 'Hassium', mass: 277, category: 'transition', row: 7, col: 8 },
+      { number: 109, symbol: 'Mt', name: 'Meitnerium', mass: 278, category: 'transition', row: 7, col: 9 },
+      { number: 110, symbol: 'Ds', name: 'Darmstadtium', mass: 281, category: 'transition', row: 7, col: 10 },
+      { number: 111, symbol: 'Rg', name: 'Roentgenium', mass: 282, category: 'transition', row: 7, col: 11 },
+      { number: 112, symbol: 'Cn', name: 'Copernicium', mass: 285, category: 'transition', row: 7, col: 12 },
+      { number: 113, symbol: 'Nh', name: 'Nihonium', mass: 286, category: 'post-transition', row: 7, col: 13 },
+      { number: 114, symbol: 'Fl', name: 'Flerovium', mass: 289, category: 'post-transition', row: 7, col: 14 },
+      { number: 115, symbol: 'Mc', name: 'Moscovium', mass: 290, category: 'post-transition', row: 7, col: 15 },
+      { number: 116, symbol: 'Lv', name: 'Livermorium', mass: 293, category: 'post-transition', row: 7, col: 16 },
+      { number: 117, symbol: 'Ts', name: 'Tennessine', mass: 294, category: 'halogen', row: 7, col: 17 },
+      { number: 118, symbol: 'Og', name: 'Oganesson', mass: 294, category: 'noble-gas', row: 7, col: 18 },
+
+      // Lanthanides (Row 9)
+      { number: 57, symbol: 'La', name: 'Lanthanum', mass: 138.91, category: 'lanthanide', row: 9, col: 3 },
+      { number: 58, symbol: 'Ce', name: 'Cerium', mass: 140.12, category: 'lanthanide', row: 9, col: 4 },
+      { number: 59, symbol: 'Pr', name: 'Praseodymium', mass: 140.91, category: 'lanthanide', row: 9, col: 5 },
+      { number: 60, symbol: 'Nd', name: 'Neodymium', mass: 144.24, category: 'lanthanide', row: 9, col: 6 },
+      { number: 61, symbol: 'Pm', name: 'Promethium', mass: 145, category: 'lanthanide', row: 9, col: 7 },
+      { number: 62, symbol: 'Sm', name: 'Samarium', mass: 150.36, category: 'lanthanide', row: 9, col: 8 },
+      { number: 63, symbol: 'Eu', name: 'Europium', mass: 151.96, category: 'lanthanide', row: 9, col: 9 },
+      { number: 64, symbol: 'Gd', name: 'Gadolinium', mass: 157.25, category: 'lanthanide', row: 9, col: 10 },
+      { number: 65, symbol: 'Tb', name: 'Terbium', mass: 158.93, category: 'lanthanide', row: 9, col: 11 },
+      { number: 66, symbol: 'Dy', name: 'Dysprosium', mass: 162.50, category: 'lanthanide', row: 9, col: 12 },
+      { number: 67, symbol: 'Ho', name: 'Holmium', mass: 164.93, category: 'lanthanide', row: 9, col: 13 },
+      { number: 68, symbol: 'Er', name: 'Erbium', mass: 167.26, category: 'lanthanide', row: 9, col: 14 },
+      { number: 69, symbol: 'Tm', name: 'Thulium', mass: 168.93, category: 'lanthanide', row: 9, col: 15 },
+      { number: 70, symbol: 'Yb', name: 'Ytterbium', mass: 173.05, category: 'lanthanide', row: 9, col: 16 },
+      { number: 71, symbol: 'Lu', name: 'Lutetium', mass: 174.97, category: 'lanthanide', row: 9, col: 17 },
+
+      // Actinides (Row 10)
+      { number: 89, symbol: 'Ac', name: 'Actinium', mass: 227, category: 'actinide', row: 10, col: 3 },
+      { number: 90, symbol: 'Th', name: 'Thorium', mass: 232.04, category: 'actinide', row: 10, col: 4 },
+      { number: 91, symbol: 'Pa', name: 'Protactinium', mass: 231.04, category: 'actinide', row: 10, col: 5 },
+      { number: 92, symbol: 'U', name: 'Uranium', mass: 238.03, category: 'actinide', row: 10, col: 6 },
+      { number: 93, symbol: 'Np', name: 'Neptunium', mass: 237, category: 'actinide', row: 10, col: 7 },
+      { number: 94, symbol: 'Pu', name: 'Plutonium', mass: 244, category: 'actinide', row: 10, col: 8 },
+      { number: 95, symbol: 'Am', name: 'Americium', mass: 243, category: 'actinide', row: 10, col: 9 },
+      { number: 96, symbol: 'Cm', name: 'Curium', mass: 247, category: 'actinide', row: 10, col: 10 },
+      { number: 97, symbol: 'Bk', name: 'Berkelium', mass: 247, category: 'actinide', row: 10, col: 11 },
+      { number: 98, symbol: 'Cf', name: 'Californium', mass: 251, category: 'actinide', row: 10, col: 12 },
+      { number: 99, symbol: 'Es', name: 'Einsteinium', mass: 252, category: 'actinide', row: 10, col: 13 },
+      { number: 100, symbol: 'Fm', name: 'Fermium', mass: 257, category: 'actinide', row: 10, col: 14 },
+      { number: 101, symbol: 'Md', name: 'Mendelevium', mass: 258, category: 'actinide', row: 10, col: 15 },
+      { number: 102, symbol: 'No', name: 'Nobelium', mass: 259, category: 'actinide', row: 10, col: 16 },
+      { number: 103, symbol: 'Lr', name: 'Lawrencium', mass: 262, category: 'actinide', row: 10, col: 17 }
+    ];
+
+    let bondData = null;
+    let selectedAtomA = null;
+    let selectedAtomB = null;
+    let chartInstance = null;
+
+    // Build periodic table UI
+    function buildPeriodicTable() {
+      const container = document.getElementById('periodic-table');
+      container.innerHTML = '';
+
+      elements.forEach(el => {
+        const card = document.createElement('div');
+        card.className = `element-card ${el.category}`;
+        card.style.gridColumn = el.col;
+        card.style.gridRow = el.row;
+        card.setAttribute('data-symbol', el.symbol);
+
+        if (el.category !== 'lanthanide-spacer' && el.category !== 'actinide-spacer') {
+          card.onclick = () => handleElementClick(el.symbol);
+        }
+
+        const numSpan = document.createElement('span');
+        numSpan.className = 'atomic-number';
+        numSpan.textContent = el.number;
+        card.appendChild(numSpan);
+
+        const symSpan = document.createElement('span');
+        symSpan.className = 'symbol';
+        symSpan.textContent = el.symbol;
+        card.appendChild(symSpan);
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'name';
+        nameSpan.textContent = el.name;
+        card.appendChild(nameSpan);
+
+        if (el.mass) {
+          const massSpan = document.createElement('span');
+          massSpan.className = 'mass';
+          massSpan.textContent = parseFloat(el.mass).toFixed(2);
+          card.appendChild(massSpan);
+        }
+
+        container.appendChild(card);
+      });
+    }
+
+    // Build drop down selection lists
+    function populateDropdowns() {
+      const selectA = document.getElementById('select-atom-a');
+      const selectB = document.getElementById('select-atom-b');
+
+      // Filter out spacers
+      const activeElements = elements.filter(el => el.category !== 'lanthanide-spacer' && el.category !== 'actinide-spacer');
+      
+      // Sort alphabetically by symbol
+      const sortedElements = [...activeElements].sort((x, y) => x.symbol.localeCompare(y.symbol));
+
+      sortedElements.forEach(el => {
+        const optA = document.createElement('option');
+        optA.value = el.symbol;
+        optA.textContent = `${el.symbol} - ${el.name}`;
+        selectA.appendChild(optA);
+
+        const optB = document.createElement('option');
+        optB.value = el.symbol;
+        optB.textContent = `${el.symbol} - ${el.name}`;
+        selectB.appendChild(optB);
+      });
+
+      selectA.onchange = (e) => handleDropdownSelect('A', e.target.value);
+      selectB.onchange = (e) => handleDropdownSelect('B', e.target.value);
+    }
+
+    // Handles user clicking an element in the table
+    function handleElementClick(symbol) {
+      // If clicking already selected Atom A, deselect it
+      if (selectedAtomA === symbol && !selectedAtomB) {
+        clearSelection();
+        updateUI();
+        return;
+      }
+
+      if (!selectedAtomA) {
+        setSelection('A', symbol);
+      } else if (!selectedAtomB) {
+        // Check if there is a bond between selectedAtomA and the clicked symbol
+        const sortedPair = [selectedAtomA, symbol].sort();
+        const bondKey = sortedPair.join('-');
+
+        if (bondData && bondData[bondKey]) {
+          setSelection('B', symbol);
+        } else {
+          // No bond exists in the database, so reset and make the clicked element the new Atom A
+          clearSelection();
+          setSelection('A', symbol);
+        }
+      } else {
+        // Both already selected, clear and start new selection with A
+        clearSelection();
+        setSelection('A', symbol);
+      }
+      updateUI();
+    }
+
+    // Handle dropdown selections
+    function handleDropdownSelect(type, symbol) {
+      setSelection(type, symbol);
+      updateUI();
+    }
+
+    // Sets specific selection
+    function setSelection(type, symbol) {
+      if (!symbol) {
+        if (type === 'A') selectedAtomA = null;
+        if (type === 'B') selectedAtomB = null;
+        return;
+      }
+
+      if (type === 'A') {
+        selectedAtomA = symbol;
+        document.getElementById('select-atom-a').value = symbol;
+      } else if (type === 'B') {
+        selectedAtomB = symbol;
+        document.getElementById('select-atom-b').value = symbol;
+      }
+    }
+
+    // Swaps selected elements
+    function swapElements() {
+      const temp = selectedAtomA;
+      selectedAtomA = selectedAtomB;
+      selectedAtomB = temp;
+
+      document.getElementById('select-atom-a').value = selectedAtomA || '';
+      document.getElementById('select-atom-b').value = selectedAtomB || '';
+
+      updateUI();
+    }
+
+    // Clear everything
+    function clearSelection() {
+      selectedAtomA = null;
+      selectedAtomB = null;
+      document.getElementById('select-atom-a').value = '';
+      document.getElementById('select-atom-b').value = '';
+      updateUI();
+    }
+
+    // Highlight selected elements on periodic table
+    function updateHighlights() {
+      // Clear all selections and active states
+      document.querySelectorAll('.element-card').forEach(card => {
+        card.classList.remove('selected-a', 'selected-b', 'selected-both', 'inactive-element');
+      });
+
+      if (selectedAtomA && selectedAtomB && selectedAtomA === selectedAtomB) {
+        const card = document.querySelector(`.element-card[data-symbol="${selectedAtomA}"]`);
+        if (card) card.classList.add('selected-both');
+      } else {
+        if (selectedAtomA) {
+          const card = document.querySelector(`.element-card[data-symbol="${selectedAtomA}"]`);
+          if (card) card.classList.add('selected-a');
+        }
+        if (selectedAtomB) {
+          const card = document.querySelector(`.element-card[data-symbol="${selectedAtomB}"]`);
+          if (card) card.classList.add('selected-b');
+        }
+      }
+
+      // If Atom A is selected but B is not, dim elements that don't form a bond with A
+      if (selectedAtomA && !selectedAtomB && bondData) {
+        document.querySelectorAll('.element-card').forEach(card => {
+          const symbol = card.getAttribute('data-symbol');
+          const isSpacer = card.classList.contains('lanthanide-spacer') || card.classList.contains('actinide-spacer');
+          if (!symbol || isSpacer) return;
+
+          // Check if a bond exists with Atom A
+          const sortedPair = [selectedAtomA, symbol].sort();
+          const bondKey = sortedPair.join('-');
+
+          if (!bondData[bondKey]) {
+            card.classList.add('inactive-element');
+          }
+        });
+      }
+    }
+
+    // Update active selection display cards
+    function updateSelectionCards() {
+      const cardA = document.getElementById('card-atom-a');
+      const cardB = document.getElementById('card-atom-b');
+
+      if (selectedAtomA) {
+        const el = elements.find(e => e.symbol === selectedAtomA);
+        cardA.classList.remove('empty');
+        cardA.querySelector('.atom-select-symbol').textContent = el.symbol;
+        cardA.querySelector('.atom-select-name').textContent = el.name;
+        // set border color based on family
+        cardA.style.borderColor = `var(--c-${el.category})`;
+      } else {
+        cardA.classList.add('empty');
+        cardA.querySelector('.atom-select-symbol').textContent = '-';
+        cardA.querySelector('.atom-select-name').textContent = 'Select element';
+        cardA.style.borderColor = '';
+      }
+
+      if (selectedAtomB) {
+        const el = elements.find(e => e.symbol === selectedAtomB);
+        cardB.classList.remove('empty');
+        cardB.querySelector('.atom-select-symbol').textContent = el.symbol;
+        cardB.querySelector('.atom-select-name').textContent = el.name;
+        // set border color based on family
+        cardB.style.borderColor = `var(--c-${el.category})`;
+      } else {
+        cardB.classList.add('empty');
+        cardB.querySelector('.atom-select-symbol').textContent = '-';
+        cardB.querySelector('.atom-select-name').textContent = 'Select element';
+        cardB.style.borderColor = '';
+      }
+    }
+
+    // Calculate statistics and render output
+    function updateUI() {
+      updateHighlights();
+      updateSelectionCards();
+
+      const onboarding = document.getElementById('onboarding-card');
+      const noData = document.getElementById('no-data-card');
+      const dashboard = document.getElementById('results-dashboard');
+
+      if (!selectedAtomA || !selectedAtomB) {
+        onboarding.classList.remove('hidden');
+        noData.classList.add('hidden');
+        dashboard.classList.add('hidden');
+        return;
+      }
+
+      // Check if dataset contains this pair (sorted alphabetically)
+      const sortedPair = [selectedAtomA, selectedAtomB].sort();
+      const bondKey = sortedPair.join('-');
+
+      if (!bondData || !bondData[bondKey]) {
+        // No data found
+        onboarding.classList.add('hidden');
+        dashboard.classList.add('hidden');
+        
+        document.getElementById('no-data-pair').textContent = `${selectedAtomA} - ${selectedAtomB}`;
+        noData.classList.remove('hidden');
+        return;
+      }
+
+      // We have data! Show dashboard
+      onboarding.classList.add('hidden');
+      noData.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+
+      calculateAndShowStats(bondKey);
+    }
+
+    function calculateAndShowStats(bondKey) {
+      const distributions = bondData[bondKey]; // format: {"1.23": count, "1.44": count}
+      
+      const distanceKeys = Object.keys(distributions).sort((x, y) => parseFloat(x) - parseFloat(y));
+      const chartData = [];
+
+      let totalCount = 0;
+      let sumDist = 0;
+      let peakDist = '';
+      let maxCount = -1;
+
+      distanceKeys.forEach(dk => {
+        const count = distributions[dk];
+        const distVal = parseFloat(dk);
+        
+        chartData.push({ x: distVal, y: count });
+
+        totalCount += count;
+        sumDist += distVal * count;
+
+        if (count > maxCount) {
+          maxCount = count;
+          peakDist = dk;
+        }
+      });
+
+      const meanDist = sumDist / totalCount;
+
+      // Variance and Standard Deviation
+      let varianceSum = 0;
+      distanceKeys.forEach(dk => {
+        const count = distributions[dk];
+        const distVal = parseFloat(dk);
+        varianceSum += count * Math.pow(distVal - meanDist, 2);
+      });
+      const stdDev = Math.sqrt(varianceSum / totalCount);
+
+      // Min and Max observed ranges
+      const minDist = distanceKeys[0];
+      const maxDist = distanceKeys[distanceKeys.length - 1];
+
+      // Update statistics display
+      document.getElementById('stat-count').textContent = totalCount.toLocaleString();
+      document.getElementById('stat-peak').textContent = `${peakDist} Å`;
+      document.getElementById('stat-mean').textContent = `${meanDist.toFixed(3)} Å`;
+      document.getElementById('stat-stddev').textContent = `${stdDev.toFixed(3)} Å`;
+      document.getElementById('stat-range').textContent = `${minDist} - ${maxDist} Å`;
+
+      // Render chart
+      renderChart(chartData);
+    }
+
+    function renderChart(chartData) {
+      const ctx = document.getElementById('distribution-chart').getContext('2d');
+      
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+      
+      const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+      gradient.addColorStop(0, 'rgba(139, 92, 246, 0.4)');
+      gradient.addColorStop(1, 'rgba(139, 92, 246, 0.01)');
+      
+      chartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Observation Count',
+            data: chartData,
+            borderColor: '#8b5cf6',
+            borderWidth: 2,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.3,
+            pointBackgroundColor: '#8b5cf6',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 1,
+            pointRadius: 2.5,
+            pointHoverRadius: 6,
+            pointHoverBackgroundColor: '#c084fc',
+            pointHoverBorderColor: '#ffffff',
+            pointHoverBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              titleColor: '#fff',
+              bodyColor: '#e2e8f0',
+              borderColor: 'rgba(255,255,255,0.08)',
+              borderWidth: 1,
+              padding: 10,
+              displayColors: false,
+              callbacks: {
+                label: function(context) {
+                  return `Count: ${context.parsed.y.toLocaleString()}`;
+                },
+                title: function(context) {
+                  return `Distance: ${context[0].parsed.x.toFixed(2)} Å`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              min: 0.5,
+              max: 5.5,
+              grid: {
+                color: 'rgba(255, 255, 255, 0.03)',
+                borderColor: 'rgba(255, 255, 255, 0.06)'
+              },
+              ticks: {
+                stepSize: 0.5,
+                color: '#94a3b8',
+                font: {
+                  family: 'Outfit, sans-serif'
+                }
+              },
+              title: {
+                display: true,
+                text: 'Bond Length (Å)',
+                color: '#94a3b8',
+                font: {
+                  family: 'Outfit, sans-serif',
+                  weight: 'bold'
+                }
+              }
+            },
+            y: {
+              grid: {
+                color: 'rgba(255, 255, 255, 0.03)',
+                borderColor: 'rgba(255, 255, 255, 0.06)'
+              },
+              ticks: {
+                color: '#94a3b8',
+                font: {
+                  family: 'Outfit, sans-serif'
+                },
+                callback: function(value) {
+                  if (value >= 1e6) return (value / 1e6).toFixed(1) + 'M';
+                  if (value >= 1e3) return (value / 1e3).toFixed(1) + 'k';
+                  return value;
+                }
+              },
+              title: {
+                display: true,
+                text: 'Observations',
+                color: '#94a3b8',
+                font: {
+                  family: 'Outfit, sans-serif',
+                  weight: 'bold'
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // Handles showing/hiding loading screen
+    function showLoading(isLoading) {
+      const loader = document.getElementById('loading');
+      if (isLoading) {
+        loader.classList.remove('hidden');
+      } else {
+        loader.classList.add('hidden');
+      }
+    }
+
+    // Show/hide CORS warning
+    function showCorsAlert() {
+      document.getElementById('cors-alert').classList.remove('hidden');
+    }
+    
+    function hideCorsAlert() {
+      document.getElementById('cors-alert').classList.add('hidden');
+    }
+
+    // Setup local file reader fallback
+    function setupFileFallback() {
+      document.getElementById('json-file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        showLoading(true);
+        reader.onload = function(evt) {
+          try {
+            bondData = JSON.parse(evt.target.result);
+            showLoading(false);
+            hideCorsAlert();
+            clearSelection();
+          } catch (err) {
+            alert("Error parsing JSON file. Make sure you selected the correct cif_bonds_distribution.json file.");
+            showLoading(false);
+          }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    // Load database JSON via fetch
+    async function loadData() {
+      showLoading(true);
+      try {
+        const response = await fetch('cif_bonds_distribution.json');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        bondData = await response.json();
+        showLoading(false);
+        hideCorsAlert();
+        clearSelection();
+      } catch (error) {
+        console.error('Failed to fetch JSON database automatically:', error);
+        showLoading(false);
+        showCorsAlert();
+      }
+    }
+
+    // Initialize UI and elements
+    window.onload = () => {
+      buildPeriodicTable();
+      populateDropdowns();
+      setupFileFallback();
+      
+      // Setup action buttons
+      document.getElementById('btn-swap').onclick = swapElements;
+      document.getElementById('btn-clear').onclick = clearSelection;
+
+      // Setup quick link buttons
+      document.querySelectorAll('.btn-quick').forEach(btn => {
+        btn.onclick = () => {
+          const pair = btn.getAttribute('data-pair');
+          const [elA, elB] = pair.split('-');
+          setSelection('A', elA);
+          setSelection('B', elB);
+          updateUI();
+          
+          // Scroll up slightly to view the dashboard if needed
+          document.getElementById('card-atom-a').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        };
+      });
+
+      // Load the database
+      loadData();
+    };
+  </script>
+</body>
+</html>

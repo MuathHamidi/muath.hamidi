@@ -14,7 +14,8 @@ Here you can find a collection of web tools I have created.
 - **[Bonds Counter](./apps/bonds_counter.html)**: A tool that takes a CIF file or a folder of CIF files to count the bonds, specifying the participant elements, bond lengths, and the shared mass of elements in crystals.
 - **[Crystal Lattice Sites](./apps/crystal_lattice_sites.html)**: A tool that takes a CIF file or a folder of CIF files to return the atomic positions and to plot the primitive cell in 3D.
 - **[Interatomic Distances Founder](./apps/interatomic_distances_founder.html)**: A tool to find the interatomic distances distribution.
-- **[Interatomic Distances Visualizer](./apps/interatomic_distances_visualizer.html)**: A tool to visualize the interatomic distances distribution.
+- **[Interatomic Distances Visualizer (New)](./apps/InteratomicDistances/InteratomicDistances.html)**: A tool to visualize the interatomic distances distribution.
+- **[Interatomic Distances Visualizer (Old)](./apps/interatomic_distances_visualizer.html)**: A tool to visualize the interatomic distances distribution.
 - **[CIF Maker](./apps/cif_maker.html)**: A tool to create CIF files from input data.
 - **[State Basis Convertor](./apps/state_basis_convertor.html)**: A tool to convert the quantum states from the coupled basis to the chemical atomic orbitals basis.
 - **[Pyrochlores](./apps/Pyrochlores/Pyrochlores.html)**: This tool analyzes and visualizes Rare Earth Pyrochlores (A2B2O7) simulations.
