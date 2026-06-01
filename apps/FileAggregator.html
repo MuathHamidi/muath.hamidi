@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RepoScan - Robust</title>
+    <!-- Try to load Tailwind -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Try to load Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+        
+        /* --- CRITICAL FALLBACK STYLES --- 
+           These ensure the app looks good and functions even if Tailwind CDN fails.
+        */
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #e2e8f0;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --border: #334155;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Utility Fallbacks */
+        .hidden { display: none !important; }
+        
+        /* Layout Fallbacks (approximate Tailwind classes for safety) */
+        header { 
+            background-color: #020617; 
+            border-bottom: 1px solid var(--border); 
+            padding: 1rem; 
+            position: sticky; 
+            top: 0; 
+            z-index: 10;
+        }
+        
+        .header-content {
+            max-width: 72rem;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title-group { display: flex; align-items: center; gap: 0.75rem; }
+        .logo-box { background-color: var(--accent); color: white; padding: 0.5rem; border-radius: 0.5rem; }
+        
+        main {
+            flex-grow: 1;
+            width: 100%;
+            max-width: 72rem;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+            box-sizing: border-box;
+        }
+
+        /* Cards */
+        .card {
+            background-color: #1e293b; /* slate-800 equivalent */
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        @media (min-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* Inputs */
+        input[type="text"] {
+            width: 100%;
+            background-color: #020617;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            box-sizing: border-box;
+            margin-top: 0.25rem;
+        }
+
+        /* File Upload Box */
+        .upload-box {
+            border: 2px dashed var(--border);
+            border-radius: 0.5rem;
+            padding: 2rem;
+            text-align: center;
+            position: relative;
+            background-color: rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+        .upload-box:hover { border-color: var(--accent); background-color: rgba(59, 130, 246, 0.1); }
+        
+        /* Buttons */
+        .btn-reset { color: var(--text-muted); text-decoration: none; font-size: 0.875rem; }
+        .btn-reset:hover { color: var(--accent); }
+
+        .btn-download {
+            background-color: #059669; /* emerald-600 */
+            color: white;
+            padding: 0.625rem 1.5rem;
+            border-radius: 0.5rem;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-download:hover { background-color: #10b981; }
+
+        .btn-copy {
+            background-color: var(--border);
+            color: var(--text-main);
+            border: none;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        .btn-copy:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Preview Area */
+        .preview-container {
+            height: 600px;
+            display: flex;
+            flex-direction: column;
+            background-color: #1e293b;
+            border-radius: 0.75rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+        .preview-header {
+            padding: 0.75rem 1rem;
+            background-color: rgba(30, 41, 59, 0.5);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .preview-content {
+            flex-grow: 1;
+            padding: 1rem;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.3);
+            margin: 0;
+        }
+        pre {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            white-space: pre-wrap;
+            margin: 0;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        /* Progress Bar */
+        .progress-track { width: 100%; background-color: #334155; height: 0.5rem; border-radius: 9999px; overflow: hidden; }
+        .progress-fill { height: 100%; transition: width 0.3s ease; }
+        .bg-blue { background-color: var(--accent); }
+        .bg-green { background-color: #10b981; box-shadow: 0 0 10px rgba(16,185,129,0.5); }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-300 min-h-screen flex flex-col selection:bg-blue-500/30">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-10 backdrop-blur-sm bg-opacity-90">
+        <div class="header-content max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="title-group flex items-center gap-3">
+                <div class="logo-box bg-blue-600 text-white p-2 rounded-lg shadow-lg shadow-blue-900/20">
+                    <i data-lucide="folder-tree" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white leading-tight" style="margin:0;">RepoScan</h1>
+                    <p class="text-xs text-slate-400" style="margin:0;">Directory to Single File Aggregator</p>
+                </div>
+            </div>
+            <a href="#" onclick="window.location.reload()" class="btn-reset text-sm text-slate-400 hover:text-blue-400 transition-colors">Reset</a>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-6xl mx-auto w-full px-4 py-8 space-y-6">
+
+        <!-- Controls Card -->
+        <div class="card bg-slate-900 rounded-xl shadow-lg border border-slate-800 p-6">
+            <div class="grid-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Left: File Selection -->
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-slate-300">1. Select Directory</label>
+                    <div class="upload-box relative group">
+                        <input type="file" id="folderInput" webkitdirectory directory multiple 
+                            class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" />
+                        <div class="flex flex-col items-center justify-center text-center">
+                            <i data-lucide="upload-cloud" class="w-10 h-10 text-slate-500 mb-2 group-hover:text-blue-400 transition-colors"></i>
+                            <span class="text-sm font-medium text-slate-400 group-hover:text-blue-300 transition-colors">Click to choose a folder</span>
+                            <span class="text-xs text-slate-600 mt-1 block" id="fileCountLabel">No folder selected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Configuration -->
+                <div class="space-y-4">
+                    <label class="block text-sm font-medium text-slate-300">2. Configuration</label>
+                    
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Output Filename</label>
+                        <input type="text" id="outputFilename" value="codebase_dump.txt" 
+                            class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all placeholder-slate-600">
+                    </div>
+
+                    <div>
+                        <label class="text-xs text-slate-500 mb-1 block">Ignore Patterns (comma separated)</label>
+                        <input type="text" id="ignorePatterns" value=".git, node_modules, .DS_Store, dist, build, .jpg, .png, .exe, .zip" 
+                            class="w-full px-3 py-2 bg-slate-950 border border-slate-700 rounded-lg text-sm text-slate-200 focus:ring-2 focus:ring-blue-600 focus:border-blue-600 outline-none transition-all placeholder-slate-600">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Progress Bar (Hidden by default) -->
+            <div id="progressContainer" class="hidden mt-6 border-t border-slate-800 pt-6 space-y-2">
+                <div class="flex justify-between text-xs text-slate-400" style="display: flex; justify-content: space-between;">
+                    <span id="progressText">Processing...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="progress-track w-full bg-slate-800 rounded-full h-2">
+                    <div id="progressBar" class="progress-fill bg-blue-500 h-2 rounded-full transition-all duration-300 shadow-[0_0_10px_rgba(59,130,246,0.5)]" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Download Action (Hidden until ready) -->
+             <div id="downloadContainer" class="hidden mt-6 pt-6 border-t border-slate-800 flex items-center justify-between" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #334155;">
+                <div class="text-sm text-emerald-400 font-medium">Generation Complete!</div>
+                <button id="downloadBtn" class="btn-download bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/20">
+                    <i data-lucide="download" class="w-4 h-4"></i> Download File
+                </button>
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-container h-[600px] flex flex-col">
+            <div class="preview-header bg-slate-900/50 border-b border-slate-800 flex justify-between items-center">
+                <h3 class="font-semibold text-slate-200 text-sm flex items-center gap-2" style="margin:0;">
+                    <i data-lucide="file-text" class="w-4 h-4 text-slate-500"></i> Full File Preview
+                </h3>
+                <div class="flex items-center gap-3">
+                    <span id="charCount" class="text-xs text-slate-500 font-mono hidden" style="margin-right: 10px;"></span>
+                    <button id="copyFullBtn" onclick="copyFull()" disabled class="btn-copy text-xs flex items-center gap-1.5 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <i data-lucide="copy" class="w-3 h-3"></i> Copy All
+                    </button>
+                </div>
+            </div>
+            <div class="preview-content p-4 overflow-auto bg-black/40 flex-grow scroll-smooth relative">
+                 <pre id="fullPreview" class="text-xs text-slate-400 leading-relaxed font-mono whitespace-pre-wrap">Select a folder to auto-generate the preview...</pre>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // Initialize Icons Safely
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        } else {
+            console.warn("Lucide icons failed to load. Icons will not be visible.");
+        }
+
+        // DOM Elements
+        const folderInput = document.getElementById('folderInput');
+        const fileCountLabel = document.getElementById('fileCountLabel');
+        const fullPreview = document.getElementById('fullPreview');
+        const charCount = document.getElementById('charCount');
+        const ignorePatternsInput = document.getElementById('ignorePatterns');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const downloadContainer = document.getElementById('downloadContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressText = document.getElementById('progressText');
+        const outputFilenameInput = document.getElementById('outputFilename');
+        const copyFullBtn = document.getElementById('copyFullBtn');
+
+        // State
+        let filesMap = new Map(); // path -> File object
+        let treeString = "";
+        let fullContentString = "";
+        let finalOutputBlob = null;
+        let selectedRootName = "";
+
+        // Event Listeners
+        folderInput.addEventListener('change', handleFileSelect);
+        downloadBtn.addEventListener('click', downloadFile);
+        
+        // 1. Handle File Selection & Auto-Start
+        function handleFileSelect(event) {
+            const files = event.target.files;
+            if (!files.length) return;
+
+            // --- FULL RESET START ---
+            filesMap.clear();
+            treeString = "";
+            fullContentString = "";
+            finalOutputBlob = null;
+            selectedRootName = "";
+
+            fullPreview.textContent = "Processing... please wait.";
+            charCount.classList.add('hidden');
+            downloadContainer.classList.add('hidden'); 
+            copyFullBtn.disabled = true;
+
+            progressContainer.classList.remove('hidden');
+            progressBar.classList.remove('bg-green'); // CSS Fallback class
+            progressBar.classList.remove('bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]'); // Tailwind
+            
+            progressBar.classList.add('bg-blue'); // CSS Fallback class
+            progressBar.classList.add('bg-blue-500'); // Tailwind
+
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressText.textContent = 'Initializing...';
+            // --- FULL RESET END ---
+
+            const firstPath = files[0].webkitRelativePath;
+            selectedRootName = firstPath.split('/')[0];
+
+            Array.from(files).forEach(file => {
+                filesMap.set(file.webkitRelativePath, file);
+            });
+
+            fileCountLabel.textContent = `${files.length} files found`;
+            
+            const ignored = getIgnoredPatterns();
+            const { tree, allowedCount } = generateTreeStructure(filesMap, ignored);
+            treeString = tree;
+
+            generateAggregatedFile();
+        }
+
+        // 2. Generate Tree Structure
+        function generateTreeStructure(files, ignoredPatterns) {
+            const paths = Array.from(files.keys()).sort();
+            let output = [`\n--- DIRECTORY STRUCTURE (Root: ${selectedRootName}) ---\n`];
+            let allowedCount = 0;
+
+            const root = {};
+
+            paths.forEach(path => {
+                if (isIgnored(path, ignoredPatterns)) return;
+                allowedCount++;
+
+                const parts = path.split('/');
+                let current = root;
+                
+                parts.forEach((part, index) => {
+                    if (!current[part]) {
+                        current[part] = index === parts.length - 1 ? null : {};
+                    }
+                    current = current[part];
+                });
+            });
+
+            function printNode(node, prefix = '') {
+                const entries = Object.keys(node).sort((a, b) => {
+                    const aIsFile = node[a] === null;
+                    const bIsFile = node[b] === null;
+                    if (aIsFile && !bIsFile) return 1;
+                    if (!aIsFile && bIsFile) return -1;
+                    return a.localeCompare(b);
+                });
+
+                entries.forEach((name, index) => {
+                    const isLast = index === entries.length - 1;
+                    const connector = isLast ? '└── ' : '├── ';
+                    const childPrefix = isLast ? '    ' : '│   ';
+                    
+                    output.push(`${prefix}${connector}${name}`);
+                    
+                    if (node[name] !== null) {
+                        output[output.length - 1] += '/';
+                        printNode(node[name], prefix + childPrefix);
+                    }
+                });
+            }
+
+            const rootKeys = Object.keys(root);
+            if(rootKeys.length === 1) {
+                 output.push(rootKeys[0] + "/");
+                 printNode(root[rootKeys[0]], "");
+            } else {
+                printNode(root, "");
+            }
+
+            output.push("---------------------------------------------------\n\n");
+            return { tree: output.join('\n'), allowedCount };
+        }
+
+        // 3. Process Files (Aggregation)
+        async function generateAggregatedFile() {
+            const ignored = getIgnoredPatterns();
+            const filesToProcess = Array.from(filesMap.keys())
+                .filter(path => !isIgnored(path, ignored))
+                .sort(); 
+
+            if (filesToProcess.length === 0) {
+                alert("No files to process after applying ignore patterns.");
+                progressContainer.classList.add('hidden');
+                fullPreview.textContent = "No files found to process (check ignore patterns).";
+                return;
+            }
+            
+            // Header Explanation (Corrected to use ```)
+            const headerExplanation = `================================================================================
+File Aggregation generated by RepoScan
+Generated: ${new Date().toLocaleString()}
+
+Structure:
+1. Directory Tree
+2. File Contents
+   - Header: File Path
+   - Content: Wrapped in triple backticks (\`\`\`)
+   - Separator: 60 dashes (-)
+================================================================================\n\n`;
+
+            let contentParts = [headerExplanation, treeString];
+
+            const total = filesToProcess.length;
+            for (let i = 0; i < total; i++) {
+                const path = filesToProcess[i];
+                const file = filesMap.get(path);
+
+                const percent = Math.round(((i + 1) / total) * 100);
+                progressBar.style.width = `${percent}%`;
+                progressPercent.textContent = `${percent}%`;
+                progressText.textContent = `Reading: ${file.name}`;
+
+                try {
+                    const content = await readFileAsText(file);
+                    
+                    contentParts.push(`${path}\n`);
+                    
+                    if (content !== null) {
+                        // Wrapping content in triple backticks
+                        contentParts.push(`\`\`\`\n${content}\n\`\`\`\n`);
+                    } else {
+                        contentParts.push(`"[CONTENT SKIPPED: Binary or unreadable file]"\n`);
+                    }
+                    
+                    contentParts.push("-".repeat(60) + "\n\n");
+
+                } catch (err) {
+                    console.error(`Error reading ${path}`, err);
+                    contentParts.push(`${path}\n"[ERROR READING FILE]"\n` + "-".repeat(60) + "\n\n");
+                }
+
+                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
+            }
+
+            fullContentString = contentParts.join('');
+            finalOutputBlob = new Blob([fullContentString], { type: 'text/plain' });
+            
+            fullPreview.textContent = fullContentString;
+            charCount.textContent = `${fullContentString.length.toLocaleString()} chars`;
+            charCount.classList.remove('hidden');
+            
+            progressText.textContent = "Completed!";
+            progressBar.classList.remove('bg-blue', 'bg-blue-500');
+            progressBar.classList.add('bg-green', 'bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]');
+            
+            downloadContainer.classList.remove('hidden');
+            downloadContainer.style.display = 'flex'; // Ensure fallback display
+            copyFullBtn.disabled = false;
+        }
+
+        // Helper: Read File
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.exe', '.zip', '.tar', '.gz', '.mp3', '.mp4', '.mov', '.pyc', '.woff', '.woff2', '.ttf', '.eot', '.svg', '.jar', '.war'];
+                const ext = "." + file.name.split('.').pop().toLowerCase();
+                
+                if (binaryExtensions.includes(ext)) {
+                    resolve(null); 
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = (e) => reject(e);
+                reader.readAsText(file); 
+            });
+        }
+
+        function getIgnoredPatterns() {
+            const raw = ignorePatternsInput.value;
+            return raw.split(',').map(s => s.trim().toLowerCase()).filter(s => s);
+        }
+
+        function isIgnored(path, patterns) {
+            const lowerPath = path.toLowerCase();
+            return patterns.some(pattern => {
+                if (pattern.startsWith('.')) {
+                    return lowerPath.includes(`/${pattern}`) || lowerPath.includes(`${pattern}/`) || lowerPath.endsWith(pattern);
+                }
+                return lowerPath.includes(pattern);
+            });
+        }
+
+        function downloadFile() {
+            if (!finalOutputBlob) return;
+            const filename = outputFilenameInput.value || "codebase_dump.txt";
+            const url = URL.createObjectURL(finalOutputBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        async function copyFull() {
+            if (!fullContentString) return;
+            await copyTextToClipboard(fullContentString, 'copyFullBtn', 'Copy All');
+        }
+
+        async function copyTextToClipboard(text, btnId, defaultText) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const btn = document.getElementById(btnId);
+                
+                // Safe icon replacement
+                let iconHtml = '[Copied]';
+                if (typeof lucide !== 'undefined') {
+                    iconHtml = `<i data-lucide="check" class="w-3 h-3"></i>`;
+                }
+                
+                btn.innerHTML = `${iconHtml} Copied!`;
+                btn.classList.remove('text-slate-300', 'bg-slate-800');
+                btn.classList.add('text-emerald-400', 'bg-emerald-900/30');
+                
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                setTimeout(() => {
+                    let backIcon = '';
+                    if (typeof lucide !== 'undefined') {
+                         backIcon = `<i data-lucide="copy" class="w-3 h-3"></i>`;
+                    }
+                    
+                    btn.innerHTML = `${backIcon} ${defaultText}`;
+                    btn.classList.add('text-slate-300', 'bg-slate-800');
+                    btn.classList.remove('text-emerald-400', 'bg-emerald-900/30');
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 2000);
+            } catch (err) {
+                console.error("Copy failed", err);
+                alert("Failed to copy text to clipboard.");
+            }
+        }
+    </script>
+</body>
+</html>

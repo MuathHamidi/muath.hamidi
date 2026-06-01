@@ -32,5 +32,7 @@ Here you can find a collection of web tools I have created.
 - **[Audio Cutter](./apps/audio_cutter.html)**: This tool allows users to precisely trim an uploaded audio file using an interactive waveform editor and export the selected segment as a WAV or MP3 file.
 - **[PDF Page Extractor](./apps/pdf_page_extractor.html)**: This tool allows users to select a PDF, specify a page range, convert those pages to high-quality PNG or JPEG images, and download them individually or as a ZIP file.
 - **[Image & Text Creator](./apps/image_creator.html)**: This tool allows users to customize an image's size, background, text content, and meta-information, and then generate and manage the resulting image in a gallery.
-- **[BibTeX Studio](./apps/BibTeX Studio/BibTeXStudio.html)**: This tool instantly parses, cleans, and converts raw BibTeX entries into standardized citation formats (APA, MLA, IEEE, etc.) with real-time previews and exportable LaTeX source code.
-- **[Web Builder](./apps/Website Builder/WebBuilder.html)**: This tool designs websites with a dedicated tool for building professional resumes. Users can to save their progress locally and export the final project as a standalone HTML file.
+- **[BibTeX Studio](./apps/BibTeXStudio/BibTeXStudio.html)**: This tool instantly parses, cleans, and converts raw BibTeX entries into standardized citation formats (APA, MLA, IEEE, etc.) with real-time previews and exportable LaTeX source code.
+- **[Web Builder](./apps/WebsiteBuilder/WebBuilder.html)**: This tool designs websites with a dedicated tool for building professional resumes. Users can to save their progress locally and export the final project as a standalone HTML file.
+- **[File Aggrigator](./apps/FileAggrigator.html)**: This tool shows the structure of directories and their text content.
+- **[File Size Explorer](./apps/FileSizeExplorer.html)**: This tool allows users to see each file in a directory and their sizes.
