@@ -1208,13 +1208,38 @@
       });
     }
 
+    // Helper to check if an element participates in any bonds in the database
+    function hasAnyBonds(symbol) {
+      if (!bondData) return true; // Assume true if database is not loaded yet
+      
+      if (!window.elementsWithBonds) {
+        window.elementsWithBonds = new Set();
+        Object.keys(bondData).forEach(key => {
+          const parts = key.split('-');
+          window.elementsWithBonds.add(parts[0]);
+          window.elementsWithBonds.add(parts[1]);
+        });
+      }
+      
+      return window.elementsWithBonds.has(symbol);
+    }
+
     // Build drop down selection lists
     function populateDropdowns() {
       const selectA = document.getElementById('select-atom-a');
       const selectB = document.getElementById('select-atom-b');
 
+      // Clear existing options except the placeholder
+      selectA.innerHTML = '<option value="">-- Select Element --</option>';
+      selectB.innerHTML = '<option value="">-- Select Element --</option>';
+
       // Filter out spacers
-      const activeElements = elements.filter(el => el.category !== 'lanthanide-spacer' && el.category !== 'actinide-spacer');
+      let activeElements = elements.filter(el => el.category !== 'lanthanide-spacer' && el.category !== 'actinide-spacer');
+      
+      // If bondData is loaded, filter out elements that have no bonds
+      if (bondData) {
+        activeElements = activeElements.filter(el => hasAnyBonds(el.symbol));
+      }
       
       // Sort alphabetically by symbol
       const sortedElements = [...activeElements].sort((x, y) => x.symbol.localeCompare(y.symbol));
@@ -1237,6 +1262,11 @@
 
     // Handles user clicking an element in the table
     function handleElementClick(symbol) {
+      // Ignore clicks on elements that have no bonds at all in the database
+      if (bondData && !hasAnyBonds(symbol)) {
+        return;
+      }
+
       // If clicking already selected Atom A and a self-bond exists, select it as Atom B.
       // Otherwise, if no self-bond exists, deselect it to allow clearing the selection.
       if (selectedAtomA === symbol && !selectedAtomB) {
@@ -1335,6 +1365,19 @@
           const card = document.querySelector(`.element-card[data-symbol="${selectedAtomB}"]`);
           if (card) card.classList.add('selected-b');
         }
+      }
+
+      // If no Atom A is selected, dim elements that have no bonds at all in the database from the beginning
+      if (!selectedAtomA && bondData) {
+        document.querySelectorAll('.element-card').forEach(card => {
+          const symbol = card.getAttribute('data-symbol');
+          const isSpacer = card.classList.contains('lanthanide-spacer') || card.classList.contains('actinide-spacer');
+          if (!symbol || isSpacer) return;
+
+          if (!hasAnyBonds(symbol)) {
+            card.classList.add('inactive-element');
+          }
+        });
       }
 
       // If Atom A is selected but B is not, dim elements that don't form a bond with A
@@ -1623,6 +1666,8 @@
         reader.onload = function(evt) {
           try {
             bondData = JSON.parse(evt.target.result);
+            window.elementsWithBonds = null;
+            populateDropdowns();
             showLoading(false);
             hideCorsAlert();
             clearSelection();
@@ -1644,6 +1689,8 @@
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         bondData = await response.json();
+        window.elementsWithBonds = null;
+        populateDropdowns();
         showLoading(false);
         hideCorsAlert();
         clearSelection();
