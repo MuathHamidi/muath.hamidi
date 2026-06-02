@@ -1237,9 +1237,15 @@
 
     // Handles user clicking an element in the table
     function handleElementClick(symbol) {
-      // If clicking already selected Atom A, deselect it
+      // If clicking already selected Atom A and a self-bond exists, select it as Atom B.
+      // Otherwise, if no self-bond exists, deselect it to allow clearing the selection.
       if (selectedAtomA === symbol && !selectedAtomB) {
-        clearSelection();
+        const bondKey = `${symbol}-${symbol}`;
+        if (bondData && bondData[bondKey]) {
+          setSelection('B', symbol);
+        } else {
+          clearSelection();
+        }
         updateUI();
         return;
       }
