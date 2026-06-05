@@ -36,3 +36,4 @@ Here you can find a collection of web tools I have created.
 - **[Web Builder](./apps/WebsiteBuilder/WebBuilder.html)**: This tool designs websites with a dedicated tool for building professional resumes. Users can to save their progress locally and export the final project as a standalone HTML file.
 - **[File Aggrigator](./apps/FileAggregator.html)**: This tool shows the structure of directories and their text content.
 - **[File Size Explorer](./apps/FileSizeExplorer.html)**: This tool allows users to see each file in a directory and their sizes.
+- **[PDF Merger](./apps/pdf_merger.html)**: Merge PDFs.
