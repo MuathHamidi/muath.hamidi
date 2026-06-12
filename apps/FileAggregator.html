@@ -11,9 +11,7 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600;700&display=swap');
         
-        /* --- CRITICAL FALLBACK STYLES --- 
-           These ensure the app looks good and functions even if Tailwind CDN fails.
-        */
+        /* --- CRITICAL FALLBACK STYLES --- */
         :root {
             --bg-dark: #0f172a;
             --bg-card: #1e293b;
@@ -33,10 +31,8 @@
             flex-direction: column;
         }
 
-        /* Utility Fallbacks */
         .hidden { display: none !important; }
         
-        /* Layout Fallbacks (approximate Tailwind classes for safety) */
         header { 
             background-color: #020617; 
             border-bottom: 1px solid var(--border); 
@@ -66,9 +62,8 @@
             box-sizing: border-box;
         }
 
-        /* Cards */
         .card {
-            background-color: #1e293b; /* slate-800 equivalent */
+            background-color: #1e293b; 
             border: 1px solid var(--border);
             border-radius: 0.75rem;
             padding: 1.5rem;
@@ -85,7 +80,6 @@
             .grid-2 { grid-template-columns: 1fr 1fr; }
         }
 
-        /* Inputs */
         input[type="text"] {
             width: 100%;
             background-color: #020617;
@@ -97,7 +91,6 @@
             margin-top: 0.25rem;
         }
 
-        /* File Upload Box */
         .upload-box {
             border: 2px dashed var(--border);
             border-radius: 0.5rem;
@@ -109,12 +102,10 @@
         }
         .upload-box:hover { border-color: var(--accent); background-color: rgba(59, 130, 246, 0.1); }
         
-        /* Buttons */
         .btn-reset { color: var(--text-muted); text-decoration: none; font-size: 0.875rem; }
         .btn-reset:hover { color: var(--accent); }
 
-        .btn-download {
-            background-color: #059669; /* emerald-600 */
+        .btn-download, .btn-generate {
             color: white;
             padding: 0.625rem 1.5rem;
             border-radius: 0.5rem;
@@ -124,8 +115,13 @@
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
+            transition: all 0.2s;
         }
+        .btn-download { background-color: #059669; }
         .btn-download:hover { background-color: #10b981; }
+        
+        .btn-generate { background-color: var(--accent); }
+        .btn-generate:hover { background-color: #2563eb; }
 
         .btn-copy {
             background-color: var(--border);
@@ -140,6 +136,97 @@
             gap: 0.25rem;
         }
         .btn-copy:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* --- TREE UI STYLES --- */
+        .tree-list { list-style: none; padding-left: 1.5rem; margin: 0; }
+        .tree-root { padding-left: 0; }
+        .tree-item { 
+            display: flex; 
+            align-items: center; 
+            padding: 0.35rem 0.5rem; 
+            border-radius: 0.375rem;
+            color: var(--text-muted); 
+            transition: all 0.2s;
+        }
+        .tree-item:hover { background-color: rgba(255,255,255,0.05); }
+        
+        .tree-checkbox {
+            appearance: none;
+            -webkit-appearance: none;
+            width: 1.125rem;
+            height: 1.125rem;
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            margin-right: 0.75rem;
+            display: grid;
+            place-content: center;
+            background-color: rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .tree-checkbox:hover { border-color: var(--accent); }
+        .tree-checkbox::before {
+            content: "";
+            width: 0.65rem;
+            height: 0.65rem;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            background-color: white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .tree-checkbox:checked {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+        .tree-checkbox:checked::before { transform: scale(1); }
+        .tree-checkbox:indeterminate {
+            background-color: var(--accent);
+            border-color: var(--accent);
+        }
+        .tree-checkbox:indeterminate::before {
+            transform: scale(1);
+            clip-path: polygon(10% 40%, 90% 40%, 90% 60%, 10% 60%);
+        }
+        
+        .tree-label { 
+            cursor: pointer; 
+            user-select: none; 
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+            flex-grow: 1; 
+            font-size: 0.875rem;
+        }
+        .tree-folder-icon { color: #eab308; } 
+        .tree-file-icon { color: #94a3b8; } 
+
+        .tree-size {
+            margin-left: auto;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            opacity: 0.7;
+            padding-left: 1rem;
+        }
+
+        .tree-toggle {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.1rem;
+            margin-right: 0.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+            flex-shrink: 0;
+        }
+        .tree-toggle:hover { color: var(--text-main); }
+        .tree-toggle.expanded { transform: rotate(90deg); }
+        .tree-toggle-placeholder { width: 1.5rem; flex-shrink: 0; margin-right: 0.25rem; }
 
         /* Preview Area */
         .preview-container {
@@ -243,9 +330,30 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Progress Bar (Hidden by default) -->
-            <div id="progressContainer" class="hidden mt-6 border-t border-slate-800 pt-6 space-y-2">
+        <!-- Tree Selection Card (Hidden initially) -->
+        <div id="treeCard" class="card bg-slate-900 rounded-xl shadow-lg border border-slate-800 p-6 hidden">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 border-b border-slate-800 pb-4">
+                <div>
+                    <h2 class="text-base font-medium text-slate-200">3. Select Files to Include</h2>
+                    <p class="text-xs text-slate-500 mt-1 max-w-2xl">
+                        Unchecked items will still be listed in the top "Directory Structure" summary, but their internal code/content will be entirely omitted from the output.
+                    </p>
+                </div>
+                <button id="generateBtn" class="btn-generate bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-lg shadow-blue-900/20 flex items-center gap-2 flex-shrink-0">
+                    <i data-lucide="zap" class="w-4 h-4"></i> Generate Aggregation
+                </button>
+            </div>
+            
+            <div class="border border-slate-800 rounded-lg bg-slate-950/50">
+                <div id="treeContainer" class="p-4 overflow-y-auto max-h-[400px] font-mono text-sm">
+                    <!-- Tree is dynamically injected here -->
+                </div>
+            </div>
+
+            <!-- Progress Bar (Hidden by default, shown after generate) -->
+            <div id="progressContainer" class="hidden mt-6 pt-4 border-t border-slate-800 space-y-2">
                 <div class="flex justify-between text-xs text-slate-400" style="display: flex; justify-content: space-between;">
                     <span id="progressText">Processing...</span>
                     <span id="progressPercent">0%</span>
@@ -256,7 +364,7 @@
             </div>
 
             <!-- Download Action (Hidden until ready) -->
-             <div id="downloadContainer" class="hidden mt-6 pt-6 border-t border-slate-800 flex items-center justify-between" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #334155;">
+             <div id="downloadContainer" class="hidden mt-6 pt-6 border-t border-slate-800 flex items-center justify-between" style="display: flex; justify-content: space-between; align-items: center;">
                 <div class="text-sm text-emerald-400 font-medium">Generation Complete!</div>
                 <button id="downloadBtn" class="btn-download bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 shadow-lg shadow-emerald-900/20">
                     <i data-lucide="download" class="w-4 h-4"></i> Download File
@@ -278,7 +386,7 @@
                 </div>
             </div>
             <div class="preview-content p-4 overflow-auto bg-black/40 flex-grow scroll-smooth relative">
-                 <pre id="fullPreview" class="text-xs text-slate-400 leading-relaxed font-mono whitespace-pre-wrap">Select a folder to auto-generate the preview...</pre>
+                 <pre id="fullPreview" class="text-xs text-slate-400 leading-relaxed font-mono whitespace-pre-wrap">Select a folder to begin...</pre>
             </div>
         </div>
 
@@ -289,7 +397,7 @@
         if (typeof lucide !== 'undefined') {
             lucide.createIcons();
         } else {
-            console.warn("Lucide icons failed to load. Icons will not be visible.");
+            console.warn("Lucide icons failed to load.");
         }
 
         // DOM Elements
@@ -306,6 +414,9 @@
         const progressText = document.getElementById('progressText');
         const outputFilenameInput = document.getElementById('outputFilename');
         const copyFullBtn = document.getElementById('copyFullBtn');
+        const treeCard = document.getElementById('treeCard');
+        const treeContainer = document.getElementById('treeContainer');
+        const generateBtn = document.getElementById('generateBtn');
 
         // State
         let filesMap = new Map(); // path -> File object
@@ -313,39 +424,35 @@
         let fullContentString = "";
         let finalOutputBlob = null;
         let selectedRootName = "";
+        let globalIdCounter = 0;
 
         // Event Listeners
         folderInput.addEventListener('change', handleFileSelect);
         downloadBtn.addEventListener('click', downloadFile);
+        generateBtn.addEventListener('click', generateAggregatedFile);
         
-        // 1. Handle File Selection & Auto-Start
+        // Rebuild tree if ignore patterns change
+        ignorePatternsInput.addEventListener('change', () => {
+            if (filesMap.size > 0) buildTreeUI(filesMap);
+        });
+        
+        // 1. Handle File Selection
         function handleFileSelect(event) {
             const files = event.target.files;
             if (!files.length) return;
 
-            // --- FULL RESET START ---
+            // Reset UI and State
             filesMap.clear();
             treeString = "";
             fullContentString = "";
             finalOutputBlob = null;
             selectedRootName = "";
-
-            fullPreview.textContent = "Processing... please wait.";
+            
+            fullPreview.textContent = "Waiting for aggregation generation...";
             charCount.classList.add('hidden');
             downloadContainer.classList.add('hidden'); 
+            progressContainer.classList.add('hidden');
             copyFullBtn.disabled = true;
-
-            progressContainer.classList.remove('hidden');
-            progressBar.classList.remove('bg-green'); // CSS Fallback class
-            progressBar.classList.remove('bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]'); // Tailwind
-            
-            progressBar.classList.add('bg-blue'); // CSS Fallback class
-            progressBar.classList.add('bg-blue-500'); // Tailwind
-
-            progressBar.style.width = '0%';
-            progressPercent.textContent = '0%';
-            progressText.textContent = 'Initializing...';
-            // --- FULL RESET END ---
 
             const firstPath = files[0].webkitRelativePath;
             selectedRootName = firstPath.split('/')[0];
@@ -356,32 +463,185 @@
 
             fileCountLabel.textContent = `${files.length} files found`;
             
-            const ignored = getIgnoredPatterns();
-            const { tree, allowedCount } = generateTreeStructure(filesMap, ignored);
-            treeString = tree;
-
-            generateAggregatedFile();
+            // Render the interactive tree
+            buildTreeUI(filesMap);
         }
 
-        // 2. Generate Tree Structure
-        function generateTreeStructure(files, ignoredPatterns) {
-            const paths = Array.from(files.keys()).sort();
-            let output = [`\n--- DIRECTORY STRUCTURE (Root: ${selectedRootName}) ---\n`];
-            let allowedCount = 0;
-
-            const root = {};
-
-            paths.forEach(path => {
-                if (isIgnored(path, ignoredPatterns)) return;
-                allowedCount++;
+        // 2. Build Interactive Checkbox Tree
+        function buildTreeUI(mapOfFiles) {
+            globalIdCounter = 0;
+            const root = { name: selectedRootName, type: 'folder', children: {}, path: selectedRootName, size: 0 };
+            const ignored = getIgnoredPatterns();
+            
+            // Build logical hierarchy
+            for (let [path, file] of mapOfFiles.entries()) {
+                if (isIgnored(path, ignored)) continue;
+                
+                root.size += file.size; // Add to root size
 
                 const parts = path.split('/');
                 let current = root;
                 
-                parts.forEach((part, index) => {
-                    if (!current[part]) {
-                        current[part] = index === parts.length - 1 ? null : {};
+                // parts[0] is the root folder. We iterate children:
+                for (let i = 1; i < parts.length; i++) {
+                    const part = parts[i];
+                    const isFile = (i === parts.length - 1);
+                    const nodePath = parts.slice(0, i + 1).join('/');
+                    
+                    if (!current.children[part]) {
+                        current.children[part] = { 
+                            name: part, 
+                            type: isFile ? 'file' : 'folder', 
+                            children: isFile ? null : {}, 
+                            path: nodePath,
+                            size: 0
+                        };
                     }
+                    current.children[part].size += file.size; // Accumulate size
+                    current = current.children[part];
+                }
+            }
+
+            treeContainer.innerHTML = '';
+            const fragment = document.createDocumentFragment();
+            const ul = document.createElement('ul');
+            ul.className = 'tree-list tree-root';
+            
+            // Recursive DOM constructor
+            function createNode(nodeData) {
+                const li = document.createElement('li');
+                const div = document.createElement('div');
+                div.className = 'tree-item';
+                
+                const cbId = 'cb-' + (globalIdCounter++);
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'tree-checkbox';
+                cb.id = cbId;
+                cb.checked = true; // Default selected
+                cb.dataset.path = nodeData.path;
+                cb.dataset.type = nodeData.type;
+                
+                const label = document.createElement('label');
+                label.className = 'tree-label';
+                label.htmlFor = cbId;
+                
+                const icon = document.createElement('i');
+                icon.dataset.lucide = nodeData.type === 'folder' ? 'folder' : 'file-text';
+                icon.className = nodeData.type === 'folder' ? 'w-4 h-4 tree-folder-icon flex-shrink-0' : 'w-4 h-4 tree-file-icon flex-shrink-0';
+                
+                label.appendChild(icon);
+                label.appendChild(document.createTextNode(nodeData.name));
+                
+                // Size Badge
+                const sizeSpan = document.createElement('span');
+                sizeSpan.className = 'tree-size';
+                sizeSpan.textContent = formatBytes(nodeData.size);
+                label.appendChild(sizeSpan);
+                
+                let toggleBtn;
+                if (nodeData.type === 'folder') {
+                    toggleBtn = document.createElement('button');
+                    toggleBtn.className = 'tree-toggle';
+                    const isRoot = nodeData.path === selectedRootName;
+                    if (isRoot) toggleBtn.classList.add('expanded');
+                    toggleBtn.innerHTML = '<i data-lucide="chevron-right" class="w-4 h-4"></i>';
+                    div.appendChild(toggleBtn);
+                } else {
+                    const placeholder = document.createElement('div');
+                    placeholder.className = 'tree-toggle-placeholder';
+                    div.appendChild(placeholder);
+                }
+
+                div.appendChild(cb);
+                div.appendChild(label);
+                li.appendChild(div);
+                
+                if (nodeData.type === 'folder') {
+                    const childUl = document.createElement('ul');
+                    childUl.className = 'tree-list';
+                    const isRoot = nodeData.path === selectedRootName;
+                    if (!isRoot) childUl.classList.add('hidden');
+                    
+                    const sortedKeys = Object.keys(nodeData.children || {}).sort((a,b) => {
+                        const aNode = nodeData.children[a];
+                        const bNode = nodeData.children[b];
+                        if (aNode.type === bNode.type) return a.localeCompare(b);
+                        return aNode.type === 'folder' ? -1 : 1;
+                    });
+                    
+                    for (let key of sortedKeys) {
+                        childUl.appendChild(createNode(nodeData.children[key]));
+                    }
+                    li.appendChild(childUl);
+                    
+                    toggleBtn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        childUl.classList.toggle('hidden');
+                        toggleBtn.classList.toggle('expanded');
+                    });
+
+                    // Folder toggle cascades down
+                    cb.addEventListener('change', (e) => {
+                        const isChecked = e.target.checked;
+                        const childCheckboxes = childUl.querySelectorAll('input[type="checkbox"]');
+                        childCheckboxes.forEach(childCb => {
+                            childCb.checked = isChecked;
+                            childCb.indeterminate = false;
+                        });
+                        updateParentCheckboxes(cb);
+                    });
+                } else {
+                    // File toggle cascades up
+                    cb.addEventListener('change', () => {
+                        updateParentCheckboxes(cb);
+                    });
+                }
+                
+                return li;
+            }
+
+            ul.appendChild(createNode(root));
+            fragment.appendChild(ul);
+            treeContainer.appendChild(fragment);
+            
+            if (typeof lucide !== 'undefined') lucide.createIcons({root: treeContainer});
+            treeCard.classList.remove('hidden');
+        }
+
+        // Logic to visually sync parent folder checkboxes (checked/unchecked/indeterminate)
+        function updateParentCheckboxes(checkbox) {
+            let parentUl = checkbox.closest('.tree-list:not(.tree-root)');
+            while (parentUl) {
+                const parentLi = parentUl.parentElement;
+                const parentCb = parentLi.querySelector(':scope > .tree-item > input[type="checkbox"]');
+                
+                if (parentCb) {
+                    const siblingCbs = Array.from(parentUl.querySelectorAll(':scope > li > .tree-item > input[type="checkbox"]'));
+                    const allChecked = siblingCbs.length > 0 && siblingCbs.every(cb => cb.checked);
+                    const allUnchecked = siblingCbs.length > 0 && siblingCbs.every(cb => !cb.checked && !cb.indeterminate);
+                    
+                    parentCb.checked = allChecked;
+                    parentCb.indeterminate = !allChecked && !allUnchecked;
+                }
+                parentUl = parentLi.closest('.tree-list:not(.tree-root)');
+            }
+        }
+
+        // 3. Generate Textual Directory Structure String (Includes unselected files)
+        function generateTreeStructureString(files, ignoredPatterns) {
+            const paths = Array.from(files.keys()).sort();
+            let output = [`\n--- DIRECTORY STRUCTURE (Root: ${selectedRootName}) ---\n`];
+            const root = {};
+
+            // Build structural map of non-globally-ignored files
+            paths.forEach(path => {
+                if (isIgnored(path, ignoredPatterns)) return;
+                const parts = path.split('/');
+                let current = root;
+                parts.forEach((part, index) => {
+                    if (!current[part]) current[part] = index === parts.length - 1 ? null : {};
                     current = current[part];
                 });
             });
@@ -401,7 +661,6 @@
                     const childPrefix = isLast ? '    ' : '│   ';
                     
                     output.push(`${prefix}${connector}${name}`);
-                    
                     if (node[name] !== null) {
                         output[output.length - 1] += '/';
                         printNode(node[name], prefix + childPrefix);
@@ -418,31 +677,44 @@
             }
 
             output.push("---------------------------------------------------\n\n");
-            return { tree: output.join('\n'), allowedCount };
+            return output.join('\n');
         }
 
-        // 3. Process Files (Aggregation)
+        // 4. Process Checked Files & Generate Text Payload
         async function generateAggregatedFile() {
-            const ignored = getIgnoredPatterns();
-            const filesToProcess = Array.from(filesMap.keys())
-                .filter(path => !isIgnored(path, ignored))
-                .sort(); 
-
-            if (filesToProcess.length === 0) {
-                alert("No files to process after applying ignore patterns.");
-                progressContainer.classList.add('hidden');
-                fullPreview.textContent = "No files found to process (check ignore patterns).";
-                return;
-            }
+            downloadContainer.classList.add('hidden');
+            progressContainer.classList.remove('hidden');
             
-            // Header Explanation (Corrected to use ```)
+            // CSS Fallback logic for progress bar
+            progressBar.classList.remove('bg-green', 'bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]'); 
+            progressBar.classList.add('bg-blue', 'bg-blue-500'); 
+
+            progressBar.style.width = '0%';
+            progressPercent.textContent = '0%';
+            progressText.textContent = 'Initializing...';
+
+            const ignored = getIgnoredPatterns();
+            
+            // The directory structure includes everything not in the global ignore patterns
+            treeString = generateTreeStructureString(filesMap, ignored);
+
+            // Filter for only checked files via DOM state
+            const selectedFilePaths = [];
+            const checkboxes = document.querySelectorAll('#treeContainer input[type="checkbox"][data-type="file"]');
+            checkboxes.forEach(cb => {
+                if (cb.checked) selectedFilePaths.push(cb.dataset.path);
+            });
+            
+            // Ensure alphabetical processing
+            selectedFilePaths.sort();
+
             const headerExplanation = `================================================================================
 File Aggregation generated by RepoScan
 Generated: ${new Date().toLocaleString()}
 
 Structure:
-1. Directory Tree
-2. File Contents
+1. Directory Tree (Lists all project files)
+2. File Contents (Only selected/checked files)
    - Header: File Path
    - Content: Wrapped in triple backticks (\`\`\`)
    - Separator: 60 dashes (-)
@@ -450,36 +722,43 @@ Structure:
 
             let contentParts = [headerExplanation, treeString];
 
-            const total = filesToProcess.length;
-            for (let i = 0; i < total; i++) {
-                const path = filesToProcess[i];
-                const file = filesMap.get(path);
+            const total = selectedFilePaths.length;
+            
+            if (total === 0) {
+                progressText.textContent = "No files selected!";
+                progressBar.style.width = '100%';
+                contentParts.push(`\n[NO FILES WERE SELECTED FOR CONTENT AGGREGATION]\n`);
+            } else {
+                for (let i = 0; i < total; i++) {
+                    const path = selectedFilePaths[i];
+                    const file = filesMap.get(path);
 
-                const percent = Math.round(((i + 1) / total) * 100);
-                progressBar.style.width = `${percent}%`;
-                progressPercent.textContent = `${percent}%`;
-                progressText.textContent = `Reading: ${file.name}`;
+                    const percent = Math.round(((i + 1) / total) * 100);
+                    progressBar.style.width = `${percent}%`;
+                    progressPercent.textContent = `${percent}%`;
+                    progressText.textContent = `Reading: ${file.name}`;
 
-                try {
-                    const content = await readFileAsText(file);
-                    
-                    contentParts.push(`${path}\n`);
-                    
-                    if (content !== null) {
-                        // Wrapping content in triple backticks
-                        contentParts.push(`\`\`\`\n${content}\n\`\`\`\n`);
-                    } else {
-                        contentParts.push(`"[CONTENT SKIPPED: Binary or unreadable file]"\n`);
+                    try {
+                        const content = await readFileAsText(file);
+                        
+                        contentParts.push(`${path}\n`);
+                        
+                        if (content !== null) {
+                            contentParts.push(`\`\`\`\n${content}\n\`\`\`\n`);
+                        } else {
+                            contentParts.push(`"[CONTENT SKIPPED: Binary or unreadable file]"\n`);
+                        }
+                        
+                        contentParts.push("-".repeat(60) + "\n\n");
+
+                    } catch (err) {
+                        console.error(`Error reading ${path}`, err);
+                        contentParts.push(`${path}\n"[ERROR READING FILE]"\n` + "-".repeat(60) + "\n\n");
                     }
-                    
-                    contentParts.push("-".repeat(60) + "\n\n");
 
-                } catch (err) {
-                    console.error(`Error reading ${path}`, err);
-                    contentParts.push(`${path}\n"[ERROR READING FILE]"\n` + "-".repeat(60) + "\n\n");
+                    // Yield main thread to update UI
+                    if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
                 }
-
-                if (i % 5 === 0) await new Promise(r => setTimeout(r, 0));
             }
 
             fullContentString = contentParts.join('');
@@ -494,7 +773,7 @@ Structure:
             progressBar.classList.add('bg-green', 'bg-emerald-500', 'shadow-[0_0_10px_rgba(16,185,129,0.5)]');
             
             downloadContainer.classList.remove('hidden');
-            downloadContainer.style.display = 'flex'; // Ensure fallback display
+            downloadContainer.style.display = 'flex';
             copyFullBtn.disabled = false;
         }
 
@@ -514,6 +793,16 @@ Structure:
                 reader.onerror = (e) => reject(e);
                 reader.readAsText(file); 
             });
+        }
+
+        // Helper: Format Bytes to human-readable format
+        function formatBytes(bytes, decimals = 1) {
+            if (!+bytes) return '0 B';
+            const k = 1024;
+            const dm = decimals < 0 ? 0 : decimals;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
         }
 
         function getIgnoredPatterns() {
@@ -554,7 +843,6 @@ Structure:
                 await navigator.clipboard.writeText(text);
                 const btn = document.getElementById(btnId);
                 
-                // Safe icon replacement
                 let iconHtml = '[Copied]';
                 if (typeof lucide !== 'undefined') {
                     iconHtml = `<i data-lucide="check" class="w-3 h-3"></i>`;
