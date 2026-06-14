@@ -87,10 +87,10 @@
     </header>
 
     <!-- Main Workspace -->
-    <main class="flex-1 flex flex-col md:flex-row p-4 gap-2 overflow-hidden min-h-0 bg-[#11111b]">
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-2 overflow-y-auto md:overflow-hidden min-h-0 bg-[#11111b]">
         
         <!-- File Explorer -->
-        <aside class="w-full md:w-48 bg-[#1e1e2e] rounded-xl border border-[#313244] flex flex-col shrink-0 min-h-[150px] md:min-h-0 overflow-hidden shadow-lg">
+        <aside class="w-full md:w-48 bg-[#1e1e2e] rounded-xl border border-[#313244] flex flex-col shrink-0 h-[200px] md:h-auto md:min-h-0 overflow-hidden shadow-lg">
             <div class="bg-[#181825] px-4 py-3 border-b border-[#313244] flex justify-between items-center text-sm font-bold text-[#a6adc8] shrink-0 uppercase tracking-wider">
                 <span>Explorer</span>
                 <div class="flex gap-2">
@@ -110,10 +110,10 @@
 
         <!-- Editor & Output Split Container -->
         <!-- BUGFIX: min-w-0 added to flex children prevents Flexbox blowout from extremely long lines of code -->
-        <div id="split-container" class="flex-1 flex flex-col md:flex-row min-h-0 relative gap-2 min-w-0">
+        <div id="split-container" class="flex-1 flex flex-col md:flex-row min-h-0 relative gap-2 min-w-0 shrink-0 md:shrink">
             
             <!-- Code Editor Section -->
-            <section id="editor-pane" class="flex flex-col bg-[#282a36] rounded-xl border border-[#313244] overflow-hidden min-h-[300px] md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
+            <section id="editor-pane" class="flex flex-col bg-[#282a36] rounded-xl border border-[#313244] overflow-hidden h-[400px] md:h-auto md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
                 <div class="bg-[#181825] px-4 py-2 border-b border-[#313244] flex justify-between items-center text-sm text-[#a6adc8] shrink-0">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
@@ -149,7 +149,7 @@
             </div>
 
             <!-- Console / Output Section -->
-            <section id="output-pane" class="flex flex-col bg-black rounded-xl border border-[#313244] overflow-hidden min-h-[300px] md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
+            <section id="output-pane" class="flex flex-col bg-black rounded-xl border border-[#313244] overflow-hidden h-[400px] md:h-auto md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
                 <!-- Output Tabs Header -->
                 <div class="bg-[#181825] border-b border-[#313244] flex justify-between items-end px-2 pt-2 shrink-0">
                     <div class="flex space-x-1">
