@@ -25,6 +25,13 @@
             background: transparent !important;
         }
         
+        /* Mobile height override to ensure it doesn't scale infinitely */
+        @media (max-width: 767px) {
+            .CodeMirror {
+                height: 60vh !important;
+            }
+        }
+        
         /* Typography for output */
         .output-text {
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
@@ -57,35 +64,12 @@
         ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
         
         .min-h-0 { min-height: 0; }
-
-        /* --- MOBILE APP LAYOUT RULES --- */
-        @media (max-width: 767px) {
-            body[data-mobile-tab="explorer"] #explorer-pane { display: flex !important; }
-            body[data-mobile-tab="explorer"] #split-container { display: none !important; }
-            
-            body[data-mobile-tab="editor"] #explorer-pane { display: none !important; }
-            body[data-mobile-tab="editor"] #split-container { display: flex !important; flex-direction: column !important; }
-            body[data-mobile-tab="editor"] #editor-pane { display: flex !important; }
-            body[data-mobile-tab="editor"] #output-pane { display: none !important; }
-            
-            body[data-mobile-tab="output"] #explorer-pane { display: none !important; }
-            body[data-mobile-tab="output"] #split-container { display: flex !important; flex-direction: column !important; }
-            body[data-mobile-tab="output"] #editor-pane { display: none !important; }
-            body[data-mobile-tab="output"] #output-pane { display: flex !important; }
-
-            #explorer-pane, #editor-pane, #output-pane {
-                height: 100% !important;
-                flex: 1 1 auto !important;
-                border-radius: 0 !important;
-                border: none !important;
-            }
-        }
     </style>
 </head>
-<body class="bg-[#1e1e2e] text-gray-100 h-screen flex flex-col font-sans overflow-hidden selection:bg-blue-500/30" data-mobile-tab="editor">
+<body class="bg-[#1e1e2e] text-gray-100 min-h-screen md:h-screen flex flex-col font-sans overflow-y-auto md:overflow-hidden selection:bg-blue-500/30">
 
     <!-- Header / Navbar -->
-    <header class="bg-[#181825] border-b border-[#313244] px-4 py-2 md:px-6 md:py-3 flex items-center justify-between shrink-0 z-20 shadow-md">
+    <header class="bg-[#181825] border-b border-[#313244] px-4 py-3 md:px-6 md:py-3 flex items-center justify-between shrink-0 z-20 shadow-md sticky top-0">
         <div class="flex items-center gap-2 md:gap-3">
             <svg class="w-7 h-7 md:w-8 md:h-8 text-blue-400" viewBox="0 0 110 110" fill="currentColor">
                 <path d="M54.8 12.3c-21.7 0-20.7 9.4-20.7 9.4l.1 9.8h21.4v3.1H34.3c0 0-14.7-1.7-14.7 15.6s12.5 16.3 12.5 16.3h4.6v-7.6c0 0-.2-8.8 8.9-8.8h11.1c0 0 8.6-.2 8.6-8.4v-11c0 0 1.2-8.4-10.5-8.4zM45 20.3c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1-3.1-1.4-3.1-3.1 1.4-3.1 3.1-3.1z"/>
@@ -110,28 +94,18 @@
         </div>
     </header>
 
-    <!-- Mobile Navigation Bar (Only visible on small screens) -->
-    <nav class="md:hidden flex bg-[#181825] border-b border-[#313244] shrink-0 z-30">
-        <button onclick="setMobileTab('explorer')" id="mob-btn-explorer" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-b-2 border-transparent transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Files</span>
-        </button>
-        <button onclick="setMobileTab('editor')" id="mob-btn-editor" class="flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-b-2 border-blue-500 bg-[#313244]/30 transition-colors relative">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Code</span>
-        </button>
-        <button onclick="setMobileTab('output')" id="mob-btn-output" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-b-2 border-transparent transition-colors relative">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Output</span>
-            <span id="mob-plot-badge" class="hidden absolute top-2 right-1/4 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">!</span>
-        </button>
-    </nav>
+    <!-- MOBILE SAFE SCROLL ZONE -->
+    <div class="md:hidden fixed right-0 top-[60px] bottom-0 w-10 bg-[#1e1e2e]/90 border-l border-[#313244] z-50 flex flex-col justify-center items-center backdrop-blur-md shadow-[-4px_0_15px_rgba(0,0,0,0.5)] touch-pan-y">
+        <div class="w-1 h-12 bg-gray-500 rounded-full mb-6 opacity-50"></div>
+        <span class="text-[#a6adc8] text-[10px] font-bold tracking-[0.3em] -rotate-90 whitespace-nowrap pointer-events-none opacity-80">SCROLL</span>
+        <div class="w-1 h-12 bg-gray-500 rounded-full mt-6 opacity-50"></div>
+    </div>
 
     <!-- Main Workspace -->
-    <main class="flex-1 flex flex-col md:flex-row p-0 md:p-4 gap-0 md:gap-4 bg-[#11111b] min-w-0 overflow-hidden">
+    <main class="flex-1 flex flex-col md:flex-row p-3 pr-12 md:pr-4 md:p-4 gap-6 md:gap-4 bg-[#11111b] min-w-0 md:overflow-hidden relative">
         
         <!-- File Explorer -->
-        <aside id="explorer-pane" class="w-full md:w-48 bg-[#1e1e2e] md:rounded-xl border-r md:border border-[#313244] flex flex-col shrink-0 overflow-hidden md:shadow-lg">
+        <aside id="explorer-pane" class="w-full md:w-48 bg-[#1e1e2e] rounded-xl border border-[#313244] flex flex-col shrink-0 h-[250px] md:h-full overflow-hidden shadow-lg">
             <div class="bg-[#181825] px-4 py-3 border-b border-[#313244] flex justify-between items-center text-sm font-bold text-[#a6adc8] shrink-0 uppercase tracking-wider">
                 <span>Explorer</span>
                 <div class="flex gap-2">
@@ -150,16 +124,16 @@
         </aside>
 
         <!-- Editor & Output Split Container -->
-        <div id="split-container" class="flex-1 flex flex-col md:flex-row relative gap-0 md:gap-4 min-w-0">
+        <div id="split-container" class="flex-1 flex flex-col md:flex-row relative gap-6 md:gap-4 min-w-0 md:h-full shrink-0">
             
             <!-- Code Editor Section -->
-            <section id="editor-pane" class="flex flex-col bg-[#282a36] md:rounded-xl border-0 md:border border-[#313244] overflow-hidden min-w-0 md:shadow-lg w-full md:w-1/2">
+            <section id="editor-pane" class="flex flex-col bg-[#282a36] rounded-xl border border-[#313244] overflow-hidden min-w-0 shadow-lg w-full md:w-1/2 h-[60vh] md:h-full shrink-0">
                 <div class="bg-[#181825] px-4 py-2 border-b border-[#313244] flex justify-between items-center text-sm text-[#a6adc8] shrink-0">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-                        <span id="active-file-label" class="font-mono text-[#cdd6f4] font-medium">main.py</span>
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        <svg class="w-4 h-4 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        <span id="active-file-label" class="font-mono text-[#cdd6f4] font-medium truncate">main.py</span>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-1 md:gap-2 shrink-0 pl-2">
                         <button id="preview-html-btn" class="hidden p-1.5 hover:bg-[#313244] rounded text-blue-400 hover:text-white transition-colors" title="Preview Webpage in New Tab">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
                         </button>
@@ -189,7 +163,7 @@
             </div>
 
             <!-- Console / Output Section -->
-            <section id="output-pane" class="flex flex-col bg-black md:rounded-xl border-0 md:border border-[#313244] overflow-hidden min-w-0 md:shadow-lg w-full md:w-1/2">
+            <section id="output-pane" class="flex flex-col bg-black rounded-xl border border-[#313244] overflow-hidden min-w-0 shadow-lg w-full md:w-1/2 h-[500px] md:h-full shrink-0">
                 <!-- Output Tabs Header -->
                 <div class="bg-[#181825] border-b border-[#313244] flex justify-between items-end px-2 pt-2 shrink-0">
                     <div class="flex space-x-1">
@@ -248,34 +222,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/selection/active-line.min.js"></script>
 
     <script>
-        // --- MOBILE APP NAVIGATION LOGIC ---
-        function setMobileTab(tab) {
-            document.body.setAttribute('data-mobile-tab', tab);
-            
-            // Hide the new plot notification if output is opened
-            if (tab === 'output') {
-                const badge = document.getElementById('mob-plot-badge');
-                if(badge) badge.classList.add('hidden');
-            }
-
-            // Update button styles
-            const btns = ['explorer', 'editor', 'output'];
-            btns.forEach(b => {
-                const el = document.getElementById('mob-btn-' + b);
-                if (b === tab) {
-                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-b-2 border-blue-500 bg-[#313244]/30 transition-colors relative";
-                } else {
-                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-b-2 border-transparent transition-colors relative";
-                }
-            });
-            
-            // CodeMirror needs a refresh when coming out of display:none
-            if (tab === 'editor' && typeof editor !== 'undefined') {
-                setTimeout(() => editor.refresh(), 50);
-            }
-        }
-
-
         // --- VIRTUAL FILE SYSTEM STATE ---
         let files = {
             'main.py': `# Write your Python code here!\n\nprint("Hello World!")`,
@@ -331,10 +277,6 @@
                 viewPlots.classList.replace('hidden', 'flex');
                 viewConsole.classList.replace('block', 'hidden');
                 plotBadge.classList.add('hidden');
-                
-                // Also hide mobile plot badge if switching to plots natively
-                const mobBadge = document.getElementById('mob-plot-badge');
-                if(mobBadge) mobBadge.classList.add('hidden');
             }
         }
         tabConsole.addEventListener('click', () => switchTab('console'));
@@ -353,7 +295,6 @@
         });
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
-            // Ignore mouse resizing entirely if on mobile view
             if (window.innerWidth < 768) return; 
 
             const containerRect = splitContainer.getBoundingClientRect();
@@ -436,11 +377,6 @@
             
             currentFile = filename; 
             activeFileLabel.innerText = filename;
-            
-            // Open editor on mobile automatically if they click a file
-            if (window.innerWidth < 768) {
-                setMobileTab('editor');
-            }
             
             const content = files[currentFile];
 
@@ -594,10 +530,6 @@
             printToConsole(`[✓ Plot rendered successfully - Switching to Plots tab]`, false, true);
             plotBadge.classList.remove('hidden');
             
-            // Notify mobile user
-            const mobBadge = document.getElementById('mob-plot-badge');
-            if(mobBadge) mobBadge.classList.remove('hidden');
-            
             setTimeout(() => { switchTab('plots'); viewPlots.scrollTop = viewPlots.scrollHeight; }, 600);
         };
 
@@ -721,11 +653,6 @@
             if (typeof files[currentFile] === 'string') {
                 files[currentFile] = editor.getValue();
                 fileHistories[currentFile] = editor.getHistory(); 
-            }
-            
-            // On mobile, auto-switch to output when code runs
-            if (window.innerWidth < 768) {
-                setMobileTab('output');
             }
             
             consoleOutput.innerHTML = ''; 
