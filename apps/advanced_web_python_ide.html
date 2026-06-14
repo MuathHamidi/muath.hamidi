@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Advanced Python Web IDE</title>
     
     <!-- Tailwind CSS for rapid UI styling -->
@@ -57,40 +57,64 @@
         ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
         
         .min-h-0 { min-height: 0; }
+
+        /* --- MOBILE APP LAYOUT RULES --- */
+        @media (max-width: 767px) {
+            body[data-mobile-tab="explorer"] #explorer-pane { display: flex !important; }
+            body[data-mobile-tab="explorer"] #split-container { display: none !important; }
+            
+            body[data-mobile-tab="editor"] #explorer-pane { display: none !important; }
+            body[data-mobile-tab="editor"] #split-container { display: flex !important; flex-direction: column !important; }
+            body[data-mobile-tab="editor"] #editor-pane { display: flex !important; }
+            body[data-mobile-tab="editor"] #output-pane { display: none !important; }
+            
+            body[data-mobile-tab="output"] #explorer-pane { display: none !important; }
+            body[data-mobile-tab="output"] #split-container { display: flex !important; flex-direction: column !important; }
+            body[data-mobile-tab="output"] #editor-pane { display: none !important; }
+            body[data-mobile-tab="output"] #output-pane { display: flex !important; }
+
+            #explorer-pane, #editor-pane, #output-pane {
+                height: 100% !important;
+                flex: 1 1 auto !important;
+                border-radius: 0 !important;
+                border: none !important;
+            }
+        }
     </style>
 </head>
-<body class="bg-[#1e1e2e] text-gray-100 min-h-screen md:h-screen flex flex-col font-sans overflow-y-auto md:overflow-hidden selection:bg-blue-500/30">
+<body class="bg-[#1e1e2e] text-gray-100 h-screen flex flex-col font-sans overflow-hidden selection:bg-blue-500/30" data-mobile-tab="editor">
 
     <!-- Header / Navbar -->
-    <header class="bg-[#181825] border-b border-[#313244] px-6 py-3 flex items-center justify-between shrink-0 z-20 shadow-md">
-        <div class="flex items-center gap-3">
-            <svg class="w-8 h-8 text-blue-400" viewBox="0 0 110 110" fill="currentColor">
+    <header class="bg-[#181825] border-b border-[#313244] px-4 py-2 md:px-6 md:py-3 flex items-center justify-between shrink-0 z-20 shadow-md">
+        <div class="flex items-center gap-2 md:gap-3">
+            <svg class="w-7 h-7 md:w-8 md:h-8 text-blue-400" viewBox="0 0 110 110" fill="currentColor">
                 <path d="M54.8 12.3c-21.7 0-20.7 9.4-20.7 9.4l.1 9.8h21.4v3.1H34.3c0 0-14.7-1.7-14.7 15.6s12.5 16.3 12.5 16.3h4.6v-7.6c0 0-.2-8.8 8.9-8.8h11.1c0 0 8.6-.2 8.6-8.4v-11c0 0 1.2-8.4-10.5-8.4zM45 20.3c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1-3.1-1.4-3.1-3.1 1.4-3.1 3.1-3.1z"/>
                 <path d="M55.7 98.4c21.7 0 20.7-9.4 20.7-9.4l-.1-9.8H54.9v-3.1h21.3c0 0 14.7 1.7 14.7-15.6S78.4 44.2 78.4 44.2h-4.6v7.6c0 0 .2 8.8-8.9 8.8H53.8c0 0-8.6.2-8.6 8.4v11c0 0-1.2 8.4 10.5 8.4zM65.5 90.3c-1.7 0-3.1-1.4-3.1-3.1s1.4-3.1 3.1-3.1 3.1 1.4 3.1 3.1-1.4 3.1-3.1 3.1z" fill="#facc15"/>
             </svg>
-            <h1 class="text-xl font-bold tracking-wide text-[#cdd6f4]">Advanced <span class="text-blue-400">Py</span><span class="text-yellow-400">Web</span> IDE</h1>
+            <h1 class="text-lg md:text-xl font-bold tracking-wide text-[#cdd6f4]">Py<span class="text-yellow-400">Web</span> <span class="hidden md:inline">IDE</span></h1>
         </div>
         
-        <div class="flex items-center gap-5">
-            <div id="status-indicator" class="flex items-center gap-2 text-sm text-yellow-400 bg-[#313244] px-3 py-1.5 rounded-full shadow-inner">
-                <span class="relative flex h-2.5 w-2.5">
+        <div class="flex items-center gap-3 md:gap-5">
+            <div id="status-indicator" class="flex items-center gap-2 text-xs md:text-sm text-yellow-400 bg-[#313244] px-2 py-1 md:px-3 md:py-1.5 rounded-full shadow-inner">
+                <span class="relative flex h-2 w-2 md:h-2.5 md:w-2.5">
                   <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span id="status-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+                  <span id="status-dot" class="relative inline-flex rounded-full h-2 w-2 md:h-2.5 md:w-2.5 bg-yellow-500"></span>
                 </span>
-                <span id="status-text" class="font-medium">Initializing Engine...</span>
+                <span id="status-text" class="font-medium">Initializing...</span>
             </div>
-            <button id="run-btn" disabled class="bg-blue-600 hover:bg-blue-500 disabled:bg-[#313244] disabled:text-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] disabled:shadow-none flex items-center gap-2 transform active:scale-95">
+            <button id="run-btn" disabled class="bg-blue-600 hover:bg-blue-500 disabled:bg-[#313244] disabled:text-gray-500 disabled:cursor-not-allowed text-white px-4 md:px-6 py-1.5 md:py-2 rounded-lg text-sm md:text-base font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] disabled:shadow-none flex items-center gap-2 transform active:scale-95">
                 <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
-                Run Code
+                <span class="hidden md:inline">Run Code</span>
+                <span class="md:hidden">Run</span>
             </button>
         </div>
     </header>
 
     <!-- Main Workspace -->
-    <main class="flex-1 flex flex-col md:flex-row p-4 gap-4 bg-[#11111b] min-w-0">
+    <main class="flex-1 flex flex-col md:flex-row p-0 md:p-4 gap-0 md:gap-4 bg-[#11111b] min-w-0 overflow-hidden">
         
         <!-- File Explorer -->
-        <aside class="w-full md:w-48 bg-[#1e1e2e] rounded-xl border border-[#313244] flex flex-col shrink-0 h-[250px] md:h-auto md:min-h-0 overflow-hidden shadow-lg">
+        <aside id="explorer-pane" class="w-full md:w-48 bg-[#1e1e2e] md:rounded-xl border-r md:border border-[#313244] flex flex-col shrink-0 overflow-hidden md:shadow-lg">
             <div class="bg-[#181825] px-4 py-3 border-b border-[#313244] flex justify-between items-center text-sm font-bold text-[#a6adc8] shrink-0 uppercase tracking-wider">
                 <span>Explorer</span>
                 <div class="flex gap-2">
@@ -109,11 +133,10 @@
         </aside>
 
         <!-- Editor & Output Split Container -->
-        <!-- BUGFIX: min-w-0 added to flex children prevents Flexbox blowout from extremely long lines of code -->
-        <div id="split-container" class="flex-1 flex flex-col md:flex-row relative gap-4 min-w-0">
+        <div id="split-container" class="flex-1 flex flex-col md:flex-row relative gap-0 md:gap-4 min-w-0">
             
             <!-- Code Editor Section -->
-            <section id="editor-pane" class="flex flex-col bg-[#282a36] rounded-xl border border-[#313244] overflow-hidden h-[450px] md:h-auto md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
+            <section id="editor-pane" class="flex flex-col bg-[#282a36] md:rounded-xl border-0 md:border border-[#313244] overflow-hidden min-w-0 md:shadow-lg w-full md:w-1/2">
                 <div class="bg-[#181825] px-4 py-2 border-b border-[#313244] flex justify-between items-center text-sm text-[#a6adc8] shrink-0">
                     <div class="flex items-center gap-2">
                         <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
@@ -149,7 +172,7 @@
             </div>
 
             <!-- Console / Output Section -->
-            <section id="output-pane" class="flex flex-col bg-black rounded-xl border border-[#313244] overflow-hidden h-[450px] md:h-auto md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
+            <section id="output-pane" class="flex flex-col bg-black md:rounded-xl border-0 md:border border-[#313244] overflow-hidden min-w-0 md:shadow-lg w-full md:w-1/2">
                 <!-- Output Tabs Header -->
                 <div class="bg-[#181825] border-b border-[#313244] flex justify-between items-end px-2 pt-2 shrink-0">
                     <div class="flex space-x-1">
@@ -190,6 +213,23 @@
         </div>
     </main>
 
+    <!-- Mobile Navigation Bar (Only visible on small screens) -->
+    <nav class="md:hidden flex bg-[#181825] border-t border-[#313244] shrink-0 z-30">
+        <button onclick="setMobileTab('explorer')" id="mob-btn-explorer" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-t-2 border-transparent transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Files</span>
+        </button>
+        <button onclick="setMobileTab('editor')" id="mob-btn-editor" class="flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-t-2 border-blue-500 bg-[#313244]/30 transition-colors relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Code</span>
+        </button>
+        <button onclick="setMobileTab('output')" id="mob-btn-output" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-t-2 border-transparent transition-colors relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Output</span>
+            <span id="mob-plot-badge" class="hidden absolute top-2 right-1/4 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">!</span>
+        </button>
+    </nav>
+
     <!-- Image Preview Modal -->
     <div id="image-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex flex-col justify-center items-center p-4 backdrop-blur-sm transition-opacity">
         <div class="absolute top-4 right-6 flex gap-4">
@@ -208,12 +248,40 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/selection/active-line.min.js"></script>
 
     <script>
+        // --- MOBILE APP NAVIGATION LOGIC ---
+        function setMobileTab(tab) {
+            document.body.setAttribute('data-mobile-tab', tab);
+            
+            // Hide the new plot notification if output is opened
+            if (tab === 'output') {
+                const badge = document.getElementById('mob-plot-badge');
+                if(badge) badge.classList.add('hidden');
+            }
+
+            // Update button styles
+            const btns = ['explorer', 'editor', 'output'];
+            btns.forEach(b => {
+                const el = document.getElementById('mob-btn-' + b);
+                if (b === tab) {
+                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-t-2 border-blue-500 bg-[#313244]/30 transition-colors relative";
+                } else {
+                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-t-2 border-transparent transition-colors relative";
+                }
+            });
+            
+            // CodeMirror needs a refresh when coming out of display:none
+            if (tab === 'editor' && typeof editor !== 'undefined') {
+                setTimeout(() => editor.refresh(), 50);
+            }
+        }
+
+
         // --- VIRTUAL FILE SYSTEM STATE ---
         let files = {
             'main.py': `# Write your Python code here!\n\nprint("Hello World!")`,
             'notes.txt': '# You can create multiple files.\n# The virtual filesystem lets Python read them!'
         };
-        let fileHistories = {}; // FIX: Independently track undo history for each file
+        let fileHistories = {};
         let currentFile = 'main.py';
 
         // --- DOM ELEMENTS ---
@@ -246,7 +314,7 @@
         const viewPlots = document.getElementById('view-plots');
         const plotBadge = document.getElementById('plot-badge');
 
-        // --- TABS LOGIC ---
+        // --- TABS LOGIC (Internal to Output Pane) ---
         function switchTab(tabName) {
             if (tabName === 'console') {
                 tabConsole.classList.replace('border-transparent', 'border-blue-500');
@@ -262,7 +330,11 @@
                 tabConsole.classList.replace('text-blue-400', 'text-[#a6adc8]');
                 viewPlots.classList.replace('hidden', 'flex');
                 viewConsole.classList.replace('block', 'hidden');
-                plotBadge.classList.add('hidden'); // clear new badge
+                plotBadge.classList.add('hidden');
+                
+                // Also hide mobile plot badge if switching to plots natively
+                const mobBadge = document.getElementById('mob-plot-badge');
+                if(mobBadge) mobBadge.classList.add('hidden');
             }
         }
         tabConsole.addEventListener('click', () => switchTab('console'));
@@ -281,6 +353,9 @@
         });
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
+            // Ignore mouse resizing entirely if on mobile view
+            if (window.innerWidth < 768) return; 
+
             const containerRect = splitContainer.getBoundingClientRect();
             let newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
             if (newWidth < 20) newWidth = 20; 
@@ -316,7 +391,6 @@
                 const isPy = filename.endsWith('.py');
                 const isExcel = filename.endsWith('.xlsx') || filename.endsWith('.csv');
                 
-                // Determine icon based on file type
                 let iconSvg = '';
                 if (isPy) {
                     iconSvg = `<svg class="w-4 h-4 shrink-0 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>`;
@@ -345,7 +419,7 @@
         function deleteFile(filename) {
             if(confirm(`Are you sure you want to delete ${filename}?`)) {
                 delete files[filename];
-                delete fileHistories[filename]; // cleanup history
+                delete fileHistories[filename];
                 if(pyodide) {
                     try { pyodide.FS.unlink('/workspace/' + filename); } catch(e){}
                 }
@@ -355,7 +429,6 @@
         }
 
         function switchFile(filename) {
-            // Save current file content AND undo history to memory before switching
             if (currentFile && typeof files[currentFile] === 'string') {
                 files[currentFile] = editor.getValue(); 
                 fileHistories[currentFile] = editor.getHistory();
@@ -364,25 +437,26 @@
             currentFile = filename; 
             activeFileLabel.innerText = filename;
             
+            // Open editor on mobile automatically if they click a file
+            if (window.innerWidth < 768) {
+                setMobileTab('editor');
+            }
+            
             const content = files[currentFile];
 
-            // Setup preview button visibility for HTML
             if (typeof content === 'string' && filename.endsWith('.html')) {
                 previewHtmlBtn.classList.remove('hidden');
             } else {
                 previewHtmlBtn.classList.add('hidden');
             }
 
-            // Hide media preview by default
             mediaPreview.classList.add('hidden');
             mediaContent.innerHTML = '';
 
-            // Protect the editor from trying to render binary gibberish
             if (content instanceof Uint8Array) {
                 editor.setOption('mode', 'text/plain');
                 editor.setOption('readOnly', 'nocursor');
                 
-                // Enhanced Media Preview for Binary Files
                 const isImage = filename.match(/\.(png|jpg|jpeg|gif)$/i);
                 const isAudio = filename.match(/\.(wav|mp3|ogg)$/i);
                 
@@ -403,7 +477,7 @@
                     editor.setValue("<!-- \n  This is a binary/compiled file.\n  Use the 'Download' button in the toolbar above to save it to your computer and view it.\n-->");
                 }
                 
-                editor.clearHistory(); // Prevent undo from working on binary placeholder screen
+                editor.clearHistory();
 
             } else {
                 editor.setOption('readOnly', false);
@@ -412,7 +486,6 @@
                 
                 editor.setValue(content || '');
                 
-                // Load this specific file's undo history, or clear it if it's new
                 if (fileHistories[filename]) {
                     editor.setHistory(fileHistories[filename]);
                 } else {
@@ -437,11 +510,11 @@
                 } else {
                     const text = await file.text();
                     files[file.name] = text;
-                    delete fileHistories[file.name]; // Invalidate history since we overwrote it
+                    delete fileHistories[file.name];
                 }
             }
             switchFile(uploadedFiles[0].name);
-            fileUploadInput.value = ''; // reset
+            fileUploadInput.value = ''; 
         });
 
         newFileBtn.addEventListener('click', () => {
@@ -465,9 +538,9 @@
         function printToConsole(text, isError = false, isSystem = false) {
             const span = document.createElement('span');
             span.textContent = text + '\n';
-            if (isError) span.className = 'text-[#f38ba8]'; // red
-            else if (isSystem) span.className = 'text-[#89b4fa] italic'; // blue
-            else span.className = 'text-[#a6e3a1]'; // green
+            if (isError) span.className = 'text-[#f38ba8]';
+            else if (isSystem) span.className = 'text-[#89b4fa] italic';
+            else span.className = 'text-[#a6e3a1]';
             
             consoleOutput.appendChild(span);
             rawOutputText += text + '\n';
@@ -520,6 +593,11 @@
             
             printToConsole(`[✓ Plot rendered successfully - Switching to Plots tab]`, false, true);
             plotBadge.classList.remove('hidden');
+            
+            // Notify mobile user
+            const mobBadge = document.getElementById('mob-plot-badge');
+            if(mobBadge) mobBadge.classList.remove('hidden');
+            
             setTimeout(() => { switchTab('plots'); viewPlots.scrollTop = viewPlots.scrollHeight; }, 600);
         };
 
@@ -575,7 +653,6 @@
                 
                 printToConsole("Initializing Pyodide virtual environment...", false, true);
                 
-                // Create a dedicated workspace directory and set it as the current working directory
                 await pyodide.runPythonAsync("import os; os.makedirs('/workspace', exist_ok=True); os.chdir('/workspace')");
                 
                 await pyodide.loadPackage("micropip");
@@ -641,10 +718,14 @@
         runBtn.addEventListener('click', async () => {
             if (!pyodide) return;
             
-            // Save state and history before executing
             if (typeof files[currentFile] === 'string') {
                 files[currentFile] = editor.getValue();
                 fileHistories[currentFile] = editor.getHistory(); 
+            }
+            
+            // On mobile, auto-switch to output when code runs
+            if (window.innerWidth < 768) {
+                setMobileTab('output');
             }
             
             consoleOutput.innerHTML = ''; 
@@ -654,7 +735,6 @@
             emptyPlotMsg.style.display = 'block';
             switchTab('console');
             
-            // Sync files UI -> Pyodide Virtual FS
             for (const [filename, content] of Object.entries(files)) {
                 if (content instanceof Uint8Array) {
                     pyodide.FS.writeFile('/workspace/' + filename, content);
@@ -664,7 +744,7 @@
             }
 
             runBtn.disabled = true;
-            runBtn.innerHTML = '<svg class="animate-spin w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2v4c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h4c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/></svg> Running...';
+            runBtn.innerHTML = '<svg class="animate-spin w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2v4c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h4c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/></svg> <span class="hidden md:inline">Running...</span><span class="md:hidden">...</span>';
 
             const startTime = performance.now();
 
@@ -688,7 +768,6 @@ try:
         img_data = buf.read()
         js.display_plot(base64.b64encode(img_data).decode('utf-8'))
         
-        # Save plot to virtual FS so it appears in Explorer
         filename = f"plot_{int(time.time() * 1000)}.png"
         with open(filename, "wb") as f:
             f.write(img_data)
@@ -712,7 +791,6 @@ except ImportError:
             } catch (err) {
                 printToConsole(err.toString(), true);
             } finally {
-                // IMPORTANT: Sync Virtual FS -> UI (Fetches generated files like .xlsx and plots)
                 try {
                     const fsFiles = pyodide.FS.readdir('/workspace');
                     
@@ -720,7 +798,7 @@ except ImportError:
                         if (fn === '.' || fn === '..') continue;
                         
                         const stat = pyodide.FS.stat('/workspace/' + fn);
-                        if (pyodide.FS.isDir(stat.mode)) continue; // skip directories
+                        if (pyodide.FS.isDir(stat.mode)) continue; 
                         
                         const rawData = pyodide.FS.readFile('/workspace/' + fn);
                         const binaryExtensions = ['.xlsx', '.xls', '.png', '.jpg', '.jpeg', '.pdf', '.zip', '.sqlite3', '.db', '.wav', '.mp3', '.ogg', '.mp4'];
@@ -732,10 +810,9 @@ except ImportError:
                             try {
                                 const newText = new TextDecoder("utf-8", { fatal: true }).decode(rawData);
                                 
-                                // Only invalidate memory/history if the script legitimately modified the file contents
                                 if (files[fn] !== newText) {
                                     files[fn] = newText;
-                                    delete fileHistories[fn]; // Script changed it, erase old undo history
+                                    delete fileHistories[fn]; 
                                     
                                     if (currentFile === fn) {
                                         editor.setValue(newText);
@@ -753,7 +830,7 @@ except ImportError:
                 }
 
                 runBtn.disabled = false;
-                runBtn.innerHTML = '<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Run Code';
+                runBtn.innerHTML = '<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> <span class="hidden md:inline">Run Code</span><span class="md:hidden">Run</span>';
             }
         });
 
@@ -767,7 +844,6 @@ except ImportError:
         });
 
         previewHtmlBtn.addEventListener('click', () => {
-            // Get the absolute latest content directly from the editor
             const content = editor.getValue();
             const blob = new Blob([content], { type: 'text/html' });
             const url = URL.createObjectURL(blob);
@@ -781,7 +857,6 @@ except ImportError:
             if (content instanceof Uint8Array) {
                 blob = new Blob([content], { type: 'application/octet-stream' });
             } else {
-                // If it's a text file, make sure we grab the latest edits before downloading
                 const textContent = typeof content === 'string' ? editor.getValue() : '';
                 blob = new Blob([textContent], { type: 'text/plain' });
             }
