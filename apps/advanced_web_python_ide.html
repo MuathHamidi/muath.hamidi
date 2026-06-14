@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Python Web IDE</title>
+    
+    <!-- Tailwind CSS for rapid UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- CodeMirror CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/dracula.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.css">
+    
+    <!-- Pyodide Engine -->
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+
+    <style>
+        /* Editor Overrides */
+        .CodeMirror {
+            height: 100%;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: 14px;
+            background: transparent !important;
+        }
+        
+        /* Typography for output */
+        .output-text {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        /* Generated Plots */
+        .py-plot {
+            max-width: 100%;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: transform 0.2s;
+        }
+        .py-plot:hover {
+            transform: scale(1.01);
+        }
+
+        /* Resizer styles */
+        #resizer {
+            cursor: col-resize;
+            touch-action: none;
+        }
+        .resizing { user-select: none; }
+
+        /* Custom scrollbars */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: #1f2937; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+        
+        .min-h-0 { min-height: 0; }
+    </style>
+</head>
+<body class="bg-[#1e1e2e] text-gray-100 h-screen flex flex-col font-sans overflow-hidden selection:bg-blue-500/30">
+
+    <!-- Header / Navbar -->
+    <header class="bg-[#181825] border-b border-[#313244] px-6 py-3 flex items-center justify-between shrink-0 z-20 shadow-md">
+        <div class="flex items-center gap-3">
+            <svg class="w-8 h-8 text-blue-400" viewBox="0 0 110 110" fill="currentColor">
+                <path d="M54.8 12.3c-21.7 0-20.7 9.4-20.7 9.4l.1 9.8h21.4v3.1H34.3c0 0-14.7-1.7-14.7 15.6s12.5 16.3 12.5 16.3h4.6v-7.6c0 0-.2-8.8 8.9-8.8h11.1c0 0 8.6-.2 8.6-8.4v-11c0 0 1.2-8.4-10.5-8.4zM45 20.3c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1-3.1-1.4-3.1-3.1 1.4-3.1 3.1-3.1z"/>
+                <path d="M55.7 98.4c21.7 0 20.7-9.4 20.7-9.4l-.1-9.8H54.9v-3.1h21.3c0 0 14.7 1.7 14.7-15.6S78.4 44.2 78.4 44.2h-4.6v7.6c0 0 .2 8.8-8.9 8.8H53.8c0 0-8.6.2-8.6 8.4v11c0 0-1.2 8.4 10.5 8.4zM65.5 90.3c-1.7 0-3.1-1.4-3.1-3.1s1.4-3.1 3.1-3.1 3.1 1.4 3.1 3.1-1.4 3.1-3.1 3.1z" fill="#facc15"/>
+            </svg>
+            <h1 class="text-xl font-bold tracking-wide text-[#cdd6f4]">Advanced <span class="text-blue-400">Py</span><span class="text-yellow-400">Web</span> IDE</h1>
+        </div>
+        
+        <div class="flex items-center gap-5">
+            <div id="status-indicator" class="flex items-center gap-2 text-sm text-yellow-400 bg-[#313244] px-3 py-1.5 rounded-full shadow-inner">
+                <span class="relative flex h-2.5 w-2.5">
+                  <span id="status-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                  <span id="status-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-yellow-500"></span>
+                </span>
+                <span id="status-text" class="font-medium">Initializing Engine...</span>
+            </div>
+            <button id="run-btn" disabled class="bg-blue-600 hover:bg-blue-500 disabled:bg-[#313244] disabled:text-gray-500 disabled:cursor-not-allowed text-white px-6 py-2 rounded-lg font-bold transition-all shadow-[0_0_15px_rgba(37,99,235,0.4)] disabled:shadow-none flex items-center gap-2 transform active:scale-95">
+                <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                Run Code
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="flex-1 flex flex-col md:flex-row p-4 gap-2 overflow-hidden min-h-0 bg-[#11111b]">
+        
+        <!-- File Explorer -->
+        <aside class="w-full md:w-48 bg-[#1e1e2e] rounded-xl border border-[#313244] flex flex-col shrink-0 min-h-[150px] md:min-h-0 overflow-hidden shadow-lg">
+            <div class="bg-[#181825] px-4 py-3 border-b border-[#313244] flex justify-between items-center text-sm font-bold text-[#a6adc8] shrink-0 uppercase tracking-wider">
+                <span>Explorer</span>
+                <div class="flex gap-2">
+                    <input type="file" id="file-upload" class="hidden" multiple>
+                    <button id="upload-file-btn" class="hover:text-green-400 transition-colors" title="Upload Files">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    </button>
+                    <button id="new-file-btn" class="hover:text-blue-400 transition-colors" title="New File">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div id="file-list" class="flex-1 overflow-y-auto p-2 flex flex-col gap-1">
+                <!-- File items dynamically injected here -->
+            </div>
+        </aside>
+
+        <!-- Editor & Output Split Container -->
+        <!-- BUGFIX: min-w-0 added to flex children prevents Flexbox blowout from extremely long lines of code -->
+        <div id="split-container" class="flex-1 flex flex-col md:flex-row min-h-0 relative gap-2 min-w-0">
+            
+            <!-- Code Editor Section -->
+            <section id="editor-pane" class="flex flex-col bg-[#282a36] rounded-xl border border-[#313244] overflow-hidden min-h-[300px] md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
+                <div class="bg-[#181825] px-4 py-2 border-b border-[#313244] flex justify-between items-center text-sm text-[#a6adc8] shrink-0">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+                        <span id="active-file-label" class="font-mono text-[#cdd6f4] font-medium">main.py</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button id="preview-html-btn" class="hidden p-1.5 hover:bg-[#313244] rounded text-blue-400 hover:text-white transition-colors" title="Preview Webpage in New Tab">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                        </button>
+                        <button id="download-file-btn" class="p-1.5 hover:bg-[#313244] rounded text-gray-400 hover:text-white transition-colors" title="Download File">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </button>
+                        <button id="copy-code-btn" class="p-1.5 hover:bg-[#313244] rounded text-gray-400 hover:text-white transition-colors" title="Copy Code">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex-1 relative min-h-0 bg-[#282a36]">
+                    <textarea id="code-editor"></textarea>
+                    
+                    <!-- Media Preview Overlay -->
+                    <div id="media-preview" class="hidden absolute inset-0 bg-[#282a36] z-10 flex flex-col items-center justify-center p-6 overflow-auto">
+                        <div id="media-content" class="max-w-full max-h-full flex flex-col items-center gap-4">
+                            <!-- Dynamic Content (Image/Audio) goes here -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Resizer -->
+            <div id="resizer" class="hidden md:flex flex-col justify-center items-center w-2 -mx-1 z-10 group cursor-col-resize">
+                <div class="h-12 w-1 bg-[#313244] group-hover:bg-blue-500 rounded-full transition-colors"></div>
+            </div>
+
+            <!-- Console / Output Section -->
+            <section id="output-pane" class="flex flex-col bg-black rounded-xl border border-[#313244] overflow-hidden min-h-[300px] md:min-h-0 min-w-0 shadow-lg w-full md:w-1/2">
+                <!-- Output Tabs Header -->
+                <div class="bg-[#181825] border-b border-[#313244] flex justify-between items-end px-2 pt-2 shrink-0">
+                    <div class="flex space-x-1">
+                        <button id="tab-console" class="px-4 py-2 text-sm font-medium border-b-2 border-blue-500 text-blue-400 transition-colors focus:outline-none flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Terminal
+                        </button>
+                        <button id="tab-plots" class="px-4 py-2 text-sm font-medium border-b-2 border-transparent text-[#a6adc8] hover:text-[#cdd6f4] transition-colors focus:outline-none flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            Plots <span id="plot-badge" class="hidden ml-1 bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded-full">New</span>
+                        </button>
+                    </div>
+                    <div class="flex gap-2 pb-1 pr-2">
+                        <button id="copy-output-btn" class="p-1 hover:bg-[#313244] rounded text-gray-400 hover:text-white transition-colors" title="Copy Text Output">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                        </button>
+                        <button id="clear-btn" class="p-1 hover:bg-[#313244] rounded text-gray-400 hover:text-white transition-colors" title="Clear Output">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Output Contents -->
+                <div class="flex-1 relative min-h-0 bg-black">
+                    <!-- Console View -->
+                    <div id="view-console" class="absolute inset-0 p-4 overflow-y-auto block">
+                        <div id="console-output" class="output-text text-[#a6e3a1] text-sm leading-relaxed"></div>
+                    </div>
+                    <!-- Plots View -->
+                    <div id="view-plots" class="absolute inset-0 p-4 overflow-y-auto hidden bg-[#11111b] flex flex-col items-center gap-6">
+                        <div id="plot-output" class="w-full flex flex-col items-center gap-6">
+                            <div class="text-[#a6adc8] text-sm text-center mt-10 italic" id="empty-plot-msg">No plots generated yet. Run a script using matplotlib/seaborn to see visualizations here.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Image Preview Modal -->
+    <div id="image-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex flex-col justify-center items-center p-4 backdrop-blur-sm transition-opacity">
+        <div class="absolute top-4 right-6 flex gap-4">
+            <button id="modal-close" class="text-gray-400 hover:text-white transition-colors cursor-pointer" title="Close">
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+        <img id="modal-img" src="" class="max-w-full max-h-[90vh] object-contain rounded shadow-2xl bg-white">
+    </div>
+
+    <!-- CodeMirror JS and Python Mode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/show-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/hint/anyword-hint.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/selection/active-line.min.js"></script>
+
+    <script>
+        // --- VIRTUAL FILE SYSTEM STATE ---
+        let files = {
+            'main.py': `# Write your Python code here!\n\nprint("Hello World!")`,
+            'notes.txt': '# You can create multiple files.\n# The virtual filesystem lets Python read them!'
+        };
+        let fileHistories = {}; // FIX: Independently track undo history for each file
+        let currentFile = 'main.py';
+
+        // --- DOM ELEMENTS ---
+        const runBtn = document.getElementById('run-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const copyCodeBtn = document.getElementById('copy-code-btn');
+        const copyOutputBtn = document.getElementById('copy-output-btn');
+        const downloadFileBtn = document.getElementById('download-file-btn');
+        const previewHtmlBtn = document.getElementById('preview-html-btn'); 
+        const newFileBtn = document.getElementById('new-file-btn');
+        const uploadFileBtn = document.getElementById('upload-file-btn');
+        const fileUploadInput = document.getElementById('file-upload');
+        const fileListContainer = document.getElementById('file-list');
+        const activeFileLabel = document.getElementById('active-file-label');
+        
+        const mediaPreview = document.getElementById('media-preview');
+        const mediaContent = document.getElementById('media-content');
+        
+        const consoleOutput = document.getElementById('console-output');
+        const plotOutput = document.getElementById('plot-output');
+        const emptyPlotMsg = document.getElementById('empty-plot-msg');
+        
+        const statusText = document.getElementById('status-text');
+        const statusPing = document.getElementById('status-ping');
+        const statusDot = document.getElementById('status-dot');
+
+        const tabConsole = document.getElementById('tab-console');
+        const tabPlots = document.getElementById('tab-plots');
+        const viewConsole = document.getElementById('view-console');
+        const viewPlots = document.getElementById('view-plots');
+        const plotBadge = document.getElementById('plot-badge');
+
+        // --- TABS LOGIC ---
+        function switchTab(tabName) {
+            if (tabName === 'console') {
+                tabConsole.classList.replace('border-transparent', 'border-blue-500');
+                tabConsole.classList.replace('text-[#a6adc8]', 'text-blue-400');
+                tabPlots.classList.replace('border-blue-500', 'border-transparent');
+                tabPlots.classList.replace('text-blue-400', 'text-[#a6adc8]');
+                viewConsole.classList.replace('hidden', 'block');
+                viewPlots.classList.replace('flex', 'hidden');
+            } else {
+                tabPlots.classList.replace('border-transparent', 'border-blue-500');
+                tabPlots.classList.replace('text-[#a6adc8]', 'text-blue-400');
+                tabConsole.classList.replace('border-blue-500', 'border-transparent');
+                tabConsole.classList.replace('text-blue-400', 'text-[#a6adc8]');
+                viewPlots.classList.replace('hidden', 'flex');
+                viewConsole.classList.replace('block', 'hidden');
+                plotBadge.classList.add('hidden'); // clear new badge
+            }
+        }
+        tabConsole.addEventListener('click', () => switchTab('console'));
+        tabPlots.addEventListener('click', () => switchTab('plots'));
+
+        // --- DRAGGABLE SPLITTER LOGIC ---
+        const resizer = document.getElementById('resizer');
+        const splitContainer = document.getElementById('split-container');
+        const editorPane = document.getElementById('editor-pane');
+        const outputPane = document.getElementById('output-pane');
+        
+        let isResizing = false;
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.classList.add('resizing');
+        });
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            const containerRect = splitContainer.getBoundingClientRect();
+            let newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+            if (newWidth < 20) newWidth = 20; 
+            if (newWidth > 80) newWidth = 80;
+            
+            editorPane.style.width = `${newWidth}%`;
+            outputPane.style.width = `${100 - newWidth}%`;
+        });
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.classList.remove('resizing');
+                editor.refresh();
+            }
+        });
+
+        // --- INITIALIZE EDITOR ---
+        const editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
+            mode: 'python',
+            theme: 'dracula',
+            lineNumbers: true,
+            indentUnit: 4,
+            matchBrackets: true,
+            autoCloseBrackets: true,
+            styleActiveLine: true,
+            extraKeys: {"Ctrl-Space": "autocomplete"}
+        });
+
+        // --- FILE MANAGER LOGIC ---
+        function renderFileList() {
+            fileListContainer.innerHTML = '';
+            for (const filename of Object.keys(files)) {
+                const isPy = filename.endsWith('.py');
+                const isExcel = filename.endsWith('.xlsx') || filename.endsWith('.csv');
+                
+                // Determine icon based on file type
+                let iconSvg = '';
+                if (isPy) {
+                    iconSvg = `<svg class="w-4 h-4 shrink-0 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>`;
+                } else if (isExcel) {
+                    iconSvg = `<svg class="w-4 h-4 shrink-0 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
+                } else {
+                    iconSvg = `<svg class="w-4 h-4 shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`;
+                }
+
+                const btn = document.createElement('button');
+                btn.className = `flex items-center justify-between px-3 py-2.5 text-sm rounded-lg w-full text-left transition-colors group ${
+                    filename === currentFile ? 'bg-[#313244] text-[#cdd6f4] shadow-sm' : 'text-[#a6adc8] hover:bg-[#313244]/50'
+                }`;
+                btn.innerHTML = `
+                    <div class="flex items-center gap-2 overflow-hidden">
+                        ${iconSvg}
+                        <span class="truncate font-medium">${filename}</span>
+                    </div>
+                    ${filename !== 'main.py' ? `<div class="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:text-red-400" onclick="event.stopPropagation(); deleteFile('${filename}')" title="Delete File"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></div>` : ''}
+                `;
+                btn.onclick = () => switchFile(filename);
+                fileListContainer.appendChild(btn);
+            }
+        }
+
+        function deleteFile(filename) {
+            if(confirm(`Are you sure you want to delete ${filename}?`)) {
+                delete files[filename];
+                delete fileHistories[filename]; // cleanup history
+                if(pyodide) {
+                    try { pyodide.FS.unlink('/workspace/' + filename); } catch(e){}
+                }
+                if(currentFile === filename) switchFile('main.py');
+                else renderFileList();
+            }
+        }
+
+        function switchFile(filename) {
+            // Save current file content AND undo history to memory before switching
+            if (currentFile && typeof files[currentFile] === 'string') {
+                files[currentFile] = editor.getValue(); 
+                fileHistories[currentFile] = editor.getHistory();
+            }
+            
+            currentFile = filename; 
+            activeFileLabel.innerText = filename;
+            
+            const content = files[currentFile];
+
+            // Setup preview button visibility for HTML
+            if (typeof content === 'string' && filename.endsWith('.html')) {
+                previewHtmlBtn.classList.remove('hidden');
+            } else {
+                previewHtmlBtn.classList.add('hidden');
+            }
+
+            // Hide media preview by default
+            mediaPreview.classList.add('hidden');
+            mediaContent.innerHTML = '';
+
+            // Protect the editor from trying to render binary gibberish
+            if (content instanceof Uint8Array) {
+                editor.setOption('mode', 'text/plain');
+                editor.setOption('readOnly', 'nocursor');
+                
+                // Enhanced Media Preview for Binary Files
+                const isImage = filename.match(/\.(png|jpg|jpeg|gif)$/i);
+                const isAudio = filename.match(/\.(wav|mp3|ogg)$/i);
+                
+                if (isImage || isAudio) {
+                    mediaPreview.classList.remove('hidden');
+                    const blob = new Blob([content], { type: isImage ? 'image/' + filename.split('.').pop() : 'audio/' + filename.split('.').pop() });
+                    const url = URL.createObjectURL(blob);
+                    
+                    if (isImage) {
+                        mediaContent.innerHTML = `<img src="${url}" class="max-w-full max-h-[60vh] object-contain rounded shadow-lg bg-white p-2">
+                                                  <p class="text-sm text-gray-400 mt-2 font-mono">${filename}</p>`;
+                    } else if (isAudio) {
+                        mediaContent.innerHTML = `<svg class="w-16 h-16 text-blue-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                                                  <audio controls src="${url}" class="w-full max-w-md"></audio>
+                                                  <p class="text-sm text-gray-400 mt-2 font-mono">${filename}</p>`;
+                    }
+                } else {
+                    editor.setValue("<!-- \n  This is a binary/compiled file.\n  Use the 'Download' button in the toolbar above to save it to your computer and view it.\n-->");
+                }
+                
+                editor.clearHistory(); // Prevent undo from working on binary placeholder screen
+
+            } else {
+                editor.setOption('readOnly', false);
+                if(filename.endsWith('.py')) editor.setOption('mode', 'python');
+                else editor.setOption('mode', 'text/plain');
+                
+                editor.setValue(content || '');
+                
+                // Load this specific file's undo history, or clear it if it's new
+                if (fileHistories[filename]) {
+                    editor.setHistory(fileHistories[filename]);
+                } else {
+                    editor.clearHistory();
+                }
+            }
+            
+            renderFileList();
+            setTimeout(()=>editor.refresh(), 50);
+        }
+
+        uploadFileBtn.addEventListener('click', () => fileUploadInput.click());
+        fileUploadInput.addEventListener('change', async (e) => {
+            const uploadedFiles = e.target.files;
+            if (uploadedFiles.length === 0) return;
+            
+            for (let file of uploadedFiles) {
+                const isBinary = file.name.match(/\.(xlsx|xls|png|jpg|jpeg|pdf|zip|sqlite3|db|wav|mp3|ogg|mp4)$/i);
+                if (isBinary) {
+                    const buffer = await file.arrayBuffer();
+                    files[file.name] = new Uint8Array(buffer);
+                } else {
+                    const text = await file.text();
+                    files[file.name] = text;
+                    delete fileHistories[file.name]; // Invalidate history since we overwrote it
+                }
+            }
+            switchFile(uploadedFiles[0].name);
+            fileUploadInput.value = ''; // reset
+        });
+
+        newFileBtn.addEventListener('click', () => {
+            const filename = prompt("Enter file name (e.g., model.py, dataset.csv):");
+            if (filename && !files[filename]) {
+                if (typeof files[currentFile] === 'string') {
+                    files[currentFile] = editor.getValue(); 
+                    fileHistories[currentFile] = editor.getHistory();
+                }
+                files[filename] = ''; 
+                switchFile(filename);
+            } else if (files[filename]) {
+                alert("File already exists!");
+            }
+        });
+
+        switchFile('main.py');
+
+        // --- CONSOLE & PLOT HELPERS ---
+        let rawOutputText = ""; 
+        function printToConsole(text, isError = false, isSystem = false) {
+            const span = document.createElement('span');
+            span.textContent = text + '\n';
+            if (isError) span.className = 'text-[#f38ba8]'; // red
+            else if (isSystem) span.className = 'text-[#89b4fa] italic'; // blue
+            else span.className = 'text-[#a6e3a1]'; // green
+            
+            consoleOutput.appendChild(span);
+            rawOutputText += text + '\n';
+            viewConsole.scrollTop = viewConsole.scrollHeight;
+        }
+
+        window.display_plot = function(base64Image) {
+            emptyPlotMsg.style.display = 'none';
+            
+            const wrapper = document.createElement('div');
+            wrapper.className = "w-full flex flex-col items-center gap-2 mb-6 group";
+            
+            const time = new Date().toLocaleTimeString();
+            const label = document.createElement('span');
+            label.className = "text-[#a6adc8] text-xs font-mono";
+            label.innerText = `Plot generated at ${time}`;
+            
+            const imgContainer = document.createElement('div');
+            imgContainer.className = "relative bg-white p-2 border border-gray-300 rounded-lg shadow-sm hover:shadow-md transition-shadow inline-block";
+
+            const img = document.createElement('img');
+            img.src = "data:image/png;base64," + base64Image;
+            img.className = 'py-plot cursor-zoom-in';
+            img.onclick = () => openModal(img.src);
+            
+            const toolbar = document.createElement('div');
+            toolbar.className = "absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-900/80 p-1.5 rounded-lg backdrop-blur-sm shadow-lg";
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = "p-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors";
+            copyBtn.title = "Copy Image";
+            copyBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>`;
+            copyBtn.onclick = (e) => { e.stopPropagation(); copyPlotImage(base64Image, copyBtn); };
+
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = "p-1.5 text-gray-300 hover:text-white hover:bg-gray-700 rounded transition-colors";
+            downloadBtn.title = "Save Image";
+            downloadBtn.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>`;
+            downloadBtn.onclick = (e) => { e.stopPropagation(); savePlotImage(base64Image, 'plot_' + time.replace(/[: ]/g, '-') + '.png'); };
+            
+            toolbar.appendChild(copyBtn);
+            toolbar.appendChild(downloadBtn);
+
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(toolbar);
+
+            wrapper.appendChild(label);
+            wrapper.appendChild(imgContainer);
+            plotOutput.appendChild(wrapper);
+            
+            printToConsole(`[✓ Plot rendered successfully - Switching to Plots tab]`, false, true);
+            plotBadge.classList.remove('hidden');
+            setTimeout(() => { switchTab('plots'); viewPlots.scrollTop = viewPlots.scrollHeight; }, 600);
+        };
+
+        // --- PLOT ACTION HELPERS ---
+        function openModal(src) {
+            const modal = document.getElementById('image-modal');
+            document.getElementById('modal-img').src = src;
+            modal.classList.remove('hidden');
+        }
+
+        function savePlotImage(base64, filename) {
+            const a = document.createElement('a');
+            a.href = "data:image/png;base64," + base64;
+            a.download = filename;
+            a.click();
+        }
+
+        async function copyPlotImage(base64, btn) {
+            try {
+                const res = await fetch("data:image/png;base64," + base64);
+                const blob = await res.blob();
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = `<svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            } catch (err) {
+                console.error("Failed to copy image: ", err);
+                alert("Clipboard write failed. Your browser might block copying images directly.");
+            }
+        }
+
+        document.getElementById('modal-close').addEventListener('click', () => {
+            document.getElementById('image-modal').classList.add('hidden');
+        });
+        document.getElementById('image-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('image-modal')) {
+                document.getElementById('image-modal').classList.add('hidden');
+            }
+        });
+
+        // --- PYODIDE INITIALIZATION ---
+        let pyodide;
+        let micropip;
+
+        async function initPyodide() {
+            try {
+                pyodide = await loadPyodide({
+                    stdout: (text) => printToConsole(text),
+                    stderr: (text) => printToConsole(text, true)
+                });
+                
+                printToConsole("Initializing Pyodide virtual environment...", false, true);
+                
+                // Create a dedicated workspace directory and set it as the current working directory
+                await pyodide.runPythonAsync("import os; os.makedirs('/workspace', exist_ok=True); os.chdir('/workspace')");
+                
+                await pyodide.loadPackage("micropip");
+                micropip = pyodide.pyimport("micropip");
+                
+                statusText.innerText = "Python Ready";
+                statusText.classList.replace('text-yellow-400', 'text-[#a6e3a1]');
+                statusPing.classList.add('hidden');
+                statusDot.classList.replace('bg-yellow-500', 'bg-[#a6e3a1]');
+                
+                runBtn.disabled = false;
+                printToConsole("Environment Ready. Press 'Run Code'.", false, true);
+                printToConsole("----------------------------------------");
+            } catch (err) {
+                statusText.innerText = "Load Error";
+                statusText.classList.replace('text-yellow-400', 'text-[#f38ba8]');
+                statusPing.classList.add('hidden');
+                statusDot.classList.replace('bg-yellow-500', 'bg-[#f38ba8]');
+                printToConsole("Init Error: " + err.message, true);
+            }
+        }
+
+        initPyodide();
+
+        // --- PACKAGE INSTALLER ---
+        const aliasMap = {
+            'sklearn': 'scikit-learn',
+            'skimage': 'scikit-image',
+            'bs4': 'beautifulsoup4',
+            'yaml': 'pyyaml',
+            'cv2': 'opencv-python',
+            'plotly.express': 'plotly'
+        };
+        const standardLibs = new Set(['sys','os','math','time','re','json','datetime','random','collections','io','base64','itertools','warnings']);
+
+        async function resolveDependencies(code) {
+            const importRegex = /(?:^|\n)\s*(?:import|from)\s+([a-zA-Z0-9_]+)/g;
+            const requiredPackages = new Set();
+            let match;
+            
+            while ((match = importRegex.exec(code)) !== null) {
+                const pkg = match[1];
+                if (!standardLibs.has(pkg)) {
+                    requiredPackages.add(aliasMap[pkg] || pkg);
+                }
+            }
+
+            if (requiredPackages.size > 0) {
+                const pkgArray = Array.from(requiredPackages);
+                printToConsole(`[System] Scanning and verifying dependencies: ${pkgArray.join(', ')}...`, false, true);
+                
+                await pyodide.loadPackagesFromImports(code);
+                
+                for (const pkg of pkgArray) {
+                    try {
+                        await micropip.install(pkg);
+                    } catch (e) {}
+                }
+            }
+        }
+
+        // --- RUNNING CODE ---
+        runBtn.addEventListener('click', async () => {
+            if (!pyodide) return;
+            
+            // Save state and history before executing
+            if (typeof files[currentFile] === 'string') {
+                files[currentFile] = editor.getValue();
+                fileHistories[currentFile] = editor.getHistory(); 
+            }
+            
+            consoleOutput.innerHTML = ''; 
+            rawOutputText = "";
+            plotOutput.innerHTML = '';
+            plotOutput.appendChild(emptyPlotMsg);
+            emptyPlotMsg.style.display = 'block';
+            switchTab('console');
+            
+            // Sync files UI -> Pyodide Virtual FS
+            for (const [filename, content] of Object.entries(files)) {
+                if (content instanceof Uint8Array) {
+                    pyodide.FS.writeFile('/workspace/' + filename, content);
+                } else {
+                    pyodide.FS.writeFile('/workspace/' + filename, content, { encoding: "utf8" });
+                }
+            }
+
+            runBtn.disabled = true;
+            runBtn.innerHTML = '<svg class="animate-spin w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2v4c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h4c0 5.52-4.48 10-10 10S2 17.52 2 12 6.48 2 12 2z"/></svg> Running...';
+
+            const startTime = performance.now();
+
+            try {
+                const codeToRun = typeof files['main.py'] === 'string' ? files['main.py'] : '';
+                
+                await resolveDependencies(codeToRun);
+
+                if (codeToRun.includes('matplotlib') || codeToRun.includes('seaborn')) {
+                    const plotSetup = `
+import js
+import base64
+import time
+from io import BytesIO
+try:
+    import matplotlib.pyplot as plt
+    def custom_show(*args, **kwargs):
+        buf = BytesIO()
+        plt.savefig(buf, format='png', bbox_inches='tight', facecolor='white')
+        buf.seek(0)
+        img_data = buf.read()
+        js.display_plot(base64.b64encode(img_data).decode('utf-8'))
+        
+        # Save plot to virtual FS so it appears in Explorer
+        filename = f"plot_{int(time.time() * 1000)}.png"
+        with open(filename, "wb") as f:
+            f.write(img_data)
+            
+        plt.clf()
+    plt.show = custom_show
+except ImportError:
+    pass
+`;
+                    await pyodide.runPythonAsync(plotSetup);
+                }
+
+                printToConsole(`[System] Executing main.py...`, false, true);
+                printToConsole("----------------------------------------");
+                await pyodide.runPythonAsync(codeToRun);
+
+                const endTime = performance.now();
+                printToConsole("----------------------------------------");
+                printToConsole(`[System] Execution finished in ${((endTime - startTime) / 1000).toFixed(2)}s`, false, true);
+
+            } catch (err) {
+                printToConsole(err.toString(), true);
+            } finally {
+                // IMPORTANT: Sync Virtual FS -> UI (Fetches generated files like .xlsx and plots)
+                try {
+                    const fsFiles = pyodide.FS.readdir('/workspace');
+                    
+                    for (const fn of fsFiles) {
+                        if (fn === '.' || fn === '..') continue;
+                        
+                        const stat = pyodide.FS.stat('/workspace/' + fn);
+                        if (pyodide.FS.isDir(stat.mode)) continue; // skip directories
+                        
+                        const rawData = pyodide.FS.readFile('/workspace/' + fn);
+                        const binaryExtensions = ['.xlsx', '.xls', '.png', '.jpg', '.jpeg', '.pdf', '.zip', '.sqlite3', '.db', '.wav', '.mp3', '.ogg', '.mp4'];
+                        const isKnownBinary = binaryExtensions.some(ext => fn.toLowerCase().endsWith(ext));
+                        
+                        if (isKnownBinary) {
+                            files[fn] = rawData;
+                        } else {
+                            try {
+                                const newText = new TextDecoder("utf-8", { fatal: true }).decode(rawData);
+                                
+                                // Only invalidate memory/history if the script legitimately modified the file contents
+                                if (files[fn] !== newText) {
+                                    files[fn] = newText;
+                                    delete fileHistories[fn]; // Script changed it, erase old undo history
+                                    
+                                    if (currentFile === fn) {
+                                        editor.setValue(newText);
+                                        editor.clearHistory();
+                                    }
+                                }
+                            } catch (err) {
+                                files[fn] = rawData;
+                            }
+                        }
+                    }
+                    renderFileList();
+                } catch (syncErr) {
+                    console.error("Error syncing files back from Pyodide:", syncErr);
+                }
+
+                runBtn.disabled = false;
+                runBtn.innerHTML = '<svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg> Run Code';
+            }
+        });
+
+        // --- UTILITY BUTTONS ---
+        clearBtn.addEventListener('click', () => {
+            consoleOutput.innerHTML = '';
+            rawOutputText = "";
+            plotOutput.innerHTML = '';
+            plotOutput.appendChild(emptyPlotMsg);
+            emptyPlotMsg.style.display = 'block';
+        });
+
+        previewHtmlBtn.addEventListener('click', () => {
+            // Get the absolute latest content directly from the editor
+            const content = editor.getValue();
+            const blob = new Blob([content], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+        });
+
+        downloadFileBtn.addEventListener('click', () => {
+            const content = files[currentFile];
+            let blob;
+            
+            if (content instanceof Uint8Array) {
+                blob = new Blob([content], { type: 'application/octet-stream' });
+            } else {
+                // If it's a text file, make sure we grab the latest edits before downloading
+                const textContent = typeof content === 'string' ? editor.getValue() : '';
+                blob = new Blob([textContent], { type: 'text/plain' });
+            }
+            
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = currentFile;
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+
+        async function handleCopy(text, btnElement) {
+            try {
+                await navigator.clipboard.writeText(text);
+                const originalHtml = btnElement.innerHTML;
+                btnElement.innerHTML = `<svg class="w-4 h-4 text-[#a6e3a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                setTimeout(() => { btnElement.innerHTML = originalHtml; }, 2000);
+            } catch (err) {
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                
+                const originalHtml = btnElement.innerHTML;
+                btnElement.innerHTML = `<svg class="w-4 h-4 text-[#a6e3a1]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
+                setTimeout(() => { btnElement.innerHTML = originalHtml; }, 2000);
+            }
+        }
+
+        copyCodeBtn.addEventListener('click', () => {
+            const textToCopy = files[currentFile] instanceof Uint8Array ? '' : editor.getValue();
+            if (textToCopy) handleCopy(textToCopy, copyCodeBtn);
+        });
+        
+        copyOutputBtn.addEventListener('click', () => handleCopy(rawOutputText, copyOutputBtn));
+
+    </script>
+</body>
+</html>

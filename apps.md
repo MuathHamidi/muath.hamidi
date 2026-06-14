@@ -37,3 +37,4 @@ Here you can find a collection of web tools I have created.
 - **[File Aggrigator](./apps/FileAggregator.html)**: This tool shows the structure of directories and their text content.
 - **[File Size Explorer](./apps/FileSizeExplorer.html)**: This tool allows users to see each file in a directory and their sizes.
 - **[PDF Merger](./apps/pdf_merger.html)**: Merge PDFs.
+- **[Web Python IDE](./apps/advanced_web_python_ide.html)**: A Python IDE that runs totally on your browser.
