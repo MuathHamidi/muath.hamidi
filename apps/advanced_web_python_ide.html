@@ -110,6 +110,23 @@
         </div>
     </header>
 
+    <!-- Mobile Navigation Bar (Only visible on small screens) -->
+    <nav class="md:hidden flex bg-[#181825] border-b border-[#313244] shrink-0 z-30">
+        <button onclick="setMobileTab('explorer')" id="mob-btn-explorer" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-b-2 border-transparent transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Files</span>
+        </button>
+        <button onclick="setMobileTab('editor')" id="mob-btn-editor" class="flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-b-2 border-blue-500 bg-[#313244]/30 transition-colors relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Code</span>
+        </button>
+        <button onclick="setMobileTab('output')" id="mob-btn-output" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-b-2 border-transparent transition-colors relative">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+            <span class="text-[10px] font-bold uppercase tracking-wider">Output</span>
+            <span id="mob-plot-badge" class="hidden absolute top-2 right-1/4 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">!</span>
+        </button>
+    </nav>
+
     <!-- Main Workspace -->
     <main class="flex-1 flex flex-col md:flex-row p-0 md:p-4 gap-0 md:gap-4 bg-[#11111b] min-w-0 overflow-hidden">
         
@@ -213,23 +230,6 @@
         </div>
     </main>
 
-    <!-- Mobile Navigation Bar (Only visible on small screens) -->
-    <nav class="md:hidden flex bg-[#181825] border-t border-[#313244] shrink-0 z-30">
-        <button onclick="setMobileTab('explorer')" id="mob-btn-explorer" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-t-2 border-transparent transition-colors">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Files</span>
-        </button>
-        <button onclick="setMobileTab('editor')" id="mob-btn-editor" class="flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-t-2 border-blue-500 bg-[#313244]/30 transition-colors relative">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Code</span>
-        </button>
-        <button onclick="setMobileTab('output')" id="mob-btn-output" class="flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-t-2 border-transparent transition-colors relative">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-            <span class="text-[10px] font-bold uppercase tracking-wider">Output</span>
-            <span id="mob-plot-badge" class="hidden absolute top-2 right-1/4 bg-blue-600 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold">!</span>
-        </button>
-    </nav>
-
     <!-- Image Preview Modal -->
     <div id="image-modal" class="hidden fixed inset-0 z-50 bg-black/90 flex flex-col justify-center items-center p-4 backdrop-blur-sm transition-opacity">
         <div class="absolute top-4 right-6 flex gap-4">
@@ -263,9 +263,9 @@
             btns.forEach(b => {
                 const el = document.getElementById('mob-btn-' + b);
                 if (b === tab) {
-                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-t-2 border-blue-500 bg-[#313244]/30 transition-colors relative";
+                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-blue-400 border-b-2 border-blue-500 bg-[#313244]/30 transition-colors relative";
                 } else {
-                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-t-2 border-transparent transition-colors relative";
+                    el.className = "flex-1 py-3 flex flex-col items-center gap-1 text-[#a6adc8] hover:text-white border-b-2 border-transparent transition-colors relative";
                 }
             });
             
