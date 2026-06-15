@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CUDA Neural Network Controller</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/gpu.js@latest/dist/gpu-browser.min.js"></script>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: ui-sans-serif, system-ui, sans-serif; }
+        .canvas-wrapper { background: #161b22; border: 1px solid #30363d; border-radius: 8px; overflow: hidden; display: flex; justify-content: center; align-items: center; min-height: 400px;}
+        .log-container { font-family: 'Courier New', Courier, monospace; font-size: 0.85rem; }
+        input[type="number"] { background-color: #0d1117; border: 1px solid #30363d; color: #c9d1d9; }
+    </style>
+</head>
+<body class="p-6">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8 border-b border-gray-700 pb-6">
+            <h1 class="text-3xl font-bold text-white mb-2">GPU/CUDA Remote Controller</h1>
+            <p class="text-gray-400 mb-4">Control a local Python process directly from this web interface. The frontend tells the backend what resolution to process, and the Nvidia GPU returns the final image.</p>
+            
+            <div class="bg-blue-900/30 border border-blue-800 rounded p-4 mb-4 flex justify-between items-center">
+                <div>
+                    <h3 class="text-blue-400 font-bold mb-1">Step 1: Start the Upgraded Backend</h3>
+                    <p class="text-sm text-gray-300">Download the new server script and run it in your terminal via <code class="bg-gray-800 px-1 rounded">python server.py</code>.</p>
+                </div>
+                <button id="downloadBtn" class="px-5 py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded shadow transition-colors whitespace-nowrap ml-4">
+                    ↓ Download server.py
+                </button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Controls & Console -->
+            <div class="lg:col-span-1 flex flex-col h-full space-y-6">
+                
+                <!-- Architecture & Style Controls -->
+                <div class="bg-gray-900 border border-gray-700 rounded-lg p-5">
+                    <h2 class="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">Step 2: Architecture & Style</h2>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1" title="More layers = more complex folding">Hidden Layers</label>
+                            <input type="number" id="netLayers" value="20" class="w-full px-3 py-2 rounded focus:outline-none focus:border-purple-500" min="1" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1" title="More neurons = higher feature dimension">Neurons / Layer</label>
+                            <input type="number" id="netSize" value="100" class="w-full px-3 py-2 rounded focus:outline-none focus:border-purple-500" min="2" max="1000">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-xs text-gray-400 mb-1" title="Same seed = exact same structural pattern">Random Seed</label>
+                        <div class="flex">
+                            <input type="number" id="netSeed" class="w-full px-3 py-2 rounded-l bg-[#0d1117] border border-[#30363d] text-[#c9d1d9] focus:outline-none focus:border-purple-500" placeholder="Enter a number (e.g. 12345)">
+                            <button id="newSeedBtn" class="bg-gray-800 hover:bg-gray-700 border border-l-0 border-[#30363d] px-3 py-2 rounded-r text-sm text-gray-300 transition-colors" title="Generate new random seed">
+                                ↻
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-2">
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1" title="Lower number = zoom in">Zoom Scale</label>
+                            <input type="number" id="imgScale" value="1.0" step="0.1" class="w-full px-3 py-2 rounded focus:outline-none focus:border-purple-500" min="0.01" max="100">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-400 mb-1">Color Palette</label>
+                            <select id="imgCmap" class="w-full px-3 py-2 rounded bg-[#0d1117] border border-[#30363d] text-[#c9d1d9] focus:outline-none focus:border-purple-500">
+                                <option value="viridis">Viridis (Default)</option>
+                                <option value="plasma">Plasma</option>
+                                <option value="inferno">Inferno</option>
+                                <option value="magma">Magma</option>
+                                <option value="cividis">Cividis</option>
+                                <option value="twilight">Twilight</option>
+                                <option value="hsv">HSV (Rainbow)</option>
+                                <option value="ocean">Ocean</option>
+                                <option value="cubehelix">Cubehelix</option>
+                                <option value="Spectral">Spectral</option>
+                                <option value="bone">Bone (X-Ray)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Render Controls -->
+                <div class="bg-gray-900 border border-gray-700 rounded-lg p-5">
+                    <h2 class="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">Step 3: Render</h2>
+                    
+                    <div class="flex space-x-4 mb-5">
+                        <div class="w-1/2">
+                            <label class="block text-xs text-gray-400 mb-1">Width (px)</label>
+                            <input type="number" id="imgWidth" value="1000" class="w-full px-3 py-2 rounded focus:outline-none focus:border-blue-500" min="10" max="8000">
+                        </div>
+                        <div class="w-1/2">
+                            <label class="block text-xs text-gray-400 mb-1">Height (px)</label>
+                            <input type="number" id="imgHeight" value="1000" class="w-full px-3 py-2 rounded focus:outline-none focus:border-blue-500" min="10" max="8000">
+                        </div>
+                    </div>
+
+                    <div class="flex space-x-3">
+                        <button id="randomizeBtn" class="w-1/3 px-4 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded shadow transition-colors" title="Generate new random network weights">
+                            🎲 Shuffle
+                        </button>
+                        <button id="generateBtn" class="w-2/3 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded shadow transition-colors flex justify-center items-center">
+                            <svg id="spinner" class="animate-spin -ml-1 mr-3 h-5 w-5 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Run on GPU
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Console -->
+                <div class="flex-grow flex flex-col">
+                    <h3 class="text-sm font-semibold text-gray-400 mb-2">Frontend Connection Log</h3>
+                    <div id="console" class="log-container flex-grow bg-black border border-gray-700 rounded-lg p-4 overflow-y-auto whitespace-pre text-green-400 h-64">
+Ready. Waiting for backend to start...
+</div>
+                </div>
+            </div>
+
+            <!-- Right Column: Visualizations -->
+            <div class="lg:col-span-2 flex flex-col">
+                <div class="flex justify-between items-end mb-2">
+                    <h2 class="text-xl font-semibold text-white">Deep Network Output</h2>
+                    <div class="flex items-center space-x-2">
+                        <span id="hardwareBadge" class="hidden text-xs font-mono px-2.5 py-1.5 rounded shadow-sm"></span>
+                        <span id="timingBadge" class="hidden text-xs font-mono text-gray-400 bg-gray-900/50 border border-gray-700 px-2.5 py-1.5 rounded shadow-sm">Time: 0.00s</span>
+                        
+                        <button id="previewImgBtn" class="hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-indigo-300 bg-indigo-900/20 border border-indigo-700/50 rounded hover:bg-indigo-900/40 hover:text-indigo-200 hover:border-indigo-500 transition-all duration-200 shadow-sm" title="Preview image in full screen">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                            Preview
+                        </button>
+                        
+                        <button id="copyImgBtn" class="hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-teal-300 bg-teal-900/20 border border-teal-700/50 rounded hover:bg-teal-900/40 hover:text-teal-200 hover:border-teal-500 transition-all duration-200 shadow-sm" title="Copy image to clipboard">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            Copy
+                        </button>
+                        
+                        <button id="downloadImgBtn" class="hidden flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-emerald-300 bg-emerald-900/20 border border-emerald-700/50 rounded hover:bg-emerald-900/40 hover:text-emerald-200 hover:border-emerald-500 transition-all duration-200 shadow-sm" title="Download generated image">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Save Image
+                        </button>
+                    </div>
+                </div>
+                <div class="canvas-wrapper flex-grow p-4 relative">
+                    <span id="placeholderText" class="text-gray-500 font-mono text-sm absolute">Image will appear here</span>
+                    <img id="outputImage" class="max-w-full h-auto object-contain hidden shadow-2xl rounded" alt="Neural Network Output">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const consoleEl = document.getElementById('console');
+        const generateBtn = document.getElementById('generateBtn');
+        const randomizeBtn = document.getElementById('randomizeBtn');
+        const spinner = document.getElementById('spinner');
+        const outputImage = document.getElementById('outputImage');
+        const placeholderText = document.getElementById('placeholderText');
+        const timingBadge = document.getElementById('timingBadge');
+        const hardwareBadge = document.getElementById('hardwareBadge');
+        const previewImgBtn = document.getElementById('previewImgBtn');
+        const copyImgBtn = document.getElementById('copyImgBtn');
+        const downloadImgBtn = document.getElementById('downloadImgBtn');
+        const netSeedInput = document.getElementById('netSeed');
+        const newSeedBtn = document.getElementById('newSeedBtn');
+
+        let lastRenderedSeed = null; // Track the seed used for the current image
+
+        // ==========================================
+        // BROWSER GPU FALLBACK LOGIC
+        // ==========================================
+        const glCanvas = document.createElement('canvas');
+        const gl = glCanvas.getContext('webgl2', { powerPreference: 'high-performance' }) || glCanvas.getContext('webgl');
+        const gpu = new window.GPU.GPU({ canvas: glCanvas, context: gl, mode: 'gpu' });
+        const kernelCache = {};
+
+        function getGPUKernel(batchSize, inDim, outDim, usePipeline) {
+            let key = `${batchSize}_${inDim}_${outDim}_${usePipeline}`;
+            if (!kernelCache[key]) {
+                kernelCache[key] = gpu.createKernel(function(in_mat, weight_mat, bias_vec) {
+                    let sum = bias_vec[this.thread.x];
+                    for (let i = 0; i < this.constants.inDim; i++) {
+                        sum += in_mat[this.thread.y][i] * weight_mat[i][this.thread.x];
+                    }
+                    return 1.0 / (1.0 + Math.exp(-sum));
+                })
+                .setConstants({ inDim: inDim })
+                .setOutput([outDim, batchSize])
+                .setPipeline(usePipeline)
+                .setImmutable(true);
+            }
+            return kernelCache[key];
+        }
+
+        // Seeded PRNG to match PyTorch seed behavior locally
+        function mulberry32(a) {
+            return function() {
+              var t = a += 0x6D2B79F5;
+              t = Math.imul(t ^ t >>> 15, t | 1);
+              t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+              return ((t ^ t >>> 14) >>> 0) / 4294967296;
+            }
+        }
+
+        // Viridis colormap approximation for local rendering
+        function viridis(t) {
+            t = Math.max(0, Math.min(1, t));
+            const c = [[68,1,84], [59,82,139], [33,145,140], [94,201,98], [253,231,37]];
+            const stop = t * 4;
+            const idx = Math.floor(stop);
+            if (idx >= 4) return c[4];
+            const f = stop - idx;
+            return [
+                Math.round(c[idx][0] + (c[idx+1][0] - c[idx][0]) * f),
+                Math.round(c[idx][1] + (c[idx+1][1] - c[idx][1]) * f),
+                Math.round(c[idx][2] + (c[idx+1][2] - c[idx][2]) * f)
+            ];
+        }
+
+        async function runLocalFallback(width, height, nLayers, layerSize, scale, cmap, seed) {
+            const startTime = performance.now();
+            
+            let rendererInfo = "Browser CPU";
+            if (gpu.mode === 'gpu' && gl) {
+                const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                rendererInfo = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+            }
+            
+            logMsg(`🚀 Computing on local browser hardware: ${rendererInfo}`);
+            hardwareBadge.textContent = `Web Browser (${rendererInfo})`;
+            hardwareBadge.className = "text-xs font-mono text-yellow-400 bg-yellow-900/30 border border-yellow-700/50 px-2.5 py-1.5 rounded shadow-sm";
+            hardwareBadge.classList.remove('hidden');
+
+            if (cmap !== 'viridis') {
+                logMsg(`⚠️ Note: The browser fallback natively uses the 'Viridis' color palette. Connect your Python server for full palette access.`, true);
+            }
+
+            // Init seeded weights simulating the PyTorch random distributions
+            const prng = mulberry32(seed);
+            const randFloat = (low, high) => prng() * (high - low) + low;
+
+            const wFirst = Array.from({length: 2}, () => new Float32Array(layerSize).map(() => randFloat(-1, 1)));
+            const bFirst = new Float32Array(layerSize).map(() => randFloat(-1, 1));
+            
+            const wHidden = Array.from({length: nLayers}, () => Array.from({length: layerSize}, () => new Float32Array(layerSize).map(() => randFloat(-3, 3))));
+            const bHidden = Array.from({length: nLayers}, () => new Float32Array(layerSize).map(() => randFloat(-1, 1)));
+            
+            const wFinal = Array.from({length: layerSize}, () => new Float32Array(1).map(() => randFloat(-1, 1)));
+            const bFinal = new Float32Array(1).map(() => randFloat(-1, 1));
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = width;
+            outCanvas.height = height;
+            const outCtx = outCanvas.getContext('2d');
+            const imgData = outCtx.createImageData(width, height);
+
+            const CHUNK_SIZE = Math.min(16, height);
+            
+            for (let startRow = 0; startRow < height; startRow += CHUNK_SIZE) {
+                let endRow = Math.min(startRow + CHUNK_SIZE, height);
+                let currentChunkSize = endRow - startRow;
+                let batchSize = currentChunkSize * width;
+
+                let y_in = new Array(batchSize);
+                for (let r = startRow; r < endRow; r++) {
+                    let val1 = (r / (height - 1) - 0.5) * scale;
+                    for (let c = 0; c < width; c++) {
+                        let val0 = (c / (width - 1) - 0.5) * scale;
+                        y_in[(r - startRow) * width + c] = [val0, val1];
+                    }
+                }
+
+                // Execute layers via WebGL
+                let kernelFirst = getGPUKernel(batchSize, 2, layerSize, true);
+                let yTex = kernelFirst(y_in, wFirst, bFirst);
+                
+                for (let j = 0; j < nLayers; j++) {
+                    let kernelHidden = getGPUKernel(batchSize, layerSize, layerSize, true);
+                    let nextTex = kernelHidden(yTex, wHidden[j], bHidden[j]);
+                    yTex.delete(); // Crucial to prevent WebGL memory leak crashes!
+                    yTex = nextTex;
+                }
+                
+                let kernelFinal = getGPUKernel(batchSize, layerSize, 1, false);
+                let output = kernelFinal(yTex, wFinal, bFinal);
+                yTex.delete();
+
+                // Paint to pixels
+                for (let r = startRow; r < endRow; r++) {
+                    let canvasRow = height - 1 - r;
+                    for (let c = 0; c < width; c++) {
+                        let localIdx = (r - startRow) * width + c;
+                        let color = viridis(output[localIdx][0]);
+                        let idx = (canvasRow * width + c) * 4;
+                        imgData.data[idx] = color[0];
+                        imgData.data[idx+1] = color[1];
+                        imgData.data[idx+2] = color[2];
+                        imgData.data[idx+3] = 255;
+                    }
+                }
+                
+                // Allow UI thread to breathe
+                if (startRow % (CHUNK_SIZE * 4) === 0) await new Promise(res => setTimeout(res, 0));
+            }
+
+            outCtx.putImageData(imgData, 0, 0);
+            const computeTime = ((performance.now() - startTime) / 1000).toFixed(4);
+            
+            outputImage.src = outCanvas.toDataURL('image/png');
+            outputImage.classList.remove('hidden');
+            placeholderText.classList.add('hidden');
+            
+            timingBadge.textContent = `Time: ${computeTime}s`;
+            timingBadge.classList.remove('hidden');
+            previewImgBtn.classList.remove('hidden');
+            copyImgBtn.classList.remove('hidden');
+            downloadImgBtn.classList.remove('hidden');
+
+            logMsg(`✅ Local browser fallback computed image in ${computeTime} seconds.`);
+        }
+
+        // Initialize a random seed on load
+        const generateRandomSeed = () => Math.floor(Math.random() * 2147483647);
+        netSeedInput.value = generateRandomSeed();
+
+        newSeedBtn.addEventListener('click', () => {
+            netSeedInput.value = generateRandomSeed();
+        });
+
+        function logMsg(msg, isError = false) {
+            const time = new Date().toLocaleTimeString();
+            const colorClass = isError ? 'text-red-400' : 'text-green-400';
+            consoleEl.innerHTML += `<span class="text-gray-600">[${time}]</span> <span class="${colorClass}">${msg}</span>\n`;
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        // ==========================================
+        // CALL PYTHON LOCAL SERVER
+        // ==========================================
+        generateBtn.addEventListener('click', async () => {
+            const width = parseInt(document.getElementById('imgWidth').value);
+            const height = parseInt(document.getElementById('imgHeight').value);
+            const nLayers = parseInt(document.getElementById('netLayers').value);
+            const layerSize = parseInt(document.getElementById('netSize').value);
+            const scale = parseFloat(document.getElementById('imgScale').value);
+            const cmap = document.getElementById('imgCmap').value;
+            let seed = parseInt(netSeedInput.value);
+            
+            if (isNaN(seed)) {
+                seed = generateRandomSeed();
+                netSeedInput.value = seed;
+            }
+
+            lastRenderedSeed = seed; // Store this specifically for the download filename
+
+            if (isNaN(width) || isNaN(height) || width < 10 || height < 10) {
+                logMsg("Error: Invalid dimensions.", true);
+                return;
+            }
+
+            generateBtn.disabled = true;
+            spinner.classList.remove('hidden');
+            hardwareBadge.classList.add('hidden');
+            logMsg(`Sending render request (${width}x${height}, ${nLayers} layers)...`);
+            
+            try {
+                // Connect to the local Python HTTP Server
+                const response = await fetch('http://localhost:8080', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        action: 'generate',
+                        width: width, 
+                        height: height,
+                        n_layers: nLayers,
+                        layer_size: layerSize,
+                        scale: scale,
+                        cmap: cmap,
+                        seed: seed
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                
+                // Display the image
+                outputImage.src = data.image;
+                outputImage.classList.remove('hidden');
+                placeholderText.classList.add('hidden');
+                
+                // Update UI details
+                timingBadge.textContent = `Compute Time: ${data.time}s`;
+                timingBadge.classList.remove('hidden');
+                
+                hardwareBadge.textContent = `Python Server (${data.device})`;
+                hardwareBadge.className = "text-xs font-mono text-green-400 bg-green-900/30 border border-green-700/50 px-2.5 py-1.5 rounded shadow-sm";
+                hardwareBadge.classList.remove('hidden');
+                
+                previewImgBtn.classList.remove('hidden');
+                copyImgBtn.classList.remove('hidden');
+                downloadImgBtn.classList.remove('hidden');
+                
+                logMsg(`Success! GPU computed image in ${data.time} seconds.`);
+                logMsg(`Hardware used by backend: ${data.device}`);
+
+            } catch (err) {
+                logMsg(`⚠️ Cannot reach local Python backend. Attempting to use browser Hardware...`, true);
+                try {
+                    await runLocalFallback(width, height, nLayers, layerSize, scale, cmap, seed);
+                } catch(fallbackErr) {
+                    logMsg(`❌ Browser computation failed: ${fallbackErr.message}`, true);
+                    console.error(fallbackErr);
+                }
+            } finally {
+                generateBtn.disabled = false;
+                spinner.classList.add('hidden');
+            }
+        });
+
+        // ==========================================
+        // DOWNLOAD GENERATED IMAGE
+        // ==========================================
+        downloadImgBtn.addEventListener('click', () => {
+            if (!outputImage.src || outputImage.src === "") return;
+            const width = document.getElementById('imgWidth').value;
+            const height = document.getElementById('imgHeight').value;
+            const seedToSave = lastRenderedSeed || document.getElementById('netSeed').value;
+            
+            const a = document.createElement('a');
+            a.href = outputImage.src;
+            a.download = `nn_render_${width}x${height}_seed${seedToSave}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            logMsg(`✅ Saved image to your computer as nn_render_${width}x${height}_seed${seedToSave}.png`);
+        });
+
+        // ==========================================
+        // PREVIEW GENERATED IMAGE
+        // ==========================================
+        previewImgBtn.addEventListener('click', () => {
+            if (!outputImage.src || outputImage.src === "") return;
+            const previewWindow = window.open();
+            if(previewWindow) {
+                // Write a temporary HTML document to the new tab containing just our image on a dark background
+                previewWindow.document.write(`<html><head><title>Image Preview</title></head><body style="margin:0; background:#0d1117; display:flex; justify-content:center; align-items:center; min-height:100vh;"><img src="${outputImage.src}" style="max-width:100%; max-height:100vh; object-fit:contain;"></body></html>`);
+                previewWindow.document.close();
+            } else {
+                logMsg("Error: Pop-up blocked. Could not open preview.", true);
+            }
+        });
+
+        // ==========================================
+        // COPY GENERATED IMAGE
+        // ==========================================
+        copyImgBtn.addEventListener('click', async () => {
+            if (!outputImage.src || outputImage.src === "") return;
+            try {
+                // Fetch the base64 URL to convert it to a Blob for the Clipboard API
+                const response = await fetch(outputImage.src);
+                const blob = await response.blob();
+                
+                await navigator.clipboard.write([
+                    new ClipboardItem({ [blob.type]: blob })
+                ]);
+                logMsg("✅ Image copied to clipboard!");
+            } catch (err) {
+                logMsg(`Failed to copy image: ${err.message}`, true);
+                logMsg("Note: Your browser might block copying if not on a secure (HTTPS or localhost) context.", true);
+            }
+        });
+
+        // ==========================================
+        // CALL PYTHON SERVER TO RANDOMIZE WEIGHTS
+        // ==========================================
+        randomizeBtn.addEventListener('click', async () => {
+            const nLayers = parseInt(document.getElementById('netLayers').value) || 20;
+            const layerSize = parseInt(document.getElementById('netSize').value) || 100;
+            
+            // Generate a new seed for the shuffle
+            const newSeed = generateRandomSeed();
+            netSeedInput.value = newSeed;
+
+            randomizeBtn.disabled = true;
+            logMsg(`Sending request to shuffle network weights (Seed: ${newSeed})...`);
+            
+            try {
+                const response = await fetch('http://localhost:8080', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        action: 'randomize',
+                        n_layers: nLayers,
+                        layer_size: layerSize,
+                        seed: newSeed
+                    })
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                logMsg(`✅ Network shuffled (${nLayers} layers, ${layerSize} neurons)! Click 'Run' to render.`);
+            } catch (err) {
+                logMsg(`Failed to shuffle: ${err.message}`, true);
+            } finally {
+                randomizeBtn.disabled = false;
+            }
+        });
+
+        // ==========================================
+        // DOWNLOAD PYTHON SERVER SCRIPT
+        // ==========================================
+        document.getElementById('downloadBtn').addEventListener('click', () => {
+            const pyCode = `import torch
+import time
+import json
+import base64
+import io
+import matplotlib
+matplotlib.use('Agg') # CRITICAL: Prevents GUI thread crashes in background servers
+import matplotlib.pyplot as plt
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+# =========================================================
+# PREREQUISITE: You must have PyTorch installed with CUDA support.
+# To install: pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+# =========================================================
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"\\n--- PyTorch HTTP Server ---")
+print(f"Using device: {device}")
+if device.type != 'cuda':
+    print("WARNING: CUDA not detected! Processing will be slow on CPU.")
+else:
+    print(f"GPU Name: {torch.cuda.get_device_name(0)}")
+
+# Global state for dynamic architecture
+current_n_layers = 0
+current_layer_size = 0
+current_seed = None
+
+WeightsFirst = None
+BiasesFirst = None
+Weights = None
+Biases = None
+WeightsFinal = None
+BiasesFinal = None
+
+def init_weights(n_layers, layer_size, seed):
+    global current_n_layers, current_layer_size, current_seed
+    global WeightsFirst, BiasesFirst, Weights, Biases, WeightsFinal, BiasesFinal
+    
+    current_n_layers = n_layers
+    current_layer_size = layer_size
+    current_seed = seed
+    
+    print(f"\\nInitializing architecture: {n_layers} layers, {layer_size} neurons per layer (Seed: {seed})...")
+    
+    # Set the seed for exact reproducibility
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+    WeightsFirst = (torch.rand(2, layer_size, device=device) * 2) - 1
+    BiasesFirst = (torch.rand(layer_size, device=device) * 2) - 1
+
+    Weights = (torch.rand(n_layers, layer_size, layer_size, device=device) * 6) - 3
+    Biases = (torch.rand(n_layers, layer_size, device=device) * 2) - 1
+
+    WeightsFinal = (torch.rand(layer_size, 1, device=device) * 2) - 1
+    BiasesFinal = (torch.rand(1, device=device) * 2) - 1
+    print("Weights initialized successfully.\\n")
+
+def apply_layer(y_in, w, b):
+    z = torch.matmul(y_in, w) + b
+    return torch.sigmoid(z)
+
+class CUDAServer(BaseHTTPRequestHandler):
+    
+    def do_OPTIONS(self):
+        self.send_response(200, "ok")
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header("Access-Control-Allow-Headers", "X-Requested-With, Content-type")
+        self.end_headers()
+
+    def do_POST(self):
+        content_length = int(self.headers.get('Content-Length', 0))
+        post_data = self.rfile.read(content_length)
+        
+        try:
+            req = json.loads(post_data.decode('utf-8'))
+            action = req.get('action')
+            
+            # Extract architecture parameters (defaults to 20x100)
+            n_layers = int(req.get('n_layers', 20))
+            layer_size = int(req.get('layer_size', 100))
+            seed = int(req.get('seed', 42))
+            
+            # Reinitialize if architecture changed, seed changed, or explicitly requested
+            if WeightsFirst is None or n_layers != current_n_layers or layer_size != current_layer_size or seed != current_seed or action == 'randomize':
+                init_weights(n_layers, layer_size, seed)
+                
+            if action == 'randomize':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({"status": "success"}).encode('utf-8'))
+                return
+
+            # Render logic
+            width = int(req.get('width', 1000))
+            height = int(req.get('height', 1000))
+            scale = float(req.get('scale', 1.0))
+            cmap = req.get('cmap', 'viridis')
+            
+            print(f"Incoming Request -> Generating {width}x{height} image (Scale: {scale}, Cmap: {cmap})...")
+            
+            start_time = time.time()
+            
+            with torch.no_grad():
+                # 1. Generate coordinates on CPU, applying the zoom scale
+                v0 = torch.linspace(-scale/2.0, scale/2.0, width)
+                v1 = torch.linspace(-scale/2.0, scale/2.0, height)
+                grid_v0, grid_v1 = torch.meshgrid(v0, v1, indexing='xy')
+                y_in_cpu = torch.stack([grid_v0.flatten(), grid_v1.flatten()], dim=1)
+                
+                total_pixels = width * height
+                output_cpu = torch.zeros((total_pixels, 1), dtype=torch.float32)
+                
+                # 2. Process in chunks of 1,000,000 pixels to prevent VRAM crashes
+                chunk_size = 1000000
+                
+                for i in range(0, total_pixels, chunk_size):
+                    y = y_in_cpu[i:i+chunk_size].to(device)
+                    
+                    y = apply_layer(y, WeightsFirst, BiasesFirst)
+                    for j in range(current_n_layers):
+                        y = apply_layer(y, Weights[j], Biases[j])
+                    out_chunk = apply_layer(y, WeightsFinal, BiasesFinal)
+                    
+                    output_cpu[i:i+chunk_size] = out_chunk.cpu()
+                
+                if device.type == 'cuda':
+                    torch.cuda.synchronize()
+                    
+                gpu_time = time.time() - start_time
+                print(f"✅ Computed {current_n_layers} layers in {gpu_time:.4f} seconds.")
+                
+                y_2D = output_cpu.reshape(height, width).numpy()
+
+            # Generate image
+            plt.figure(figsize=(width/100, height/100), dpi=100)
+            plt.axes([0,0,1,1])
+            plt.imshow(y_2D, origin='lower', extent=[-scale/2.0, scale/2.0, -scale/2.0, scale/2.0], interpolation='nearest', cmap=cmap)
+            plt.axis('off')
+            
+            buf = io.BytesIO()
+            plt.savefig(buf, format='png', bbox_inches='tight', pad_inches=0)
+            plt.close()
+            buf.seek(0)
+            img_base64 = base64.b64encode(buf.read()).decode('utf-8')
+            
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            
+            response = {
+                'image': f'data:image/png;base64,{img_base64}',
+                'time': round(gpu_time, 4),
+                'device': str(device)
+            }
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+            
+        except Exception as e:
+            error_msg = f"{type(e).__name__}: {str(e)}"
+            print(f"Error processing request: {error_msg}")
+            self.send_response(500)
+            self.send_header('Content-type', 'text/plain')
+            self.send_header('Access-Control-Allow-Origin', '*')
+            self.end_headers()
+            self.wfile.write(error_msg.encode('utf-8'))
+
+if __name__ == '__main__':
+    server_address = ('', 8080)
+    httpd = HTTPServer(server_address, CUDAServer)
+    print("Listening on http://localhost:8080")
+    print("Awaiting commands from the web interface...")
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print("\\nShutting down server.")
+        httpd.server_close()
+`;
+
+            const blob = new Blob([pyCode], { type: 'text/x-python' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'server.py';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            logMsg("Downloaded upgraded 'server.py'. Please restart your terminal with this new script.");
+        });
+    </script>
+</body>
+</html>
