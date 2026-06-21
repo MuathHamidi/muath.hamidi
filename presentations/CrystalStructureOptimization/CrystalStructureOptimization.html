@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crystal Distance Builder Theory - Presentation</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- MathJax Configuration & Loader -->
+    <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']],
+        processEscapes: true
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+
+    <!-- Chart.js and Three.js dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Main Style Sheet -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- App Letterbox Outer Frame -->
+    <div id="slideshow-app">
+        
+        <!-- Center Slide Viewport Container (16:9 1920x1080) -->
+        <div id="slide-container">
+            <div id="slides-wrapper">
+                <!-- Slides are dynamically generated here -->
+            </div>
+        </div>
+
+        <!-- Floating Slide Index Sidebar Drawer -->
+        <aside id="index-drawer" class="drawer-closed">
+            <div class="drawer-header">
+                <h3>Slide Index</h3>
+                <button id="close-drawer-btn" class="hud-icon-btn">
+                    <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg>
+                </button>
+            </div>
+            <ul id="drawer-slide-list" class="drawer-slide-list">
+                <!-- Populated via JS -->
+            </ul>
+        </aside>
+
+        <!-- Floating PowerPoint HUD Overlay Controls (Bottom-Right) -->
+        <div id="presentation-hud">
+            <button id="toggle-drawer-btn" class="hud-icon-btn" title="Slide List (M)">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+            </button>
+            <span class="hud-separator">|</span>
+            <button id="prev-btn" class="hud-icon-btn" title="Previous Slide (Left/Up)">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+            </button>
+            <span id="slide-counter" class="hud-counter">01 / 10</span>
+            <button id="next-btn" class="hud-icon-btn" title="Next Slide (Right/Down/Space)">
+                <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>
+            </button>
+            <span class="hud-separator">|</span>
+            <button id="autoplay-btn" class="hud-icon-btn" title="Toggle Autoplay (A)">
+                <svg id="play-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>
+                <svg id="pause-icon" class="hidden" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+            </button>
+            <button id="fullscreen-btn" class="hud-icon-btn" title="Toggle Fullscreen (F)">
+                <svg id="enter-fullscreen-icon" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/></svg>
+                <svg id="exit-fullscreen-icon" class="hidden" viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/></svg>
+            </button>
+        </div>
+
+        <!-- Tiny top progress strip -->
+        <div id="progress-strip-container">
+            <div id="progress-strip" style="width: 10%;"></div>
+        </div>
+    </div>
+
+    <!-- Presentation scripts -->
+    <script src="js/slidesData.js"></script>
+    <script src="js/widgets.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

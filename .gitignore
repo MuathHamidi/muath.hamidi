@@ -1,0 +1,20 @@
+# Jekyll build and cache directories
+_site/
+.jekyll-cache/
+.jekyll-metadata
+
+# Operating System metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs and Text Editors configuration
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp

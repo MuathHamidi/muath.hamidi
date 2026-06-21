@@ -1,6 +1,7 @@
-# The name of your theme (optional but good practice)
-theme: jekyll-theme-minimal 
-
-# The base URL of your site
-# Replace 'repository-name' with your repository's name
+# Site Settings
+title: Muath Hamidi
+description: "Personal website of Muath Hamidi — PhD Student in Physics, Quantum Materials & Condensed Matter researcher."
+author: Muath Hamidi
 baseurl: "/muath.hamidi"
+
+# Disable any remote theme — we use our own custom layout and styles

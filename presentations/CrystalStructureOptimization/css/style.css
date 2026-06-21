@@ -1,0 +1,1373 @@
+/* PowerPoint Slide Deck Theme System */
+:root {
+    --bg-dark: #030712;
+    --bg-slide: #090d16;
+    --bg-glass: rgba(17, 24, 39, 0.65);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    
+    /* Neon Accents */
+    --accent-blue: #00bbf9;
+    --accent-mint: #00f5d4;
+    --accent-purple: #9b5de5;
+    
+    /* Health Colors */
+    --color-green: #39ff14;
+    --color-yellow: #ffdd57;
+    --color-orange: #ff9f43;
+    --color-red: #ff3860;
+    
+    /* Fonts */
+    --font-sans: 'Outfit', -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --text-muted: #64748b;
+}
+
+/* Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: #f1f5f9;
+    font-family: var(--font-sans);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 1. App Letterbox Frame */
+#slideshow-app {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(circle at center, #0e1627 0%, var(--bg-dark) 100%);
+}
+
+/* 2. Absolute Centered Slide Container (16:9) */
+#slide-container {
+    width: 1920px;
+    height: 1080px;
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(1);
+    transform-origin: center center;
+    background-color: var(--bg-slide);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    box-shadow: 0 45px 120px rgba(0, 0, 0, 0.85);
+    overflow: hidden;
+}
+
+#slides-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+/* 3. Slide Content Formatting */
+.slide {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 60px 80px;
+    display: flex;
+    flex-direction: column;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.99) translateY(4px);
+    transition: opacity 0.4s cubic-bezier(0.25, 1, 0.5, 1), 
+                transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.slide.active {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1) translateY(0);
+}
+
+.slide-header {
+    margin-bottom: 30px;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.slide-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.slide-title {
+    font-size: 3.8rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ffffff 0%, var(--accent-blue) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -1px;
+}
+
+.slide-subtitle {
+    font-family: var(--font-mono);
+    font-size: 1.15rem;
+    color: #64748b;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+.slide-number-disp {
+    font-family: var(--font-mono);
+    font-size: 1.45rem;
+    color: var(--accent-blue);
+    font-weight: 700;
+}
+
+/* Grid columns in slide */
+.columns {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 40px;
+    flex: 1;
+    min-height: 0;
+}
+
+.column {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-height: 0;
+}
+
+.col-3-2 {
+    grid-template-columns: 3fr 2fr;
+}
+
+.col-2-3 {
+    grid-template-columns: 2fr 3fr;
+}
+
+/* Text formatting inside slides */
+p {
+    font-size: 1.6rem;
+    line-height: 1.6;
+    color: #94a3b8;
+}
+
+strong {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+ul {
+    padding-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+li {
+    font-size: 1.45rem;
+    line-height: 1.5;
+    color: #94a3b8;
+}
+
+li::marker {
+    color: var(--accent-mint);
+}
+
+.math-block {
+    background: rgba(0, 0, 0, 0.25);
+    border-left: 4px solid var(--accent-mint);
+    padding: 18px 28px;
+    border-radius: 0 12px 12px 0;
+    font-family: var(--font-mono);
+    font-size: 1.5rem;
+    color: #ffffff;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+}
+
+pre {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 24px;
+    font-family: var(--font-mono);
+    font-size: 1.1rem;
+    line-height: 1.5;
+    overflow: auto;
+    flex: 1;
+    color: #cbd5e1;
+}
+
+.glass-card {
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.glass-card h3 {
+    font-size: 1.35rem;
+    color: #ffffff;
+    border-bottom: 1px solid var(--border-glass);
+    padding-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+.glass-card ul li,
+.glass-card ol li {
+    font-size: inherit;
+    line-height: inherit;
+}
+
+
+/* Scientific Table */
+table.science-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+}
+
+table.science-table th, table.science-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+table.science-table th {
+    color: var(--accent-blue);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+table.science-table td {
+    color: #94a3b8;
+    font-size: 1.05rem;
+}
+
+table.science-table tr:hover td {
+    color: #ffffff;
+}
+
+/* 4. PowerPoint Hovering HUD Controller */
+#presentation-hud {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(15px);
+    border: 1px solid var(--border-glass);
+    border-radius: 40px;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    z-index: 100;
+    opacity: 0.2;
+    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), 
+                transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+#presentation-hud:hover {
+    opacity: 1.0;
+    transform: translateY(-2px);
+    background: rgba(15, 23, 42, 0.85);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.hud-icon-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.hud-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+}
+
+.hud-icon-btn:active {
+    transform: scale(0.93);
+}
+
+.hud-separator {
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 1.1rem;
+    font-weight: 300;
+}
+
+.hud-counter {
+    font-family: var(--font-mono);
+    color: #f1f5f9;
+    font-size: 1rem;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    min-width: 65px;
+    text-align: center;
+}
+
+/* 5. Slide List Drawer */
+#index-drawer {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100%;
+    width: 380px;
+    background: rgba(8, 12, 22, 0.95);
+    backdrop-filter: blur(25px);
+    border-left: 1px solid var(--border-glass);
+    z-index: 120;
+    display: flex;
+    flex-direction: column;
+    box-shadow: -20px 0 60px rgba(0, 0, 0, 0.6);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#index-drawer.drawer-closed {
+    transform: translateX(100%);
+}
+
+.drawer-header {
+    padding: 30px;
+    border-bottom: 1px solid var(--border-glass);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.drawer-header h3 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--accent-blue);
+}
+
+.drawer-slide-list {
+    list-style: none;
+    overflow-y: auto;
+    flex: 1;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.drawer-slide-list li {
+    padding: 14px 18px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.drawer-slide-list li:hover {
+    background: rgba(255, 255, 255, 0.03);
+    color: #ffffff;
+}
+
+.drawer-slide-list li.active {
+    background: rgba(0, 187, 249, 0.08);
+    color: #ffffff;
+    border-color: rgba(0, 187, 249, 0.2);
+}
+
+/* Progress strip fixed at screen top */
+#progress-strip-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    z-index: 90;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+#progress-strip {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-purple) 0%, var(--accent-blue) 100%);
+    box-shadow: 0 0 8px rgba(0, 187, 249, 0.4);
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 6. Interactive Demo Widgets Scaling & Layouts */
+.demo-widget {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: rgba(5, 7, 12, 0.5);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    padding: 28px;
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.4);
+    min-height: 0;
+}
+
+.widget-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--accent-mint);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 10px;
+}
+
+.widget-body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    flex: 1;
+    min-height: 0;
+}
+
+.input-row {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.input-group label {
+    font-size: 0.9rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.input-group input[type="number"], 
+.input-group select {
+    background: rgba(15, 23, 42, 0.85);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    color: #ffffff;
+    padding: 10px 14px;
+    font-family: var(--font-sans);
+    font-size: 1.05rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.input-group input[type="number"]:focus, 
+.input-group select:focus {
+    border-color: var(--accent-mint);
+}
+
+.slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.slider-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.95rem;
+    color: #64748b;
+}
+
+.slider-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.slider-row input[type="range"] {
+    flex: 1;
+    -webkit-appearance: none;
+    background: rgba(255, 255, 255, 0.08);
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+}
+
+.slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-mint);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0, 245, 212, 0.4);
+}
+
+.slider-val {
+    font-family: var(--font-mono);
+    color: #ffffff;
+    font-size: 1.05rem;
+    min-width: 45px;
+    text-align: right;
+}
+
+/* Matrix Display */
+.matrix-container {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 20px;
+    font-family: var(--font-mono);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.matrix-row-disp {
+    display: grid;
+    grid-template-columns: 35px 1fr 1fr 1fr;
+    align-items: center;
+    font-size: 1.05rem;
+}
+
+.matrix-row-disp .row-lbl {
+    color: var(--accent-purple);
+    font-weight: 700;
+}
+
+.matrix-row-disp span:not(.row-lbl) {
+    color: #f1f5f9;
+    text-align: right;
+    padding-right: 8px;
+}
+
+.vol-display {
+    border-top: 1px solid var(--border-glass);
+    padding-top: 10px;
+    font-size: 1.05rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+.vol-val {
+    color: var(--accent-mint);
+    font-weight: 700;
+}
+
+/* 2D Periodic wrap canvas widget */
+.canvas-wrapper {
+    position: relative;
+    aspect-ratio: 1.5;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.canvas-wrapper canvas {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.wrap-metric-card {
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    font-family: var(--font-mono);
+    font-size: 1.05rem;
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Wyckoff results evaluation widget */
+.wyckoff-results-list {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 160px;
+}
+
+.wyckoff-item {
+    font-family: var(--font-mono);
+    font-size: 0.95rem;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.wyckoff-item .coord {
+    color: var(--accent-mint);
+}
+
+.axis-analysis {
+    display: flex;
+    gap: 20px;
+    justify-content: space-around;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.01);
+    border-radius: 8px;
+}
+
+.axis-pill {
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.axis-pill.free {
+    background: rgba(57, 255, 20, 0.1);
+    color: var(--color-green);
+    border: 1px solid rgba(57, 255, 20, 0.2);
+}
+
+.axis-pill.fixed {
+    background: rgba(255, 56, 96, 0.1);
+    color: var(--color-red);
+    border: 1px solid rgba(255, 56, 96, 0.2);
+}
+
+/* GMM SVG Probability Simulator widget */
+.svg-plot-container {
+    position: relative;
+    height: 180px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.svg-plot-container svg {
+    width: 100%;
+    height: 100%;
+}
+
+.legend-bar {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.01);
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+/* Solver Logs trace widget */
+.relax-display {
+    background: rgba(0,0,0,0.35);
+    border-radius: 8px;
+    padding: 14px;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    color: #94a3b8;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+.relax-log-entry {
+    border-left: 2px solid var(--accent-purple);
+    padding-left: 10px;
+}
+
+.relax-log-entry.header {
+    border-color: var(--accent-mint);
+    color: #ffffff;
+    font-weight: bold;
+}
+
+/* Hidden elements */
+.hidden {
+    display: none !important;
+}
+
+/* Slide 9 Failsafe Ribbon styling */
+.failsafe-ribbon {
+    margin-top: 20px;
+    padding: 14px 20px;
+    background: rgba(255, 56, 96, 0.08);
+    border-left: 4px solid var(--color-red);
+    border-radius: 0 8px 8px 0;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    color: #cbd5e1;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* --- Migrated Widget Styles --- */
+
+:root {
+    --c-nonmetal: #22d3ee;
+    --c-noble-gas: #c084fc;
+    --c-alkali-metal: #f43f5e;
+    --c-alkaline-earth: #fb923c;
+    --c-metalloid: #2dd4bf;
+    --c-halogen: #818cf8;
+    --c-transition: #facc15;
+    --c-post-transition: #34d399;
+    --c-lanthanide: #f472b6;
+    --c-actinide: #e879f9;
+}
+
+/* Periodic Table Grid */
+.periodic-table-container {
+    width: 100%;
+    overflow-x: auto;
+    padding: 2px;
+}
+.periodic-table {
+    display: grid;
+    grid-template-columns: repeat(18, minmax(26px, 1fr));
+    grid-template-rows: repeat(10, minmax(26px, 1fr));
+    gap: 3px;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+}
+.element-card {
+    background: rgba(15, 23, 42, 0.6);
+    border: 1px solid var(--border-glass);
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    aspect-ratio: 1;
+}
+.element-card:hover {
+    transform: scale(1.12);
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    border-color: rgba(255,255,255,0.25);
+}
+.element-card .atomic-number {
+    position: absolute;
+    top: 1px;
+    left: 2px;
+    font-size: 0.55rem;
+    font-family: var(--font-mono);
+    color: #64748b;
+}
+.element-card .symbol {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #fff;
+    margin-top: 1px;
+}
+.element-card .name {
+    font-size: 0.45rem;
+    color: #94a3b8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+.element-card .mass {
+    font-size: 0.45rem;
+    font-family: var(--font-mono);
+    color: #475569;
+    margin-top: 1px;
+}
+
+/* Spacer elements */
+.element-card.lanthanide-spacer,
+.element-card.actinide-spacer {
+    cursor: default;
+    border-style: dashed;
+    opacity: 0.6;
+}
+.element-card.lanthanide-spacer:hover,
+.element-card.actinide-spacer:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+/* CPK glows & border styles */
+.element-card.nonmetal { border-color: rgba(34, 211, 238, 0.3); }
+.element-card.noble-gas { border-color: rgba(192, 132, 252, 0.3); }
+.element-card.alkali-metal { border-color: rgba(244, 63, 94, 0.3); }
+.element-card.alkaline-earth { border-color: rgba(251, 146, 60, 0.3); }
+.element-card.metalloid { border-color: rgba(45, 212, 191, 0.3); }
+.element-card.halogen { border-color: rgba(129, 140, 248, 0.3); }
+.element-card.transition { border-color: rgba(250, 204, 21, 0.3); }
+.element-card.post-transition { border-color: rgba(52, 211, 153, 0.3); }
+.element-card.lanthanide { border-color: rgba(244, 114, 182, 0.3); }
+.element-card.actinide { border-color: rgba(232, 121, 249, 0.3); }
+
+/* Highlight states */
+.element-card.selected-a {
+    background: rgba(155, 93, 229, 0.25) !important;
+    border: 2px solid var(--accent-purple) !important;
+    box-shadow: 0 0 10px rgba(155, 93, 229, 0.5);
+    transform: scale(1.05);
+}
+.element-card.selected-b {
+    background: rgba(0, 187, 249, 0.25) !important;
+    border: 2px solid var(--accent-blue) !important;
+    box-shadow: 0 0 10px rgba(0, 187, 249, 0.5);
+    transform: scale(1.05);
+}
+.element-card.selected-both {
+    background: linear-gradient(135deg, rgba(155, 93, 229, 0.2), rgba(0, 187, 249, 0.2)) !important;
+    border: 2px dashed var(--accent-mint) !important;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.5);
+    transform: scale(1.05);
+}
+.element-card.inactive-element {
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+/* Atom selection display cards */
+.atom-select-card {
+    flex: 1;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid var(--border-glass);
+    border-radius: 8px;
+    padding: 8px 12px;
+    text-align: center;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 100px;
+}
+.atom-select-card.empty {
+    border-color: var(--border-glass) !important;
+    opacity: 0.6;
+}
+.atom-select-card .label {
+    font-size: 0.65rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.atom-select-card .symbol {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #fff;
+    font-family: var(--font-mono);
+}
+.atom-select-card .name {
+    font-size: 0.7rem;
+    color: #94a3b8;
+}
+
+/* Crystal Builder style updates */
+.cb-tab-btn {
+    transition: all 0.2s ease;
+}
+.cb-tab-btn:hover {
+    color: #cbd5e1 !important;
+    background: rgba(255,255,255,0.02);
+}
+.cb-tab-btn.active {
+    color: var(--accent-mint) !important;
+    background: rgba(0, 245, 212, 0.05) !important;
+    border-bottom: 2px solid var(--accent-mint) !important;
+}
+.cb-bg-btn {
+    transition: all 0.2s ease;
+}
+.cb-bg-btn.active {
+    border-color: var(--accent-mint) !important;
+    background: rgba(0, 245, 212, 0.08) !important;
+}
+
+/* Add spinning animation for widget load screen */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 0.8; }
+    50% { transform: scale(1.1); opacity: 1; }
+}
+
+/* --- Premium Slide 3 and 4 Enhancements --- */
+
+/* Slide 3: Periodic Table Hover Glows */
+.element-card {
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.element-card:hover {
+    transform: scale(1.15) !important;
+    z-index: 10 !important;
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
+    border-color: rgba(255, 255, 255, 0.5) !important;
+}
+.element-card.nonmetal:hover { border-color: var(--c-nonmetal) !important; box-shadow: 0 0 12px rgba(34, 211, 238, 0.5) !important; }
+.element-card.noble-gas:hover { border-color: var(--c-noble-gas) !important; box-shadow: 0 0 12px rgba(192, 132, 252, 0.5) !important; }
+.element-card.alkali-metal:hover { border-color: var(--c-alkali-metal) !important; box-shadow: 0 0 12px rgba(244, 63, 94, 0.5) !important; }
+.element-card.alkaline-earth:hover { border-color: var(--c-alkaline-earth) !important; box-shadow: 0 0 12px rgba(251, 146, 60, 0.5) !important; }
+.element-card.metalloid:hover { border-color: var(--c-metalloid) !important; box-shadow: 0 0 12px rgba(45, 212, 191, 0.5) !important; }
+.element-card.halogen:hover { border-color: var(--c-halogen) !important; box-shadow: 0 0 12px rgba(129, 140, 248, 0.5) !important; }
+.element-card.transition:hover { border-color: var(--c-transition) !important; box-shadow: 0 0 12px rgba(250, 204, 21, 0.5) !important; }
+.element-card.post-transition:hover { border-color: var(--c-post-transition) !important; box-shadow: 0 0 12px rgba(52, 211, 153, 0.5) !important; }
+.element-card.lanthanide:hover { border-color: var(--c-lanthanide) !important; box-shadow: 0 0 12px rgba(244, 114, 182, 0.5) !important; }
+.element-card.actinide:hover { border-color: var(--c-actinide) !important; box-shadow: 0 0 12px rgba(232, 121, 249, 0.5) !important; }
+
+/* Pulsing Active Borders on Periodic Table */
+@keyframes borderPulsePurple {
+    0%, 100% { box-shadow: 0 0 6px rgba(155, 93, 229, 0.3); border-color: rgba(155, 93, 229, 0.7) !important; }
+    50% { box-shadow: 0 0 14px rgba(155, 93, 229, 0.7); border-color: rgba(155, 93, 229, 1) !important; }
+}
+@keyframes borderPulseBlue {
+    0%, 100% { box-shadow: 0 0 6px rgba(0, 187, 249, 0.3); border-color: rgba(0, 187, 249, 0.7) !important; }
+    50% { box-shadow: 0 0 14px rgba(0, 187, 249, 0.7); border-color: rgba(0, 187, 249, 1) !important; }
+}
+@keyframes borderPulseMint {
+    0%, 100% { box-shadow: 0 0 6px rgba(0, 245, 212, 0.3); border-color: rgba(0, 245, 212, 0.7) !important; }
+    50% { box-shadow: 0 0 14px rgba(0, 245, 212, 0.7); border-color: rgba(0, 245, 212, 1) !important; }
+}
+
+.element-card.selected-a {
+    animation: borderPulsePurple 2s infinite ease-in-out;
+    transform: scale(1.05) !important;
+}
+.element-card.selected-b {
+    animation: borderPulseBlue 2s infinite ease-in-out;
+    transform: scale(1.05) !important;
+}
+.element-card.selected-both {
+    animation: borderPulseMint 2s infinite ease-in-out;
+    transform: scale(1.05) !important;
+}
+
+/* Atom Selection Cards */
+.atom-select-card {
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.atom-select-card:not(.empty) {
+    background: rgba(15, 23, 42, 0.8) !important;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+.atom-select-card.empty {
+    border-color: var(--border-glass) !important;
+    opacity: 0.5;
+    background: rgba(15, 23, 42, 0.25) !important;
+}
+
+/* Slide 3 Buttons and Quick Pairs */
+.id-btn-quick {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.id-btn-quick:hover {
+    background: rgba(0, 187, 249, 0.08) !important;
+    border-color: rgba(0, 187, 249, 0.4) !important;
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 187, 249, 0.2) !important;
+}
+.id-btn-quick:active {
+    transform: translateY(0) scale(0.97) !important;
+}
+
+#id-btn-swap, #id-btn-clear {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#id-btn-swap:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(255, 255, 255, 0.25) !important;
+    transform: scale(1.08) !important;
+}
+#id-btn-swap:active {
+    transform: scale(0.95) !important;
+}
+#id-btn-clear:hover {
+    background: rgba(255, 56, 96, 0.15) !important;
+    border-color: var(--color-red) !important;
+    transform: scale(1.08) !important;
+}
+#id-btn-clear:active {
+    transform: scale(0.95) !important;
+}
+
+/* Slide 4 control tabs active transitions */
+.cb-tab-btn {
+    transition: all 0.22s ease !important;
+    border-bottom: 2px solid transparent !important;
+}
+.cb-tab-btn:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+}
+.cb-tab-btn.active {
+    color: var(--accent-mint) !important;
+    background: rgba(0, 245, 212, 0.04) !important;
+    border-bottom: 2px solid var(--accent-mint) !important;
+    text-shadow: 0 0 8px rgba(0, 245, 212, 0.3);
+}
+
+/* Sleek custom slider styling for Crystal Builder range inputs */
+#widget-crystal-builder input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08) !important;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    transition: background 0.3s;
+}
+#widget-crystal-builder input[type="range"]:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+#widget-crystal-builder input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--accent-mint);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0, 245, 212, 0.5);
+    transition: transform 0.15s, background-color 0.15s;
+}
+#widget-crystal-builder input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.8);
+}
+
+/* Sleek input & select fields inside Slide 4 */
+#widget-crystal-builder select,
+#widget-crystal-builder input[type="number"],
+#widget-crystal-builder input[type="text"] {
+    background: rgba(15, 23, 42, 0.85) !important;
+    border: 1px solid var(--border-glass) !important;
+    border-radius: 4px;
+    color: #ffffff !important;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#widget-crystal-builder select:hover,
+#widget-crystal-builder input[type="number"]:hover,
+#widget-crystal-builder input[type="text"]:hover {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+#widget-crystal-builder select:focus,
+#widget-crystal-builder input[type="number"]:focus,
+#widget-crystal-builder input[type="text"]:focus {
+    border-color: var(--accent-mint) !important;
+    box-shadow: 0 0 8px rgba(0, 245, 212, 0.25) !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+}
+
+/* Recenter / Screenshot Viewport Overlay Buttons */
+#cb-viewer-container button {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#cb-viewer-container button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+}
+#cb-viewer-container button:active {
+    transform: translateY(0) scale(0.97) !important;
+}
+
+#cb-btn-recenter:hover {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+}
+#cb-btn-snap:hover {
+    background: #00bbf9 !important;
+    box-shadow: 0 0 12px rgba(0, 187, 249, 0.5) !important;
+}
+
+/* Tooltip and HUD customization */
+#cb-atom-tooltip {
+    border-color: var(--accent-mint) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 245, 212, 0.2) !important;
+}
+
+/* Manage Tab added atoms rows styling and delete triggers */
+#cb-atoms-list > div {
+    transition: all 0.2s ease !important;
+}
+#cb-atoms-list > div:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(0, 245, 212, 0.3) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+#cb-atoms-list > div button {
+    transition: all 0.15s ease !important;
+}
+#cb-atoms-list > div button:hover {
+    color: #ff3860 !important;
+    transform: scale(1.3) !important;
+    text-shadow: 0 0 6px rgba(255, 56, 96, 0.6) !important;
+}
+
+#cb-btn-export-cif {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#cb-btn-export-cif:hover {
+    background: rgba(0, 245, 212, 0.2) !important;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.4) !important;
+    color: #fff !important;
+    transform: scale(1.02) !important;
+}
+#cb-btn-export-cif:active {
+    transform: scale(0.98) !important;
+}
+
+#cb-btn-add-atom {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#cb-btn-add-atom:hover {
+    background: #00ffaa !important;
+    box-shadow: 0 0 12px rgba(0, 245, 212, 0.6) !important;
+    transform: scale(1.02) !important;
+}
+#cb-btn-add-atom:active {
+    transform: scale(0.98) !important;
+}
+
+#cb-tab-manage #cb-btn-clear {
+    transition: all 0.2s ease !important;
+}
+#cb-tab-manage #cb-btn-clear:hover {
+    background: rgba(255, 56, 96, 0.25) !important;
+    box-shadow: 0 0 8px rgba(255, 56, 96, 0.4) !important;
+    color: #ffffff !important;
+}
+
+/* --- Slide 9: Bond Scoring Visualizer Aesthetics --- */
+.cs-tab-btn {
+    transition: all 0.22s ease !important;
+    border-bottom: 2px solid transparent !important;
+}
+.cs-tab-btn:hover {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+}
+.cs-tab-btn.active {
+    color: var(--accent-mint) !important;
+    background: rgba(0, 245, 212, 0.04) !important;
+    border-bottom: 2px solid var(--accent-mint) !important;
+    text-shadow: 0 0 8px rgba(0, 245, 212, 0.3);
+}
+
+.cs-bg-btn {
+    transition: all 0.2s ease;
+}
+.cs-bg-btn.active {
+    border-color: var(--accent-mint) !important;
+    background: rgba(0, 245, 212, 0.08) !important;
+}
+
+#widget-crystal-scoring input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    background: rgba(255, 255, 255, 0.08) !important;
+    height: 4px;
+    border-radius: 2px;
+    outline: none;
+    transition: background 0.3s;
+}
+#widget-crystal-scoring input[type="range"]:hover {
+    background: rgba(255, 255, 255, 0.12) !important;
+}
+#widget-crystal-scoring input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: var(--accent-mint);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(0, 245, 212, 0.5);
+    transition: transform 0.15s, background-color 0.15s;
+}
+#widget-crystal-scoring input[type="range"]::-webkit-slider-thumb:hover {
+    transform: scale(1.3);
+    background: #ffffff;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.8);
+}
+
+#widget-crystal-scoring select,
+#widget-crystal-scoring input[type="number"],
+#widget-crystal-scoring input[type="text"] {
+    background: rgba(15, 23, 42, 0.85) !important;
+    border: 1px solid var(--border-glass) !important;
+    border-radius: 4px;
+    color: #ffffff !important;
+    font-family: var(--font-sans);
+    outline: none;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#widget-crystal-scoring select:hover,
+#widget-crystal-scoring input[type="number"]:hover,
+#widget-crystal-scoring input[type="text"]:hover {
+    border-color: rgba(255, 255, 255, 0.15) !important;
+}
+#widget-crystal-scoring select:focus,
+#widget-crystal-scoring input[type="number"]:focus,
+#widget-crystal-scoring input[type="text"]:focus {
+    border-color: var(--accent-mint) !important;
+    box-shadow: 0 0 8px rgba(0, 245, 212, 0.25) !important;
+    background: rgba(15, 23, 42, 0.95) !important;
+}
+
+#cs-viewer-container button {
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#cs-viewer-container button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+}
+#cs-viewer-container button:active {
+    transform: translateY(0) scale(0.97) !important;
+}
+
+#cs-btn-recenter:hover {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+    color: #fff !important;
+}
+#cs-btn-snap:hover {
+    background: #00bbf9 !important;
+    box-shadow: 0 0 12px rgba(0, 187, 249, 0.5) !important;
+}
+
+#cs-atom-tooltip {
+    border-color: var(--accent-mint) !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 8px rgba(0, 245, 212, 0.2) !important;
+}
+
+#cs-atoms-list > div {
+    transition: all 0.2s ease !important;
+}
+#cs-atoms-list > div:hover {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: rgba(0, 245, 212, 0.3) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+}
+#cs-atoms-list > div button {
+    transition: all 0.15s ease !important;
+}
+#cs-atoms-list > div button:hover {
+    color: #ff3860 !important;
+    transform: scale(1.3) !important;
+    text-shadow: 0 0 6px rgba(255, 56, 96, 0.6) !important;
+}
+
+#cs-btn-export-cif {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#cs-btn-export-cif:hover {
+    background: rgba(0, 245, 212, 0.2) !important;
+    box-shadow: 0 0 10px rgba(0, 245, 212, 0.4) !important;
+    color: #fff !important;
+    transform: scale(1.02) !important;
+}
+#cs-btn-export-cif:active {
+    transform: scale(0.98) !important;
+}
+
+#cs-btn-add-atom {
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+#cs-btn-add-atom:hover {
+    background: #00ffaa !important;
+    box-shadow: 0 0 12px rgba(0, 245, 212, 0.6) !important;
+    transform: scale(1.02) !important;
+}
+#cs-btn-add-atom:active {
+    transform: scale(0.98) !important;
+}
+
+#cs-btn-clear {
+    transition: all 0.2s ease !important;
+}
+#cs-btn-clear:hover {
+    background: rgba(255, 56, 96, 0.25) !important;
+    box-shadow: 0 0 8px rgba(255, 56, 96, 0.4) !important;
+    color: #ffffff !important;
+}
+
+
+/* --- Slide 2: Pillar Card hover lift --- */
+.pillar-card {
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+                box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.pillar-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}

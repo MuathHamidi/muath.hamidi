@@ -3,29 +3,189 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="{{ page.description | default: site.description }}">
+    <meta name="author" content="{{ site.author }}">
     <title>{{ page.title | default: site.title }}</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="{{ site.baseurl }}/assets/images/favicon.svg">
+
+    <!-- Stylesheet -->
     <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/style.css">
+
+    <!-- Theme Engine Script -->
+    <script src="{{ site.baseurl }}/assets/js/theme-engine.js"></script>
 </head>
 <body>
+    <!-- Cosmic Canvas Background -->
+    <canvas id="cosmicCanvas" class="cosmic-canvas"></canvas>
 
-    <!-- ===== START OF NEW MENU BAR ===== -->
+    <!-- ===== NAVIGATION ===== -->
     <header class="navbar">
-        <nav>
-            <ul>
-                <li><a href="{{ site.baseurl }}/">Home</a></li>
-                <li><a href="{{ site.baseurl }}/apps">Apps</a></li>
-                <li><a href="{{ site.baseurl }}/posts">Posts</a></li>
-                <li><a href="{{ site.baseurl }}/documents">Documents</a></li>
-                <li><a href="{{ site.baseurl }}/cv">CV</a></li>
-                <li><a href="{{ site.baseurl }}/contact">Contact</a></li>
-            <ul>
-        </nav>
-    </header>
-    <!-- ===== END OF NEW MENU BAR ===== -->
+        <div class="nav-inner">
+            <a href="{{ site.baseurl }}/" class="nav-logo">Muath Hamidi</a>
 
+            <button class="nav-toggle" aria-label="Toggle navigation" id="navToggle">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+
+            <nav id="navMenu">
+                <ul>
+                    <li><a href="{{ site.baseurl }}/" id="nav-home">Home</a></li>
+                    <li><a href="{{ site.baseurl }}/apps" id="nav-apps">Apps</a></li>
+                    <li><a href="{{ site.baseurl }}/presentations" id="nav-presentations">Presentations</a></li>
+                    <li><a href="{{ site.baseurl }}/posts" id="nav-posts">Posts</a></li>
+                    <li><a href="{{ site.baseurl }}/documents" id="nav-documents">Documents</a></li>
+                    <li><a href="{{ site.baseurl }}/cv" id="nav-cv">CV</a></li>
+                    <li><a href="{{ site.baseurl }}/contact" id="nav-contact">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Mobile overlay -->
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <!-- ===== MAIN CONTENT ===== -->
     <div class="container">
         {{ content }}
     </div>
 
+    <!-- ===== FOOTER ===== -->
+    <footer class="site-footer">
+        <span class="footer-text">© 2026 Muath Hamidi</span>
+        <div class="footer-links">
+            <a href="mailto:muath.hamidi@mail.mcgill.ca" title="Email">✉ Email</a>
+            <a href="https://www.linkedin.com/in/muath-hamidi-434691271" target="_blank" rel="noopener" title="LinkedIn">🔗 LinkedIn</a>
+            <a href="https://x.com/MuathHamidi" target="_blank" rel="noopener" title="X">𝕏 X</a>
+            <a href="https://discord.com" title="Discord">💬 Discord</a>
+        </div>
+    </footer>
+
+    <!-- ===== THEME SELECTION WIDGET ===== -->
+    <button class="theme-widget-btn" id="themeWidgetOpen" aria-label="Open Theme Settings" title="Theme Settings">
+        🎨
+    </button>
+
+    <div class="theme-widget-overlay" id="themeWidgetOverlay"></div>
+
+    <div class="theme-drawer" id="themeWidgetDrawer">
+        <div class="theme-drawer-header">
+            <span class="theme-drawer-title">Theme Settings</span>
+            <button class="theme-drawer-close" id="themeWidgetClose" aria-label="Close settings">&times;</button>
+        </div>
+
+        <!-- Theme Mode Selection -->
+        <div class="theme-option-group">
+            <span class="theme-option-label">Interface Theme</span>
+            <div class="theme-mode-grid">
+                <button class="theme-mode-btn" data-mode="light">
+                    <span>☀️</span>
+                    <span>Light</span>
+                </button>
+                <button class="theme-mode-btn" data-mode="dark">
+                    <span>🌙</span>
+                    <span>Dark</span>
+                </button>
+                <button class="theme-mode-btn" data-mode="system">
+                    <span>💻</span>
+                    <span>System</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Accent Gradient Selection -->
+        <div class="theme-option-group">
+            <span class="theme-option-label">Accent Color</span>
+            <div class="theme-accent-grid">
+                <button class="theme-accent-btn accent-indigo" data-accent="indigo" title="Quantum Indigo"></button>
+                <button class="theme-accent-btn accent-emerald" data-accent="emerald" title="Emerald Magnetism"></button>
+                <button class="theme-accent-btn accent-sunset" data-accent="sunset" title="Plasma Sunset"></button>
+                <button class="theme-accent-btn accent-gold" data-accent="gold" title="Chamber Gold"></button>
+                <button class="theme-accent-btn accent-cyber" data-accent="cyber" title="Monochrome Cyber"></button>
+            </div>
+        </div>
+
+        <!-- Animations Toggle -->
+        <div class="theme-option-group">
+            <span class="theme-option-label">Accessibility</span>
+            <div class="animation-toggle-container">
+                <span style="font-size: 0.9rem; color: var(--text-secondary);">Enable Transitions</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="themeAnimationsToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SCRIPTS ===== -->
+    <script>
+        // --- Mobile Navigation Toggle ---
+        const navToggle = document.getElementById('navToggle');
+        const navMenu = document.getElementById('navMenu');
+        const navOverlay = document.getElementById('navOverlay');
+
+        if (navToggle) {
+            navToggle.addEventListener('click', () => {
+                navToggle.classList.toggle('open');
+                navMenu.classList.toggle('open');
+                navOverlay.classList.toggle('visible');
+                document.body.style.overflow = navMenu.classList.contains('open') ? 'hidden' : '';
+            });
+
+            navOverlay.addEventListener('click', () => {
+                navToggle.classList.remove('open');
+                navMenu.classList.remove('open');
+                navOverlay.classList.remove('visible');
+                document.body.style.overflow = '';
+            });
+        }
+
+        // --- Active Nav Link Highlighting ---
+        (function() {
+            const path = window.location.pathname.replace(/\/$/, '');
+            const base = '{{ site.baseurl }}'.replace(/\/$/, '');
+            const page = path.replace(base, '') || '/';
+            const map = {
+                '/': 'nav-home',
+                '/apps': 'nav-apps',
+                '/presentations': 'nav-presentations',
+                '/posts': 'nav-posts',
+                '/documents': 'nav-documents',
+                '/cv': 'nav-cv',
+                '/contact': 'nav-contact'
+            };
+            const id = map[page];
+            if (id) {
+                const el = document.getElementById(id);
+                if (el) el.classList.add('active');
+            }
+        })();
+
+        // --- Scroll-Triggered Fade-In Animations ---
+        (function() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                        observer.unobserve(entry.target);
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -40px 0px'
+            });
+
+            document.querySelectorAll('.animate-on-scroll').forEach(el => {
+                observer.observe(el);
+            });
+        })();
+    </script>
+
+    <!-- Cosmic Background Engine -->
+    <script src="{{ site.baseurl }}/assets/js/cosmic-bg.js"></script>
 </body>
 </html>
