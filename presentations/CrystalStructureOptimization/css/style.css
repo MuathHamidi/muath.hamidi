@@ -1371,3 +1371,74 @@ table.science-table tr:hover td {
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
+
+/* ============================================================
+   RESPONSIVE OVERRIDES & MOBILE ORIENTATION WARNING
+   ============================================================ */
+#portrait-warning {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #060913;
+    z-index: 999999;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+    #portrait-warning {
+        display: flex;
+    }
+}
+
+.warning-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    max-width: 320px;
+}
+
+.warning-icon {
+    font-size: 3.5rem;
+    animation: rotatePhone 2s ease-in-out infinite;
+}
+
+.warning-content h3 {
+    font-size: 1.5rem;
+    color: var(--accent-blue);
+    font-weight: 700;
+}
+
+.warning-content p {
+    font-size: 0.95rem;
+    color: #94a3b8;
+    line-height: 1.6;
+}
+
+@keyframes rotatePhone {
+    0%, 100% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+}
+
+@media (max-width: 900px) {
+    #presentation-hud {
+        bottom: 12px;
+        right: 12px;
+        padding: 6px 16px;
+        gap: 10px;
+    }
+    .hud-icon-btn {
+        width: 32px;
+        height: 32px;
+    }
+    .hud-counter {
+        font-size: 0.85rem;
+        min-width: 50px;
+    }
+    #index-drawer {
+        width: 280px;
+    }
+}
