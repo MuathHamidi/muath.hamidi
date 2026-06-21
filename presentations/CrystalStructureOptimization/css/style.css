@@ -1375,6 +1375,16 @@ table.science-table tr:hover td {
 /* ============================================================
    RESPONSIVE OVERRIDES & MOBILE ORIENTATION WARNING
    ============================================================ */
+#slideshow-app.pseudo-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 999999 !important;
+    background: #030712 !important;
+}
+
 #portrait-warning {
     display: none;
     position: fixed;

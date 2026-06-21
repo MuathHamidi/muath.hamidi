@@ -120,15 +120,22 @@
             }
         }, { passive: true });
 
-        document.addEventListener('fullscreenchange', () => {
-            if (!document.fullscreenElement) {
-                enterFsIcon.classList.remove('hidden');
-                exitFsIcon.classList.add('hidden');
-            } else {
-                enterFsIcon.classList.add('hidden');
-                exitFsIcon.classList.remove('hidden');
-            }
-            setTimeout(fitSlides, 100);
+        const fsEvents = ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'];
+        fsEvents.forEach(evt => {
+            document.addEventListener(evt, () => {
+                const fsElement = document.fullscreenElement || 
+                                   document.webkitFullscreenElement || 
+                                   document.mozFullScreenElement || 
+                                   document.msFullscreenElement;
+                if (!fsElement) {
+                    if (enterFsIcon) enterFsIcon.classList.remove('hidden');
+                    if (exitFsIcon) exitFsIcon.classList.add('hidden');
+                } else {
+                    if (enterFsIcon) enterFsIcon.classList.add('hidden');
+                    if (exitFsIcon) exitFsIcon.classList.remove('hidden');
+                }
+                setTimeout(fitSlides, 100);
+            });
         });
 
         // Load slides and setup initial view
@@ -302,20 +309,78 @@
         }
     }
 
-    // 7. Fullscreen API Wrapper
+    // 7. Fullscreen API Wrapper with iOS and vendor fallback
+    let isSoftFullscreen = false;
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen()
-                .then(() => {
-                    if (enterFsIcon) enterFsIcon.classList.add('hidden');
-                    if (exitFsIcon) exitFsIcon.classList.remove('hidden');
-                }).catch(err => console.error("Fullscreen Request Failed:", err));
-        } else {
-            document.exitFullscreen().then(() => {
+        const docEl = document.documentElement;
+        const requestFs = docEl.requestFullscreen || 
+                          docEl.webkitRequestFullscreen || 
+                          docEl.mozRequestFullScreen || 
+                          docEl.msRequestFullscreen;
+        
+        const exitFs = document.exitFullscreen || 
+                       document.webkitExitFullscreen || 
+                       document.mozCancelFullScreen || 
+                       document.msExitFullscreen;
+
+        const getFsElement = () => {
+            return document.fullscreenElement || 
+                   document.webkitFullscreenElement || 
+                   document.mozFullScreenElement || 
+                   document.msFullscreenElement;
+        };
+
+        const app = document.getElementById('slideshow-app');
+        
+        const updateUI = (active) => {
+            if (active) {
+                if (enterFsIcon) enterFsIcon.classList.add('hidden');
+                if (exitFsIcon) exitFsIcon.classList.remove('hidden');
+            } else {
                 if (enterFsIcon) enterFsIcon.classList.remove('hidden');
                 if (exitFsIcon) exitFsIcon.classList.add('hidden');
-            }).catch(err => console.error("Fullscreen Exit Failed:", err));
+            }
+            setTimeout(fitSlides, 100);
+        };
+
+        if (requestFs && exitFs) {
+            if (!getFsElement()) {
+                const promise = requestFs.call(docEl);
+                if (promise && promise.then) {
+                    promise.then(() => updateUI(true))
+                           .catch(err => {
+                               console.warn("Fullscreen request rejected. Falling back to soft-fullscreen:", err);
+                               toggleSoftFullscreen(app, updateUI);
+                           });
+                } else {
+                    updateUI(true);
+                }
+            } else {
+                const promise = exitFs.call(document);
+                if (promise && promise.then) {
+                    promise.then(() => updateUI(false))
+                           .catch(err => console.error("Fullscreen exit failed:", err));
+                } else {
+                    updateUI(false);
+                }
+            }
+        } else {
+            toggleSoftFullscreen(app, updateUI);
         }
+    }
+
+    function toggleSoftFullscreen(app, updateUICallback) {
+        isSoftFullscreen = !isSoftFullscreen;
+        if (app) {
+            if (isSoftFullscreen) {
+                app.classList.add('pseudo-fullscreen');
+                updateUICallback(true);
+            } else {
+                app.classList.remove('pseudo-fullscreen');
+                updateUICallback(false);
+            }
+        }
+        setTimeout(fitSlides, 50);
     }
 
     // 8. Boot Guard checking readyState
