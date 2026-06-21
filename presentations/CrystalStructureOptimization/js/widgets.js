@@ -3,6 +3,26 @@
  * Renders and runs interactive demonstrations in the presentation slides.
  */
 
+const getDpr = () => {
+    return Math.min(window.devicePixelRatio || 1, window.innerWidth <= 900 ? 1.25 : 2.0);
+};
+
+const disposeScene = (scene) => {
+    if (!scene) return;
+    scene.traverse((obj) => {
+        if (obj.geometry) {
+            obj.geometry.dispose();
+        }
+        if (obj.material) {
+            if (Array.isArray(obj.material)) {
+                obj.material.forEach(m => m.dispose());
+            } else {
+                obj.material.dispose();
+            }
+        }
+    });
+};
+
 const Widgets = {
     activeTimers: [],
 
@@ -36,6 +56,7 @@ const Widgets = {
             this.cbRenderer.dispose();
             this.cbRenderer = null;
         }
+        disposeScene(this.cbScene);
         this.cbScene = null;
         this.cbCamera = null;
         this.cbControls = null;
@@ -52,6 +73,7 @@ const Widgets = {
             this.csRenderer.dispose();
             this.csRenderer = null;
         }
+        disposeScene(this.csScene);
         this.csScene = null;
         this.csCamera = null;
         this.csControls = null;
@@ -845,7 +867,7 @@ const Widgets = {
         canvas.style.cssText = 'width:100%; height:100%; border-radius:12px;';
         container.appendChild(canvas);
 
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         const offsetW = container.clientWidth || 420;
         const offsetH = container.clientHeight || 280;
         canvas.width = offsetW * DPR;
@@ -1051,7 +1073,7 @@ const Widgets = {
         canvas.style.cssText = 'width:100%; height:100%; border-radius:12px;';
         container.appendChild(canvas);
 
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         const offsetW = container.clientWidth || 420;
         const offsetH = container.clientHeight || 320;
         canvas.width = offsetW * DPR;
@@ -1933,6 +1955,7 @@ const Widgets = {
         this.cbCamera.position.set(8, 8, 12);
 
         this.cbRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        this.cbRenderer.setPixelRatio(getDpr());
         this.cbRenderer.setSize(viewerContainer.clientWidth, viewerContainer.clientHeight);
         this.cbRenderer.shadowMap.enabled = true;
         
@@ -3104,6 +3127,7 @@ const Widgets = {
         this.csCamera.position.set(8, 8, 12);
 
         this.csRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+        this.csRenderer.setPixelRatio(getDpr());
         this.csRenderer.setSize(viewerContainer.clientWidth, viewerContainer.clientHeight);
         this.csRenderer.shadowMap.enabled = true;
         
@@ -4059,7 +4083,7 @@ const Widgets = {
 
         // --- Scene setup ---
         const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setPixelRatio(getDpr());
         renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
 
         const scene = new THREE.Scene();
@@ -4182,8 +4206,13 @@ const Widgets = {
         this.titleBgAnimFrameId = requestAnimationFrame(animate);
 
         // Resize handler
+        let lastW = canvas.clientWidth;
+        let lastH = canvas.clientHeight;
         const onResize = () => {
             const w = canvas.clientWidth, h = canvas.clientHeight;
+            if (w === lastW && h === lastH) return;
+            lastW = w;
+            lastH = h;
             renderer.setSize(w, h, false);
             camera.aspect = w / h;
             camera.updateProjectionMatrix();
@@ -4195,6 +4224,7 @@ const Widgets = {
         this.titleBgCleanup = () => {
             cancelAnimationFrame(this.titleBgAnimFrameId);
             window.removeEventListener('resize', onResize);
+            disposeScene(scene);
             renderer.dispose();
         };
     },
@@ -4204,7 +4234,7 @@ const Widgets = {
         const canvas = document.getElementById('widget-wyckoff-burst');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         canvas.width = 220 * DPR;
         canvas.height = 200 * DPR;
         canvas.style.width = '220px';
@@ -4339,7 +4369,7 @@ const Widgets = {
         const canvas = document.getElementById('widget-bond-zone');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         const offsetW = canvas.offsetWidth || 800;
         const offsetH = canvas.offsetHeight || 130;
         canvas.width  = offsetW * DPR;
@@ -4477,7 +4507,7 @@ const Widgets = {
         const canvas = document.getElementById('widget-kernel-surf');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         const offsetW = canvas.offsetWidth || 380;
         const offsetH = canvas.offsetHeight || 180;
         canvas.width  = offsetW * DPR;
@@ -4636,7 +4666,7 @@ const Widgets = {
         const canvas = document.getElementById('widget-lattice-breathe');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         const offsetW = canvas.offsetWidth || 380;
         const offsetH = canvas.offsetHeight || 200;
         canvas.width  = offsetW * DPR;
@@ -4766,7 +4796,7 @@ const Widgets = {
         const canvas = document.getElementById('widget-pipeline-flow');
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
-        const DPR = window.devicePixelRatio || 1;
+        const DPR = getDpr();
         const offsetW = canvas.offsetWidth || 900;
         const offsetH = 68;
         canvas.width  = offsetW * DPR;

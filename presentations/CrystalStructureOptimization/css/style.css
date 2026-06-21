@@ -1389,7 +1389,7 @@ table.science-table tr:hover td {
 
 @media (max-width: 900px) and (orientation: portrait) {
     #portrait-warning {
-        display: flex;
+        display: none !important;
     }
 }
 
