@@ -11,10 +11,10 @@
     <link rel="icon" type="image/svg+xml" href="{{ site.baseurl }}/assets/images/favicon.svg">
 
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/style.css">
+    <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/style.css?v={{ site.time | date: '%s' }}">
 
     <!-- Theme Engine Script -->
-    <script src="{{ site.baseurl }}/assets/js/theme-engine.js"></script>
+    <script src="{{ site.baseurl }}/assets/js/theme-engine.js?v={{ site.time | date: '%s' }}"></script>
 </head>
 <body>
     <!-- Cosmic Canvas Background -->
@@ -186,6 +186,6 @@
     </script>
 
     <!-- Cosmic Background Engine -->
-    <script src="{{ site.baseurl }}/assets/js/cosmic-bg.js"></script>
+    <script src="{{ site.baseurl }}/assets/js/cosmic-bg.js?v={{ site.time | date: '%s' }}"></script>
 </body>
 </html>
