@@ -91,7 +91,13 @@
             }
         });
 
-        window.addEventListener('resize', fitSlides);
+        const handleResize = () => {
+            fitSlides();
+            setTimeout(fitSlides, 100);
+            setTimeout(fitSlides, 250);
+        };
+        window.addEventListener('resize', handleResize);
+        window.addEventListener('orientationchange', handleResize);
 
         // Touch Swipe Gestures for Mobile Navigation
         let touchStartX = 0;
@@ -313,10 +319,12 @@
     let isSoftFullscreen = false;
     function toggleFullscreen() {
         const docEl = document.documentElement;
-        const requestFs = docEl.requestFullscreen || 
-                          docEl.webkitRequestFullscreen || 
-                          docEl.mozRequestFullScreen || 
-                          docEl.msRequestFullscreen;
+        const app = document.getElementById('slideshow-app');
+        
+        const requestFs = app.requestFullscreen || 
+                          app.webkitRequestFullscreen || 
+                          app.mozRequestFullScreen || 
+                          app.msRequestFullscreen;
         
         const exitFs = document.exitFullscreen || 
                        document.webkitExitFullscreen || 
@@ -329,8 +337,6 @@
                    document.mozFullScreenElement || 
                    document.msFullscreenElement;
         };
-
-        const app = document.getElementById('slideshow-app');
         
         const updateUI = (active) => {
             if (active) {
@@ -344,25 +350,38 @@
         };
 
         if (requestFs && exitFs) {
-            if (!getFsElement()) {
-                const promise = requestFs.call(docEl);
-                if (promise && promise.then) {
-                    promise.then(() => updateUI(true))
-                           .catch(err => {
-                               console.warn("Fullscreen request rejected. Falling back to soft-fullscreen:", err);
-                               toggleSoftFullscreen(app, updateUI);
-                           });
+            try {
+                if (!getFsElement()) {
+                    const promise = requestFs.call(app);
+                    if (promise && promise.then) {
+                        promise.then(() => updateUI(true))
+                               .catch(err => {
+                                   console.warn("Fullscreen request rejected. Falling back to soft-fullscreen:", err);
+                                   toggleSoftFullscreen(app, updateUI);
+                               });
+                    } else {
+                        // Older WebKit might return undefined on requestFullscreen (like older Safari/iOS)
+                        // Wait a tiny bit and check if it went fullscreen. If not, trigger soft fallback.
+                        setTimeout(() => {
+                            if (getFsElement()) {
+                                updateUI(true);
+                            } else {
+                                toggleSoftFullscreen(app, updateUI);
+                            }
+                        }, 120);
+                    }
                 } else {
-                    updateUI(true);
+                    const promise = exitFs.call(document);
+                    if (promise && promise.then) {
+                        promise.then(() => updateUI(false))
+                               .catch(err => console.error("Fullscreen exit failed:", err));
+                    } else {
+                        updateUI(false);
+                    }
                 }
-            } else {
-                const promise = exitFs.call(document);
-                if (promise && promise.then) {
-                    promise.then(() => updateUI(false))
-                           .catch(err => console.error("Fullscreen exit failed:", err));
-                } else {
-                    updateUI(false);
-                }
+            } catch (err) {
+                console.warn("Fullscreen request crashed. Falling back to soft-fullscreen:", err);
+                toggleSoftFullscreen(app, updateUI);
             }
         } else {
             toggleSoftFullscreen(app, updateUI);
