@@ -1,0 +1,144 @@
+{
+    "branches": [
+        {
+            "id": "edge_exact",
+            "label": "Edge-Center (Exact)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [0.0, 0.0, 0.0],
+            "description": "High-symmetry edge-center site with zero perturbation"
+        },
+        {
+            "id": "edge_jitter1",
+            "label": "Edge-Center (Jitter A)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [0.05, 0.02, -0.03],
+            "description": "Symmetry-breaking jitter variant A at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter2",
+            "label": "Edge-Center (Jitter B)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [-0.04, 0.03, 0.05],
+            "description": "Symmetry-breaking jitter variant B at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter3",
+            "label": "Edge-Center (Jitter C)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [0.02, -0.05, 0.03],
+            "description": "Symmetry-breaking jitter variant C at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter4",
+            "label": "Edge-Center (Jitter D)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [-0.03, -0.02, 0.04],
+            "description": "Symmetry-breaking jitter variant D at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter5",
+            "label": "Edge-Center (Jitter E)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [0.01, 0.04, -0.02],
+            "description": "Symmetry-breaking jitter variant E at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter6",
+            "label": "Edge-Center (Jitter F)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [-0.02, 0.01, 0.03],
+            "description": "Symmetry-breaking jitter variant F at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter7",
+            "label": "Edge-Center (Jitter G)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [0.03, -0.01, -0.04],
+            "description": "Symmetry-breaking jitter variant G at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter8",
+            "label": "Edge-Center (Jitter H)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [-0.05, 0.02, 0.01],
+            "description": "Symmetry-breaking jitter variant H at Wyckoff 3c site"
+        },
+        {
+            "id": "edge_jitter9",
+            "label": "Edge-Center (Jitter I)",
+            "site_frac": [0.0, 0.0, 0.5],
+            "jitter_ang": [0.04, -0.03, 0.02],
+            "description": "Symmetry-breaking jitter variant I at Wyckoff 3c site"
+        },
+        {
+            "id": "body_exact",
+            "label": "Body-Center (Exact)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [0.0, 0.0, 0.0],
+            "description": "High-symmetry body-center site with zero perturbation"
+        },
+        {
+            "id": "body_jitter1",
+            "label": "Body-Center (Jitter A)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [0.03, -0.02, 0.04],
+            "description": "Symmetry-breaking jitter variant A at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter2",
+            "label": "Body-Center (Jitter B)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [-0.02, 0.03, -0.01],
+            "description": "Symmetry-breaking jitter variant B at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter3",
+            "label": "Body-Center (Jitter C)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [0.01, 0.02, 0.03],
+            "description": "Symmetry-breaking jitter variant C at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter4",
+            "label": "Body-Center (Jitter D)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [-0.04, -0.01, 0.02],
+            "description": "Symmetry-breaking jitter variant D at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter5",
+            "label": "Body-Center (Jitter E)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [0.02, -0.03, -0.02],
+            "description": "Symmetry-breaking jitter variant E at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter6",
+            "label": "Body-Center (Jitter F)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [0.05, 0.01, -0.03],
+            "description": "Symmetry-breaking jitter variant F at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter7",
+            "label": "Body-Center (Jitter G)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [-0.01, 0.04, 0.01],
+            "description": "Symmetry-breaking jitter variant G at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter8",
+            "label": "Body-Center (Jitter H)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [0.03, -0.05, 0.02],
+            "description": "Symmetry-breaking jitter variant H at Wyckoff 1b site"
+        },
+        {
+            "id": "body_jitter9",
+            "label": "Body-Center (Jitter I)",
+            "site_frac": [0.5, 0.5, 0.5],
+            "jitter_ang": [-0.03, 0.02, 0.04],
+            "description": "Symmetry-breaking jitter variant I at Wyckoff 1b site"
+        }
+    ]
+}

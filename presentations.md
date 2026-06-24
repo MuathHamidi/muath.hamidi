@@ -16,4 +16,11 @@ description: Interactive slide decks and research presentations by Muath Hamidi.
         <span class="app-link">Open Slideshow →</span>
     </a>
 
+    <a href="{{ site.baseurl }}/presentations/muSR/muSR_Workflow.html" class="app-card animate-on-scroll" data-name="CeIn3 DFT+mu Simulation Workflow">
+        <span class="app-category physics">Physics</span>
+        <h3>CeIn₃ DFT+μ Simulation Workflow</h3>
+        <p>Interactive visual workflow detailing electrostatic void trap discovery, 2x2x2 supercell BFGS relaxation, and non-collinear antiferromagnetic local contact & dipolar magnetic field calculation steps.</p>
+        <span class="app-link">Open Workflow Simulator →</span>
+    </a>
+
 </div>

@@ -1,0 +1,5 @@
+MUON STOPPING SITE CANDIDATES
+Global max: 1.101200 eV
+  Rank 1: frac=[0.  0.  0.5]  V=1.101200 eV
+  Rank 2: frac=[0.  0.5 0. ]  V=1.101200 eV
+  Rank 3: frac=[0.5 0.  0. ]  V=1.101200 eV

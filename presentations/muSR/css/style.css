@@ -1,0 +1,99 @@
+body { 
+    background-color: #030712; 
+    color: #f3f4f6; 
+    font-family: 'Inter', sans-serif;
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Premium Dark Mode Scrollbar custom styling */
+::-webkit-scrollbar { 
+    height: 8px; 
+    width: 8px; 
+}
+::-webkit-scrollbar-track { 
+    background: #0b0f19; 
+    border-radius: 4px; 
+}
+::-webkit-scrollbar-thumb { 
+    background: #1f2937; 
+    border-radius: 4px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+    background: #374151; 
+}
+
+/* Premium dynamic glassmorphism panels */
+.glass-panel {
+    background: rgba(17, 24, 39, 0.7);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(75, 85, 99, 0.3);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Sidebar Timeline Progress Indicators */
+.timeline-line::before {
+    content: ''; 
+    position: absolute; 
+    left: 1.5rem; 
+    top: 3.25rem; 
+    bottom: -1rem;
+    width: 2px; 
+    background: linear-gradient(to bottom, #3b82f6 0%, #6366f1 50%, #1f2937 100%);
+    z-index: 0; 
+    opacity: 0.3;
+}
+.timeline-item:last-child .timeline-line::before { 
+    display: none; 
+}
+
+/* Math breakdowns with indicators */
+.math-breakdown li { 
+    position: relative; 
+    padding-left: 1.25rem; 
+    margin-bottom: 0.5rem; 
+}
+.math-breakdown li::before { 
+    content: '→'; 
+    position: absolute; 
+    left: 0; 
+    color: #3b82f6; 
+    font-weight: bold; 
+}
+
+/* Prism JS tomorrow theme overrides for premium contrast */
+pre[class*="language-"] { 
+    background: #05070c !important; 
+    border-radius: 12px; 
+    margin: 0; 
+    padding: 1.25rem !important; 
+    border: 1px solid rgba(75, 85, 99, 0.1); 
+}
+code[class*="language-"], pre[class*="language-"] { 
+    text-shadow: none !important; 
+    font-size: 0.85rem; 
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; 
+}
+
+/* Custom design glows and animations */
+.glow-text-blue { 
+    text-shadow: 0 0 15px rgba(59, 130, 246, 0.5); 
+}
+.glow-border-indigo:hover { 
+    border-color: rgba(99, 102, 241, 0.8); 
+    box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); 
+}
+.neon-glow-red { 
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); 
+}
+
+/* Fade-in transitions */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}

@@ -1,0 +1,4 @@
+Command 'verdi' not found, did you mean:
+  command 'ferdi' from snap ferdi (5.8.1)
+  command 'serdi' from deb serdi (0.32.0-2)
+See 'snap info <snapname>' for additional versions.

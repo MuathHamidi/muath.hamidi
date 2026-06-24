@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CeIn₃ High-Fidelity DFT+μ Workflow</title>
+    
+    <!-- Modern Premium Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (Aesthetic Utility Layer) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Prism tomorrow syntax theme -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    
+    <!-- Custom styling, glassmorphism, timelines, glows, and Prism/MathJax overrides -->
+    <link href="css/style.css" rel="stylesheet" />
+    
+    <!-- MathJax Setup Config -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <!-- MathJax JS (LaTeX formatting) -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+</head>
+<body class="min-h-screen text-slate-100 flex flex-col p-4 md:p-8 selection:bg-indigo-500/30 selection:text-indigo-200">
+
+    <!-- Header Panel -->
+    <header class="max-w-7xl mx-auto w-full mb-8 animate-fade-in">
+        <div class="glass-panel rounded-3xl p-6 md:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative overflow-hidden">
+            <!-- Decorative colored gradients background -->
+            <div class="absolute -left-20 -top-20 w-80 h-80 bg-blue-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+            <div class="absolute -right-20 -bottom-20 w-80 h-80 bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none"></div>
+            
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-2">
+                    <span class="px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 rounded-full">AiiDA + Quantum ESPRESSO 7.x</span>
+                    <span class="px-3 py-1 text-xs font-extrabold uppercase tracking-widest text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full">Validated (111) AFM</span>
+                </div>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight leading-none">
+                    High-Fidelity Relativistic <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-400 glow-text-blue">DFT+μ Simulator</span>
+                </h1>
+                <p class="text-slate-400 mt-2 text-sm md:text-base max-w-2xl leading-relaxed">
+                    Rigorous electrostatic void trap discovery, 2x2x2 supercell BFGS relaxation, and non-collinear antiferromagnetic local contact & dipolar magnetic field extraction scripts for $\mathrm{CeIn_3}$.
+                </p>
+            </div>
+            
+            <div class="flex flex-col items-end gap-1.5 flex-shrink-0 relative z-10 w-full md:w-auto">
+                <div class="text-slate-400 text-xs font-semibold uppercase tracking-widest">Workflow Pipeline Progress</div>
+                <div class="w-full md:w-56 h-3 bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-[2px] shadow-inner">
+                    <div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500 ease-out shadow-[0_0_8px_#3b82f6]" style="width: 12.5%;"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Container -->
+    <main class="max-w-7xl mx-auto w-full flex-grow grid grid-cols-1 lg:grid-cols-4 gap-8">
+        
+        <!-- Sidebar Navigation (Timeline Panel) -->
+        <aside class="lg:col-span-1 flex flex-col gap-4 order-2 lg:order-1 animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="glass-panel rounded-3xl p-5 shadow-2xl relative overflow-hidden flex-grow min-h-[480px]">
+                <h3 class="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 px-1 flex items-center gap-2">
+                    <svg class="text-blue-500 animate-pulse" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                    Calculation Steps
+                </h3>
+                <!-- Dynamic Sidebar timelines container -->
+                <div id="sidebar" class="relative pl-1"></div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace (Dynamic content) -->
+        <section class="lg:col-span-3 order-1 lg:order-2 animate-fade-in" style="animation-delay: 0.2s;">
+            <!-- Dynamic workspace content goes here -->
+            <div id="content-area"></div>
+        </section>
+    </main>
+
+    <!-- Footer Panel -->
+    <footer class="max-w-7xl mx-auto w-full mt-10 mb-2 border-t border-slate-900 pt-6 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 animate-fade-in">
+        <div>Refactored modular structure with robust memory cleanup and separated JS/CSS modules.</div>
+        <div class="flex items-center gap-4">
+            <span class="flex items-center gap-1"><div class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></div> AiiDA Environment Active</span>
+            <span>CeIn₃ study: sheets parallel to (111) AFM planes</span>
+        </div>
+    </footer>
+
+    <!-- Three.js Libraries for crystal lattice WebGL visualizations -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    
+    <!-- PrismJS Libraries for terminal and python code syntax highlighting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+    
+    <!-- Modular scripts sequential loading -->
+    <!-- 0. Dynamic Results from Python Extraction -->
+    <script src="js/dynamic_results.js"></script>
+    
+    <!-- 1. Steps Data Array definition -->
+    <script src="js/steps_data.js"></script>
+    
+    <!-- 2. Three.js WebGL Simulation Logic -->
+    <script src="js/three_simulation.js"></script>
+    
+    <!-- 3. Core UI Controller and app bootstrappers -->
+    <script src="js/app.js"></script>
+</body>
+</html>

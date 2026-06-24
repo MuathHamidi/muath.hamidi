@@ -1,0 +1,27 @@
+====================================================
+       CeIn3 DFT+mu FINAL SCIENTIFIC REPORT
+====================================================
+
+1. INITIAL VOID LOCATION
+----------------------------------------------------
+(Void data not available)
+
+2. MUON RELAXATION & LATTICE DISTORTION
+----------------------------------------------------
+Initial Cage Vol   : 103.0957 A^3
+Final Cage Vol     : 91.6491 A^3
+Cage Distortion    : -11.1029 % (Local Cage Volume)
+Nearest Atom       : In at 2.2449 A (Pristine: 2.3048 A, Local distortion: -2.5970 %)
+
+3. FERMI CONTACT FIELD (Quantum Spin Density)
+----------------------------------------------------
+Raw Spin Density : 0.000000e+00 e/Bohr^3
+Calculated Bc    : 0.0000 Tesla
+
+4. CLASSICAL DIPOLAR FIELD (AFM Host Lattice)
+----------------------------------------------------
+AFM Bx : -0.000387 Tesla
+AFM By : -0.000065 Tesla
+AFM Bz : 0.000063 Tesla
+
+====================================================
