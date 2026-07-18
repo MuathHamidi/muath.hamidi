@@ -4,364 +4,902 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Oxidation Number Calculator</title>
-    <!-- Use Tailwind CSS for a modern, responsive design -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+            background-color: #111827;
+            color: #f3f4f6;
         }
-        .bg-gradient-header {
-            background-image: linear-gradient(to right, #0ea5e9, #6366f1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .fade-in {
+            animation: fadeIn 0.3s ease-in-out;
         }
-        /* Custom styles to handle nested subscript formatting */
-        .sub {
-            vertical-align: sub;
-            font-size: 0.75em;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        /* Custom scrollbar for trace area */
+        .custom-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scroll::-webkit-scrollbar-thumb {
+            background-color: #4b5563;
+            border-radius: 4px;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-100 flex items-center justify-center p-4">
-    <div class="bg-gray-800 p-8 md:p-10 rounded-3xl shadow-2xl max-w-lg w-full flex flex-col items-center border border-gray-700">
-        <h1 class="text-3xl md:text-4xl font-extrabold mb-4 text-center bg-gradient-header">
-            Oxidation Number Calculator
-        </h1>
-        <p class="text-center text-gray-300 mb-6">
-            Find definitive answers or likely possibilities for any chemical formula.
-        </p>
-        
-        <div class="w-full flex flex-col md:flex-row items-stretch md:items-center space-y-4 md:space-y-0 md:space-x-4">
-            <input 
-                id="formulaInput" 
-                type="text" 
-                placeholder="e.g., H2O, Fe3O4, Cu(NO3)2" 
-                class="flex-1 bg-gray-700 text-gray-200 p-3 rounded-xl border border-gray-600 focus:outline-none focus:ring-2 focus:ring-sky-500 placeholder-gray-400"
-            >
-            <button 
-                id="calculateBtn" 
-                class="px-6 py-3 bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold rounded-xl shadow-lg hover:from-sky-500 hover:to-indigo-500 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-            >
-                Calculate
+<body class="min-h-screen p-4 md:p-8 flex flex-col items-center bg-gray-900 text-gray-100">
+
+    <div class="w-full max-w-4xl bg-gray-800 rounded-2xl shadow-2xl overflow-hidden fade-in">
+        <div class="bg-gradient-to-r from-blue-800 to-indigo-900 p-6 md:p-8 text-white flex justify-between items-start">
+            <div>
+                <h1 class="text-3xl md:text-4xl font-bold tracking-tight mb-2">Oxidation Number Calculator</h1>
+                <p class="text-blue-200 text-lg">Detailed rule-based assignment & constraint solving</p>
+            </div>
+            <button id="open-rules-btn" class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-sm transition-colors border border-white/20 text-sm font-medium flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                View Rules
             </button>
         </div>
 
-        <div id="results" class="mt-8 w-full">
-            <!-- Results will be displayed here dynamically -->
-            <div class="bg-gray-700 p-6 rounded-2xl shadow-inner text-center border border-gray-600">
-                <p>Your results will appear here.</p>
+        <div class="p-6 md:p-8 space-y-8">
+            <!-- Input Section -->
+            <div class="space-y-4">
+                <label for="formula-input" class="block text-sm font-semibold text-gray-300">Chemical Formula</label>
+                <div class="flex flex-col md:flex-row gap-3">
+                    <input type="text" id="formula-input" 
+                        class="flex-1 text-xl px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none" 
+                        placeholder="e.g. Fe2O3, SO4^2-, Y[A]2Ti[B]2O7"
+                        autocomplete="off">
+                    <button id="calc-btn" 
+                        class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm transition-colors text-lg">
+                        Calculate
+                    </button>
+                </div>
+                
+                <!-- Quick Examples -->
+                <div class="flex flex-wrap gap-2 text-sm">
+                    <span class="text-gray-400 py-1">Try:</span>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="Fe2O3">Fe2O3</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="SO4^2-">SO4^2-</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="Fe3O4">Fe3O4</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="Fe[A]Fe[B]2O4">Fe[A]Fe[B]2O4</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="CaH2">CaH2</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="ClO4^-">ClO4^-</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="Tb2Ti2O7">Tb2Ti2O7</button>
+                    <button class="example-btn px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-full text-gray-200 transition border border-gray-600" data-val="NaK">NaK</button>
+                </div>
+            </div>
+
+            <!-- Error Display -->
+            <div id="error-container" class="hidden p-4 bg-red-900/50 text-red-200 border border-red-800 rounded-lg"></div>
+
+            <div id="results-container" class="hidden space-y-6">
+                
+                <div class="flex items-center justify-between border-b border-gray-700 pb-2">
+                    <h2 class="text-2xl font-bold text-gray-100">Results</h2>
+                    <span id="charge-badge" class="px-3 py-1 bg-gray-700 text-gray-200 rounded-full text-sm font-medium border border-gray-600">Net Charge: 0</span>
+                </div>
+
+                <!-- Special Warning Card -->
+                <div id="special-notice" class="hidden p-4 bg-yellow-900/40 border border-yellow-700/50 text-yellow-200 rounded-lg text-sm"></div>
+
+                <!-- Main Elements Table -->
+                <div class="overflow-x-auto border border-gray-700 rounded-lg shadow-sm">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-gray-700/50 border-b border-gray-700 text-sm uppercase text-gray-400">
+                                <th class="p-3 font-semibold">Element</th>
+                                <th class="p-3 font-semibold">Count</th>
+                                <th class="p-3 font-semibold text-center">Oxidation #</th>
+                                <th class="p-3 font-semibold">Determined By</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody" class="divide-y divide-gray-700 bg-gray-800">
+                            <!-- Rows injected via JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Ambiguity Candidates -->
+                <div id="ambiguity-container" class="hidden space-y-3">
+                    <h3 class="text-lg font-semibold text-gray-200 flex items-center gap-2">
+                        <svg class="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Alternative Valid Solutions
+                    </h3>
+                    <p class="text-sm text-gray-400">The hard rules left ambiguities. The combinations below also mathematically satisfy the formula charge using common oxidation states.</p>
+                    <div id="candidates-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Cards injected via JS -->
+                    </div>
+                </div>
+
+                <!-- Reasoning Trace Log -->
+                <div class="border border-gray-700 rounded-lg overflow-hidden">
+                    <button id="toggle-trace-btn" class="w-full p-4 bg-gray-800 flex justify-between items-center hover:bg-gray-700 transition-colors">
+                        <span class="font-semibold text-gray-300">View Engine Reasoning Trace</span>
+                        <svg id="trace-icon" class="w-5 h-5 text-gray-400 transform transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </button>
+                    <div id="trace-content" class="hidden p-4 bg-black text-green-400 font-mono text-sm h-64 overflow-y-auto custom-scroll">
+                        <!-- Logs injected via JS -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-xs text-gray-500 text-center border-t border-gray-700 pt-4">
+                Note: Formal oxidation numbers are a bookkeeping convention. Results for exotic compounds may be ambiguous.
             </div>
         </div>
+    </div>
 
-        <div id="messageBox" class="mt-4 w-full p-4 bg-red-800 text-white rounded-xl hidden"></div>
+    <div id="rules-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center z-50 p-4 opacity-0 transition-opacity duration-300">
+        <div class="bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden transform scale-95 transition-transform duration-300" id="rules-modal-content">
+            <div class="flex justify-between items-center p-6 border-b border-gray-700 bg-gray-800 z-10">
+                <h2 class="text-2xl font-bold text-white flex items-center gap-2">
+                    <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Oxidation Number Rules
+                </h2>
+                <button id="close-rules-btn" class="text-gray-400 hover:text-white transition-colors p-1 rounded-lg hover:bg-gray-700">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scroll text-gray-300 space-y-6 bg-gray-800/50">
+                
+                <section>
+                    <h3 class="text-lg font-bold text-blue-300 mb-3 border-b border-gray-700 pb-1">1. Hard Rules (Highest Priority)</h3>
+                    <ul class="space-y-3 list-decimal list-inside">
+                        <li><strong class="text-white">Free Element:</strong> Any element in its elemental form (e.g. Fe, O2, S8) has oxidation number <strong>0</strong>.</li>
+                        <li><strong class="text-white">Monatomic Ion:</strong> Equals its charge exactly (e.g. Na+ → +1).</li>
+                        <li><strong class="text-white">Fluorine:</strong> Always <strong>-1</strong> in every compound.</li>
+                        <li><strong class="text-white">Group 1 (Alkali Metals):</strong> Always <strong>+1</strong> in compounds (Li, Na, K, Rb, Cs).</li>
+                        <li><strong class="text-white">Group 2 (Alkaline Earth):</strong> Always <strong>+2</strong> in compounds (Be, Mg, Ca, Sr, Ba).</li>
+                        <li><strong class="text-white">Aluminum:</strong> Always <strong>+3</strong> in default compounds.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-indigo-300 mb-3 border-b border-gray-700 pb-1">2. Conditional Rules</h3>
+                    <ul class="space-y-3 list-decimal list-inside" start="7">
+                        <li><strong class="text-white">Hydrogen:</strong> Default <strong>+1</strong>. Except in <em>metal hydrides</em> (bonded to less electronegative metals), where it is <strong>-1</strong>.</li>
+                        <li><strong class="text-white">Oxygen:</strong> Default <strong>-2</strong>. 
+                            <ul class="list-disc list-inside ml-6 mt-1 text-sm space-y-1 text-gray-400">
+                                <li>Peroxides (e.g. H2O2): <strong>-1</strong></li>
+                                <li>Superoxides (e.g. KO2): <strong>-1/2</strong></li>
+                                <li>Ozonides (e.g. KO3): <strong>-1/3</strong></li>
+                                <li>Oxygen fluorides: <strong>+2</strong> (OF2) or <strong>+1</strong> (O2F2)</li>
+                            </ul>
+                        </li>
+                        <li><strong class="text-white">Halogens (Cl, Br, I):</strong> Default <strong>-1</strong>. Except when bonded to oxygen or a lighter halogen (e.g. ClO4-), then they are positive.</li>
+                        <li><strong class="text-white">Chalcogens (S, Se, Te):</strong> Default <strong>-2</strong> only when bonded solely to less electronegative elements (e.g. sulfides). Unfixed otherwise.</li>
+                    </ul>
+                </section>
+
+                <section>
+                    <h3 class="text-lg font-bold text-green-300 mb-3 border-b border-gray-700 pb-1">3. Universal Constraints</h3>
+                    <ul class="space-y-3 list-decimal list-inside" start="11">
+                        <li><strong class="text-white">Charge Balance Solver:</strong> For remaining unknowns, the sum of (coefficient × oxidation number) over all atoms <strong>must equal the overall charge</strong>. The solver tries common real-world states first.</li>
+                        <li><strong class="text-white">Electronegativity Tie-Break:</strong> If ambiguous, the more electronegative element receives the negative oxidation number.</li>
+                        <li><strong class="text-white">Mixed-Valence / Alloys:</strong> Known mixed-valence compounds (Fe3O4) split across states. Pure metal alloys (Intermetallics) have physically undefined oxidation states.</li>
+                    </ul>
+                </section>
+
+            </div>
+        </div>
     </div>
 
     <script>
-        // --- DATA SECTION ---
-        const ELEMENT_DATA = { /* Omitted for brevity, but this comprehensive list is essential */
-            'H': { states: [1, -1] }, 'He': { states: [0] }, 'Li': { states: [1] }, 'Be': { states: [2] }, 'B': { states: [3, -5] }, 'C': { states: [4, 2, -4] }, 'N': { states: [-3, 5, 3, 4, 2, 1, -1, -2] }, 'O': { states: [-2, -1, 1, 2] }, 'F': { states: [-1] }, 'Ne': { states: [0] }, 'Na': { states: [1] }, 'Mg': { states: [2] }, 'Al': { states: [3] }, 'Si': { states: [4, -4, 2] }, 'P': { states: [5, 3, -3] }, 'S': { states: [-2, 6, 4, 2] }, 'Cl': { states: [-1, 1, 3, 5, 7] }, 'Ar': { states: [0] }, 'K': { states: [1] }, 'Ca': { states: [2] }, 'Sc': { states: [3] }, 'Ti': { states: [4, 3, 2] }, 'V': { states: [5, 4, 3, 2] }, 'Cr': { states: [3, 6, 2] }, 'Mn': { states: [2, 7, 4, 3] }, 'Fe': { states: [3, 2, 4, 2.66] }, 'Co': { states: [2, 3] }, 'Ni': { states: [2, 3, 4] }, 'Cu': { states: [2, 1, 3] }, 'Zn': { states: [2] }, 'Ga': { states: [3] }, 'Ge': { states: [4, 2] }, 'As': { states: [3, 5, -3] }, 'Se': { states: [-2, 4, 6] }, 'Br': { states: [-1, 1, 3, 5] }, 'Kr': { states: [2, 0] }, 'Rb': { states: [1] }, 'Sr': { states: [2] }, 'Y': { states: [3] }, 'Zr': { states: [4] }, 'Nb': { states: [5, 3] }, 'Mo': { states: [6, 4] }, 'Tc': { states: [7, 4] }, 'Ru': { states: [3, 4, 8, 2] }, 'Rh': { states: [3, 1] }, 'Pd': { states: [2, 0, 4] }, 'Ag': { states: [1] }, 'Cd': { states: [2] }, 'In': { states: [3, 1] }, 'Sn': { states: [4, 2] }, 'Sb': { states: [3, 5, -3] }, 'Te': { states: [-2, 4, 6] }, 'I': { states: [-1, 1, 5, 7] }, 'Xe': { states: [0, 2, 4, 6] }, 'Cs': { states: [1] }, 'Ba': { states: [2] }, 'La': { states: [3] }, 'Ce': { states: [3, 4] }, 'Pr': { states: [3] }, 'Nd': { states: [3] }, 'Pm': { states: [3] }, 'Sm': { states: [3, 2] }, 'Eu': { states: [3, 2] }, 'Gd': { states: [3] }, 'Tb': { states: [3, 4] }, 'Dy': { states: [3] }, 'Ho': { states: [3] }, 'Er': { states: [3] }, 'Tm': { states: [3, 2] }, 'Yb': { states: [3, 2] }, 'Lu': { states: [3] }, 'Hf': { states: [4] }, 'Ta': { states: [5] }, 'W': { states: [6, 4] }, 'Re': { states: [7, 4, 6] }, 'Os': { states: [4, 8, 3] }, 'Ir': { states: [4, 3] }, 'Pt': { states: [4, 2] }, 'Au': { states: [3, 1] }, 'Hg': { states: [2, 1] }, 'Tl': { states: [1, 3] }, 'Pb': { states: [2, 4] }, 'Bi': { states: [3, 5, -3] }, 'Po': { states: [4, 2, -2] }, 'At': { states: [-1, 1, 3, 5, 7] }, 'Rn': { states: [2, 0] }, 'Fr': { states: [1] }, 'Ra': { states: [2] }, 'Ac': { states: [3] }, 'Th': { states: [4] }, 'Pa': { states: [5, 4] }, 'U': { states: [6, 4, 5, 3] }, 'Np': { states: [5, 6, 4] }, 'Pu': { states: [4, 6, 5, 3] }, 'Am': { states: [3, 6, 4, 5] }, 'Cm': { states: [3] }, 'Bk': { states: [3, 4] }, 'Cf': { states: [3] }, 'Es': { states: [3] }, 'Fm': { states: [3] }, 'Md': { states: [3] }, 'No': { states: [2, 3] }, 'Lr': { states: [3] }, 'Rf': { states: [4] }, 'Db': { states: [5] }, 'Sg': { states: [6] }, 'Bh': { states: [7] }, 'Hs': { states: [8] }, 'Mt': { states: [9] }, 'Ds': { states: [] }, 'Rg': { states: [] }, 'Cn': { states: [2] }, 'Nh': { states: [1] }, 'Fl': { states: [2] }, 'Mc': { states: [3] }, 'Lv': { states: [4] }, 'Ts': { states: [-1] }, 'Og': { states: [4] },
-        };
-        const POLYATOMIC_IONS = {
-            'OH': -1, 'CN': -1, 'NO3': -1, 'NO2': -1, 'HCO3': -1, 'HSO4': -1, 
-            'ClO': -1, 'ClO2': -1, 'ClO3': -1, 'ClO4': -1, 'MnO4': -1, 'SCN': -1,
-            'SO4': -2, 'SO3': -2, 'CO3': -2, 'CrO4': -2, 'Cr2O7': -2, 'HPO4': -2,
-            'S2O3': -2, 'C2O4': -2, 'PO4': -3, 'PO3': -3, 'AsO4': -3, 'NH4': 1, 'H3O': 1
-        };
-        // NEW HIERARCHICAL RULE SET
-        const PRIORITY_RULES = [
-            { elements: ['F'], value: -1 },
-            { elements: ['Li', 'Na', 'K', 'Rb', 'Cs', 'Fr'], value: 1 }, // Group 1
-            { elements: ['Be', 'Mg', 'Ca', 'Sr', 'Ba', 'Ra'], value: 2 }, // Group 2
-            { elements: ['Al'], value: 3 },
-            { elements: ['H'], value: 1 }, // Standard case for H
-            { elements: ['O'], value: -2 }, // Standard case for O
-            { elements: ['Cl', 'Br', 'I', 'At'], value: -1 } // Standard case for Halogens
+        // --- PHASE 1: DATA FOUNDATION ---
+        // Compact elemental data: Symbol | Atomic Number | Group | Pauling EN | Type (M=Metal, NM=Nonmetal, MD=Metalloid) | Common States (ordered by frequency)
+        const rawElementData = [
+            "H|1|0|2.20|NM|1,-1", "He|2|18|-|NM|0", "Li|3|1|0.98|M|1", "Be|4|2|1.57|M|2", "B|5|13|2.04|MD|3",
+            "C|6|14|2.55|NM|4,-4,2", "N|7|15|3.04|NM|-3,3,5,4,2,1,-1,-2", "O|8|16|3.44|NM|-2,-1", "F|9|17|3.98|NM|-1", "Ne|10|18|-|NM|0",
+            "Na|11|1|0.93|M|1", "Mg|12|2|1.31|M|2", "Al|13|13|1.61|M|3", "Si|14|14|1.90|MD|4,-4", "P|15|15|2.19|NM|5,-3,3",
+            "S|16|16|2.58|NM|-2,6,4", "Cl|17|17|3.16|NM|-1,1,3,5,7", "Ar|18|18|-|NM|0", "K|19|1|0.82|M|1", "Ca|20|2|1.00|M|2",
+            "Sc|21|3|1.36|M|3", "Ti|22|4|1.54|M|4,3", "V|23|5|1.63|M|5,4,3,2", "Cr|24|6|1.66|M|3,6,2", "Mn|25|7|1.55|M|2,4,7,3,6",
+            "Fe|26|8|1.83|M|3,2,6,4", "Co|27|9|1.88|M|2,3", "Ni|28|10|1.91|M|2,3", "Cu|29|11|1.90|M|2,1", "Zn|30|12|1.65|M|2",
+            "Ga|31|13|1.81|M|3", "Ge|32|14|2.01|MD|4,2", "As|33|15|2.18|MD|3,5,-3", "Se|34|16|2.55|NM|-2,4,6", "Br|35|17|2.96|NM|-1,1,3,5,7",
+            "Kr|36|18|3.00|NM|0", "Rb|37|1|0.82|M|1", "Sr|38|2|0.95|M|2", "Y|39|3|1.22|M|3", "Zr|40|4|1.33|M|4",
+            "Nb|41|5|1.6|M|5", "Mo|42|6|2.16|M|6,4", "Tc|43|7|1.9|M|7,4", "Ru|44|8|2.2|M|3,4", "Rh|45|9|2.28|M|3",
+            "Pd|46|10|2.20|M|2,4", "Ag|47|11|1.93|M|1", "Cd|48|12|1.69|M|2", "In|49|13|1.78|M|3", "Sn|50|14|1.96|M|4,2",
+            "Sb|51|15|2.05|MD|3,5,-3", "Te|52|16|2.10|MD|-2,4,6", "I|53|17|2.66|NM|-1,1,3,5,7", "Xe|54|18|2.60|NM|0,2,4,6", "Cs|55|1|0.79|M|1",
+            "Ba|56|2|0.89|M|2", "La|57|3|1.1|M|3", "Ce|58|0|1.12|M|3,4", "Pr|59|0|1.13|M|3,4", "Nd|60|0|1.14|M|3",
+            "Pm|61|0|1.13|M|3", "Sm|62|0|1.17|M|3,2", "Eu|63|0|1.20|M|3,2", "Gd|64|0|1.20|M|3", "Tb|65|0|1.10|M|3,4",
+            "Dy|66|0|1.22|M|3", "Ho|67|0|1.23|M|3", "Er|68|0|1.24|M|3", "Tm|69|0|1.25|M|3", "Yb|70|0|1.10|M|3,2",
+            "Lu|71|3|1.27|M|3", "Hf|72|4|1.30|M|4", "Ta|73|5|1.50|M|5", "W|74|6|2.36|M|6,4", "Re|75|7|1.90|M|4,6,7",
+            "Os|76|8|2.20|M|4,3", "Ir|77|9|2.20|M|4,3", "Pt|78|10|2.28|M|4,2",
+            "Au|79|11|2.54|M|3,1", "Hg|80|12|2.00|M|2,1", "Tl|81|13|1.62|M|1,3", "Pb|82|14|2.33|M|2,4", "Bi|83|15|2.02|M|3,5",
+            "Po|84|16|2.00|MD|4,2", "At|85|17|2.20|NM|-1,1,3,5", "Rn|86|18|2.20|NM|0",
+            "Th|90|0|1.3|M|4", "U|92|0|1.38|M|6,4"
         ];
 
-        const formulaInput = document.getElementById('formulaInput');
-        const calculateBtn = document.getElementById('calculateBtn');
-        const resultsDiv = document.getElementById('results');
-        const messageBox = document.getElementById('messageBox');
+        const ELEMENTS = {};
+        rawElementData.forEach(row => {
+            const [sym, z, group, en, type, statesStr] = row.split('|');
+            ELEMENTS[sym] = {
+                sym, 
+                z: parseInt(z), 
+                group: parseInt(group), 
+                en: en === '-' ? 0 : parseFloat(en), 
+                type, 
+                states: statesStr ? statesStr.split(',').map(Number) : []
+            };
+        });
 
-        calculateBtn.addEventListener('click', main);
-        formulaInput.addEventListener('keyup', (event) => (event.key === 'Enter') && main());
+        // Helper to canonicalize formulas for dictionary lookups
+        const makeCanonical = (formula) => {
+            const parts = [];
+            const regex = /([A-Z][a-z]?)(?:\[.*?\])?(\d*(?:\.\d+)?)/g;
+            let m;
+            while((m = regex.exec(formula)) !== null) {
+                parts.push(m[1] + m[2]);
+            }
+            return parts.sort().join('');
+        };
 
-        // Function to show a message in the message box
-        function showMessage(message, isError = true) {
-            resultsDiv.innerHTML = '';
-            messageBox.textContent = message;
-            messageBox.classList.remove('hidden');
-            messageBox.classList.add(isError ? 'bg-red-800' : 'bg-green-700');
+        // Lookup tables for explicit overrides and patterns (canonicalized automatically)
+        const KNOWN_PEROXIDES = ['H2O2', 'Li2O2', 'Na2O2', 'K2O2', 'Rb2O2', 'Cs2O2', 'BeO2', 'MgO2', 'CaO2', 'SrO2', 'BaO2'].map(makeCanonical);
+        const KNOWN_SUPEROXIDES = ['KO2', 'RbO2', 'CsO2'].map(makeCanonical);
+        const KNOWN_OZONIDES = ['KO3', 'RbO3', 'CsO3'].map(makeCanonical);
+        
+        const rawMixedValence = {
+            'Fe3O4': { msg: "Magnetite contains one Fe(II) and two Fe(III).", splits: [{sym:'Fe', ox:2, count:1}, {sym:'Fe', ox:3, count:2}, {sym:'O', ox:-2, count:4}] },
+            'Pb3O4': { msg: "Red lead contains two Pb(II) and one Pb(IV).", splits: [{sym:'Pb', ox:2, count:2}, {sym:'Pb', ox:4, count:1}, {sym:'O', ox:-2, count:4}] },
+            'Mn3O4': { msg: "Hausmannite contains one Mn(II) and two Mn(III).", splits: [{sym:'Mn', ox:2, count:1}, {sym:'Mn', ox:3, count:2}, {sym:'O', ox:-2, count:4}] },
+            'Co3O4': { msg: "Contains one Co(II) and two Co(III).", splits: [{sym:'Co', ox:2, count:1}, {sym:'Co', ox:3, count:2}, {sym:'O', ox:-2, count:4}] }
+        };
+        const MIXED_VALENCE_LOOKUP = {};
+        for (const [k, v] of Object.entries(rawMixedValence)) {
+            MIXED_VALENCE_LOOKUP[makeCanonical(k)] = v;
         }
 
-        // Function to hide the message box
-        function hideMessage() {
-            messageBox.classList.add('hidden');
-            messageBox.classList.remove('bg-red-800', 'bg-green-700');
-        }
+        // --- PHASE 2: FORMULA PARSER ---
+        function parseFormula(input) {
+            let cleanInput = input.trim().replace(/\s+/g, '');
+            if (!cleanInput) throw new Error("Please enter a formula.");
 
-        /**
-         * Parses a chemical formula string, handling parentheses, subscripts, and charges.
-         * @param {string} formula The chemical formula string.
-         * @returns {{atoms: object, totalCharge: number, formulaPart: string}} An object containing the parsed data.
-         */
-        function parseFormula(formula) {
             let charge = 0;
-            let formulaPart = formula;
-            const atoms = {};
-            const stack = [atoms];
-            const regex = /([A-Z][a-z]?|\(|\))(\d*)|([+-]\d*)$/g;
+            // Extract trailing charge (e.g., ^2-, ^+, -, +2, 3-)
+            const chargeRegex = /(?:\^([+-]\d*|\d*[+-])|([+-]\d*|\d*[+-]))$/;
+            const chargeMatch = cleanInput.match(chargeRegex);
+            
+            if (chargeMatch) {
+                const matchStr = chargeMatch[1] || chargeMatch[2];
+                cleanInput = cleanInput.slice(0, -chargeMatch[0].length);
+                if (matchStr === '+' || matchStr === '+1') charge = 1;
+                else if (matchStr === '-' || matchStr === '-1') charge = -1;
+                else {
+                    let cStr = matchStr;
+                    if (cStr.endsWith('+')) charge = parseInt(cStr);
+                    else if (cStr.endsWith('-')) charge = -parseInt(cStr);
+                    else if (cStr.startsWith('+')) charge = parseInt(cStr.substring(1));
+                    else if (cStr.startsWith('-')) charge = -parseInt(cStr.substring(1));
+                }
+                // Strip trailing brackets if user wrote [SO4]^2-
+                if (cleanInput.startsWith('[') && cleanInput.endsWith(']')) {
+                    cleanInput = cleanInput.slice(1, -1);
+                }
+            }
+
+            // Tokenizer supporting Element[Site] notation
+            const tokenRegex = /([A-Z][a-z]?)(?:\[([a-zA-Z0-9_]+)\])?|(\()|(\))|(\d+(?:\.\d+)?)/g;
+            const tokens = [];
             let match;
-
-            while ((match = regex.exec(formula)) !== null) {
-                const [fullMatch, elementOrParen, subscript, chargeMatch] = match;
-
-                if (elementOrParen === '(') {
-                    const newScope = {};
-                    stack.push(newScope);
-                } else if (elementOrParen === ')') {
-                    if (stack.length < 2) throw new Error("Mismatched parentheses in formula.");
-                    const group = stack.pop();
-                    const multiplier = subscript ? parseInt(subscript) : 1;
-                    const parentScope = stack[stack.length - 1];
-                    for (const el in group) {
-                        parentScope[el] = (parentScope[el] || 0) + group[el] * multiplier;
-                    }
-                } else if (elementOrParen) {
-                    const count = subscript ? parseInt(subscript) : 1;
-                    const currentScope = stack[stack.length - 1];
-                    currentScope[elementOrParen] = (currentScope[elementOrParen] || 0) + count;
-                } else if (chargeMatch) {
-                    // This handles a charge at the very end of the formula
-                    const sign = chargeMatch.includes('+') ? 1 : -1;
-                    const numStr = chargeMatch.replace(/[+-]/, '') || '1';
-                    charge = sign * parseInt(numStr);
-                    formulaPart = formula.substring(0, formula.lastIndexOf(chargeMatch));
-                }
-            }
-
-            if (stack.length !== 1) throw new Error("Mismatched parentheses in formula.");
-            if (Object.keys(atoms).length === 0) throw new Error("Invalid or empty formula.");
-
-            return { atoms: atoms, totalCharge: charge, formulaPart };
-        }
-
-        // *** COMPLETELY REWRITTEN SOLVER ***
-        function solve(atoms, totalCharge) {
-            let assignments = {};
-            let knownSum = 0;
-            let remainingAtoms = { ...atoms };
-
-            // Step 1: Attempt to solve algebraically using the strict rule hierarchy
-            for (const rule of PRIORITY_RULES) {
-                for (const el of rule.elements) {
-                    if (remainingAtoms[el]) {
-                        assignments[el] = rule.value;
-                        // Special case for hydrides
-                        if (el === 'H' && Object.keys(atoms).some(atom => PRIORITY_RULES[1].elements.includes(atom) || PRIORITY_RULES[2].elements.includes(atom))) {
-                            assignments[el] = -1; // It's a hydride
-                        }
-                        knownSum += assignments[el] * remainingAtoms[el];
-                        delete remainingAtoms[el];
-                    }
-                }
-            }
-            
-            // --- NEW LOGIC FOR INFERRING A CHARGE ---
-            // If the formula has no charge specified, but all elements have fixed states,
-            // calculate the correct charge and display it as an inferred solution.
-            // CORRECTED BUG: The inferred charge is the calculated sum, not its inverse.
-            if (totalCharge === 0 && Object.keys(remainingAtoms).length === 0 && Math.abs(knownSum) > 0.001) {
-                return { 
-                    type: 'inferred_charge', 
-                    solution: assignments, 
-                    inferredCharge: knownSum
-                };
-            }
-            // --- END NEW LOGIC ---
-
-            // Step 2: Check if the algebraic approach succeeded
-            const remainingKeys = Object.keys(remainingAtoms);
-            if (remainingKeys.length === 1) {
-                const unknownEl = remainingKeys[0];
-                const finalState = (totalCharge - knownSum) / remainingAtoms[unknownEl];
-                assignments[unknownEl] = finalState;
-                if (ELEMENT_DATA[unknownEl] && !ELEMENT_DATA[unknownEl].states.includes(finalState) && finalState !== 0) {
-                     return { type: 'inferred', solution: assignments, message: `Could not determine a definitive solution. This solution is derived based on rules, but the calculated state for ${unknownEl} is not a common oxidation state.`};
-                }
-                return { type: 'definitive', solution: assignments };
-            }
-            if (remainingKeys.length === 0) {
-                 if(Math.abs(knownSum - totalCharge) > 0.001) throw new Error("Formula violates fundamental oxidation rules.");
-                 return { type: 'definitive', solution: assignments };
-            }
-
-            // Step 3: If algebraic failed, it's ambiguous. Fallback to combinatorial search.
-            const comboSolutions = solveByCombination(remainingAtoms, totalCharge - knownSum);
-            if (comboSolutions.length > 0) {
-                rankSolutions(comboSolutions, remainingAtoms);
-                const fullSolutions = comboSolutions.map(s => {
-                    const merged = { ...assignments, ...s };
-                    delete merged.score; // Remove score before returning
-                    return merged;
+            while ((match = tokenRegex.exec(cleanInput)) !== null) {
+                tokens.push({
+                    raw: match[0],
+                    el: match[1],
+                    site: match[2],
+                    lparen: match[3],
+                    rparen: match[4],
+                    num: match[5]
                 });
-                return { type: 'combinatorial', solutions: fullSolutions };
             }
-            
-            // --- NEW INFERRED SOLUTION FOR UNCOMMON STATES ---
-            if (remainingKeys.length === 1) {
-                const unknownEl = remainingKeys[0];
-                const finalState = (totalCharge - knownSum) / remainingAtoms[unknownEl];
-                assignments[unknownEl] = finalState;
-                return { 
-                    type: 'inferred', 
-                    solution: assignments, 
-                    message: `A solution was found, but the calculated oxidation state for ${unknownEl} (${finalState}) is not a common one. This is the most likely solution based on other elements.` 
+
+            if (tokens.length === 0) throw new Error("Invalid formula syntax.");
+
+            // Stack-based parser for handling parenthesis multipliers
+            const stack = [[]];
+            for (let i = 0; i < tokens.length; i++) {
+                const t = tokens[i];
+                if (t.lparen) {
+                    stack.push([]);
+                } else if (t.rparen) {
+                    if (stack.length === 1) throw new Error("Unbalanced parentheses.");
+                    const sub = stack.pop();
+                    let multiplier = 1;
+                    if (i + 1 < tokens.length && tokens[i+1].num) {
+                        multiplier = parseFloat(tokens[i+1].num);
+                        i++;
+                    }
+                    sub.forEach(el => {
+                        stack[stack.length - 1].push({sym: el.sym, coreSym: el.coreSym, count: el.count * multiplier});
+                    });
+                } else if (t.el) {
+                    // It's an element
+                    if (!ELEMENTS[t.el]) throw new Error(`Unknown element symbol: ${t.el}`);
+                    let multiplier = 1;
+                    if (i + 1 < tokens.length && tokens[i+1].num) {
+                        multiplier = parseFloat(tokens[i+1].num);
+                        i++;
+                    }
+                    const uniqueSym = t.site ? `${t.el}[${t.site}]` : t.el;
+                    stack[stack.length - 1].push({sym: uniqueSym, coreSym: t.el, count: multiplier});
+                }
+            }
+
+            if (stack.length > 1) throw new Error("Unbalanced parentheses.");
+
+            // Aggregate counts of identical elements
+            const flatElements = stack[0];
+            const agg = {};
+            flatElements.forEach(el => {
+                if (!agg[el.sym]) {
+                    agg[el.sym] = { coreSym: el.coreSym, count: 0 };
+                }
+                agg[el.sym].count += el.count;
+            });
+
+            const elements = Object.keys(agg).map(sym => ({
+                sym, 
+                coreSym: agg[sym].coreSym,
+                count: agg[sym].count
+            }));
+            return { elements, charge, rawString: input.trim() };
+        }
+
+        // --- HELPER FUNCTIONS FOR ENGINE ---
+        function getBase(sym) { return sym.split('[')[0]; }
+        function isMetal(sym) { const s = getBase(sym); return ELEMENTS[s] && ELEMENTS[s].type === 'M'; }
+        function isGroup(sym, group) { const s = getBase(sym); return ELEMENTS[s] && ELEMENTS[s].group === group; }
+        function isTransition(sym) { const s = getBase(sym); return ELEMENTS[s] && (ELEMENTS[s].group >= 3 && ELEMENTS[s].group <= 12); }
+        function getEN(sym) { const s = getBase(sym); return ELEMENTS[s] ? ELEMENTS[s].en : 0; }
+
+        // --- PHASE 3 & 4: RULE ENGINE AND SOLVER ---
+        class Engine {
+            constructor(parsedData) {
+                this.elements = parsedData.elements;
+                this.totalCharge = parsedData.charge;
+                this.formulaStr = parsedData.rawString.replace(/\s+/g, '');
+                this.normalizedStr = this.elements.map(e => e.sym + (e.count > 1 ? e.count : '')).join('');
+                
+                this.states = {}; // sym -> {ox, rule, priority}
+                this.trace = [];
+                this.specialNotice = null;
+                this.ambiguities = [];
+                this.overrideSplits = null;
+            }
+
+            log(msg) {
+                this.trace.push(msg);
+            }
+
+            assign(sym, ox, ruleName, priority) {
+                if (this.states[sym]) return; // Never override a locked state
+                this.states[sym] = { ox, ruleName, priority };
+                this.log(`[Rule ${priority}] ${sym}: assigned ${ox} via ${ruleName}`);
+            }
+
+            calculate() {
+                this.log(`Starting calculation for ${this.formulaStr} (Target Charge: ${this.totalCharge})`);
+
+                // 1. Canonical String for Lookups
+                const canonicalBase = this.elements
+                    .map(e => e.coreSym + (e.count > 1 ? e.count : ''))
+                    .sort()
+                    .join('');
+
+                // 2. Check for Mixed Valence Overrides
+                if (MIXED_VALENCE_LOOKUP[canonicalBase]) {
+                    this.log(`Identified known mixed-valence pattern for ${canonicalBase}.`);
+                    this.specialNotice = MIXED_VALENCE_LOOKUP[canonicalBase].msg;
+                    this.overrideSplits = MIXED_VALENCE_LOOKUP[canonicalBase].splits;
+                    // We still calculate average for the main table
+                }
+
+                // 3. Hard Rule 1: Free element / Monatomic ion
+                if (this.elements.length === 1) {
+                    const el = this.elements[0];
+                    const ox = this.totalCharge / el.count;
+                    this.assign(el.sym, ox, "Free element / Monatomic Ion rule", 1);
+                    return this.finalize();
+                }
+
+                // 4. Intermetallic Check
+                const allMetals = this.elements.every(e => isMetal(e.sym));
+                if (allMetals && this.totalCharge === 0) {
+                    this.specialNotice = "Intermetallic / Alloy detected. Formal oxidation numbers are not physically meaningful here.";
+                    this.log("Aborting standard assignment: Formula consists entirely of metals.");
+                    return this.finalize(); // Will leave them blank/unresolved in UI
+                }
+
+                // 5. Hard Rules Application
+                this.elements.forEach(el => {
+                    const s = el.coreSym;
+                    if (s === 'F') this.assign(el.sym, -1, "Fluorine is always -1", 3);
+                    else if (s !== 'H' && isGroup(s, 1)) this.assign(el.sym, 1, "Group 1 alkali metal rule", 4);
+                    else if (isGroup(s, 2)) this.assign(el.sym, 2, "Group 2 alkaline earth rule", 5);
+                    else if (s === 'Al') this.assign(el.sym, 3, "Aluminum rule", 6);
+                });
+
+                // Helper to check presence
+                const has = (coreSym) => this.elements.some(e => e.coreSym === coreSym);
+
+                // 6. Conditional Rule: Hydrogen
+                if (has('H')) {
+                    const hasO = has('O');
+                    const hasHalogen = ['F','Cl','Br','I'].some(h => has(h));
+                    // Check if bonded only to metals
+                    const allOthersElectropositive = this.elements.every(e => 
+                        e.coreSym === 'H' || isGroup(e.sym, 1) || isGroup(e.sym, 2) || isTransition(e.sym) || isMetal(e.sym)
+                    );
+                    
+                    this.elements.filter(e => e.coreSym === 'H' && !this.states[e.sym]).forEach(hEl => {
+                        if (allOthersElectropositive && !hasO && !hasHalogen && this.elements.length > 1) {
+                            this.assign(hEl.sym, -1, "Metal Hydride rule (H bonded to electropositive metal)", 7);
+                        } else {
+                            this.assign(hEl.sym, 1, "Default Hydrogen rule", 7);
+                        }
+                    });
+                }
+
+                // 7. Conditional Rule: Oxygen
+                if (has('O')) {
+                    let isPeroxide = KNOWN_PEROXIDES.includes(canonicalBase);
+                    let isSuperoxide = KNOWN_SUPEROXIDES.includes(canonicalBase);
+                    let isOzonide = KNOWN_OZONIDES.includes(canonicalBase);
+                    
+                    // Structural heuristics for unknown peroxides/superoxides
+                    if (this.elements.length === 2 && !isPeroxide && !isSuperoxide && !isOzonide) {
+                        const other = this.elements.find(e => e.coreSym !== 'O');
+                        const oEl = this.elements.find(e => e.coreSym === 'O');
+                        if (other && oEl) {
+                            const ratio = oEl.count / other.count;
+                            const isAlkali = isGroup(other.sym, 1);
+                            const isAlkalineEarth = isGroup(other.sym, 2);
+                            const isGroup12 = isGroup(other.sym, 12); // Zn, Cd, Hg
+                            
+                            if (isAlkali && ratio === 1) isPeroxide = true; // e.g. M2O2 -> M:O = 1:1
+                            if ((isAlkalineEarth || isGroup12) && ratio === 2) isPeroxide = true; // e.g. MO2 -> M:O = 1:2
+                            if (isAlkali && ratio === 2) isSuperoxide = true; // e.g. MO2 -> M:O = 1:2
+                            if (isAlkali && ratio === 3) isOzonide = true; // e.g. MO3 -> M:O = 1:3
+                        }
+                    }
+
+                    this.elements.filter(e => e.coreSym === 'O' && !this.states[e.sym]).forEach(oEl => {
+                        if (isPeroxide) {
+                            this.assign(oEl.sym, -1, "Peroxide structural pattern detected", 8);
+                        } else if (isSuperoxide) {
+                            this.assign(oEl.sym, -0.5, "Superoxide structural pattern detected", 8);
+                        } else if (isOzonide) {
+                            this.assign(oEl.sym, -1/3, "Ozonide structural pattern detected", 8);
+                        } else if (canonicalBase === makeCanonical('OF2')) {
+                            this.assign(oEl.sym, 2, "Oxygen bonded to Fluorine", 8);
+                        } else if (canonicalBase === makeCanonical('O2F2')) {
+                            this.assign(oEl.sym, 1, "Oxygen bonded to Fluorine", 8);
+                        } else {
+                            // Crucially, we lock default oxygen so the solver can find transition metal states
+                            this.assign(oEl.sym, -2, "Default Oxygen rule", 8);
+                        }
+                    });
+                }
+
+                // 8. Conditional Rule: Halogens (Cl, Br, I)
+                ['S', 'Se', 'Te'].forEach(chal => {
+                    if (has(chal)) {
+                        this.elements.filter(e => e.coreSym === chal && !this.states[e.sym]).forEach(chalEl => {
+                            // Check if bonded only to less EN elements
+                            const chalEN = getEN(chalEl.sym);
+                            const allOthersLessEN = this.elements.every(e => e.sym === chalEl.sym || getEN(e.sym) < chalEN);
+                            if (allOthersLessEN) {
+                                this.assign(chalEl.sym, -2, "Default Chalcogen rule (bonded to less EN elements)", 10);
+                            } else {
+                                this.log(`[Rule 10] ${chalEl.sym}: Skipped default -2 because it is bonded to more EN elements.`);
+                            }
+                        });
+                    }
+                });
+
+                // 10. Constraint Solver for remaining unknowns
+                const unknowns = this.elements.filter(e => !this.states[e.sym]);
+                
+                if (unknowns.length > 0) {
+                    this.log(`Starting constraint solver for unknowns: ${unknowns.map(u => u.sym).join(', ')}`);
+                    
+                    let currentSum = 0;
+                    this.elements.forEach(e => {
+                        if (this.states[e.sym]) currentSum += this.states[e.sym].ox * e.count;
+                    });
+                    
+                    const targetChargeForUnknowns = this.totalCharge - currentSum;
+                    this.log(`Sum of knowns: ${currentSum}. Target sum for unknowns: ${targetChargeForUnknowns}`);
+
+                    const candidates = this.solveConstraint(unknowns, targetChargeForUnknowns);
+                    
+                    if (candidates.length === 0) {
+                        throw new Error(`Charge balance failed. No common oxidation states satisfy the target charge of ${this.totalCharge}.`);
+                    } else if (candidates.length === 1) {
+                        const sol = candidates[0].states;
+                        unknowns.forEach(u => {
+                            this.assign(u.sym, sol[u.sym], "Charge balance constraint solver (Rule 11)", 11);
+                        });
+                    } else {
+                        // Ambiguity handling!
+                        this.log(`Solver found ${candidates.length} valid combination(s). Applying tie-breakers.`);
+                        
+                        // We take the #1 ranked candidate for the main table
+                        const bestSol = candidates[0].states;
+                        unknowns.forEach(u => {
+                            this.assign(u.sym, bestSol[u.sym], "Solver tie-break (Most common state / EN match)", 11);
+                        });
+                        
+                        // Save remaining top candidates for the ambiguity UI
+                        this.ambiguities = candidates.slice(1, 4).map(c => ({
+                            fullStates: c.fullStates,
+                            rationale: c.rationale
+                        })); 
+                    }
+                } else {
+                    // Verify closing constraint just in case
+                    let checkSum = 0;
+                    this.elements.forEach(e => {
+                        if(this.states[e.sym] && typeof this.states[e.sym].ox === 'number') checkSum += this.states[e.sym].ox * e.count;
+                    });
+                    if (Math.abs(checkSum - this.totalCharge) > 0.001) {
+                        const msg = `WARNING: Final sum (${checkSum.toFixed(3)}) does not match target charge (${this.totalCharge}).`;
+                        this.log(msg);
+                        this.specialNotice = msg + " This formula may contain an unhandled structural feature (e.g. peroxide/mixed-valence) or be chemically invalid.";
+                    } else {
+                        this.log(`Constraint verified: Total sum equals ${this.totalCharge}.`);
+                    }
+                }
+
+                return this.finalize();
+            }
+
+            solveConstraint(unknowns, targetCharge) {
+                const validCombinations = [];
+                const maxCombinationsToCheck = 5000; // safety net
+                let iterations = 0;
+
+                // Backtracking function
+                const backtrack = (index, currentAssignment, currentSum) => {
+                    if (iterations++ > maxCombinationsToCheck) return;
+
+                    if (index === unknowns.length) {
+                        // Epsilon check for fractional states
+                        if (Math.abs(currentSum - targetCharge) < 0.001) {
+                            validCombinations.push({ ...currentAssignment });
+                        }
+                        return;
+                    }
+
+                    const unk = unknowns[index];
+                    let possibleStates = ELEMENTS[unk.coreSym] ? ELEMENTS[unk.coreSym].states : [-4,-3,-2,-1,0,1,2,3,4,5,6,7,8];
+                    
+                    // Add fractionals if needed for weird non-stoichiometries, but restrict to basic states first
+                    for (let state of possibleStates) {
+                        currentAssignment[unk.sym] = state;
+                        backtrack(index + 1, currentAssignment, currentSum + (state * unk.count));
+                    }
+                    
+                    // Fallback to purely mathematical split if 1 unknown and list didn't hit
+                    // e.g. Fe3O4 where Fe needs +8/3 which isn't in common states array.
+                    if (unknowns.length === 1 && validCombinations.length === 0 && index === 0) {
+                        const requiredState = targetCharge / unk.count;
+                        currentAssignment[unk.sym] = requiredState;
+                        validCombinations.push({...currentAssignment});
+                    }
+                };
+
+                backtrack(0, {}, 0);
+
+                // Rank the combinations
+                // Ranking metrics: 
+                // 1. Penalty for using less common states (higher index in the states array)
+                // 2. Penalty for violating Electronegativity (more EN element should be more negative)
+                
+                const ranked = validCombinations.map(combo => {
+                    let score = 0;
+                    unknowns.forEach(u => {
+                        const st = combo[u.sym];
+                        const statesArr = ELEMENTS[u.coreSym] ? ELEMENTS[u.coreSym].states : [];
+                        let idx = statesArr.indexOf(st);
+                        if (idx === -1) idx = 10; // High penalty for unlisted state
+                        score += idx; 
+                    });
+
+                    // EN Check between unknowns
+                    if (unknowns.length >= 2) {
+                        for(let i=0; i<unknowns.length; i++) {
+                            for(let j=i+1; j<unknowns.length; j++) {
+                                let enI = getEN(unknowns[i].sym);
+                                let enJ = getEN(unknowns[j].sym);
+                                let oxI = combo[unknowns[i].sym];
+                                let oxJ = combo[unknowns[j].sym];
+                                
+                                // Apply penalty only if at least one element is negative. 
+                                // If both are positive cations, EN doesn't dictate which gets the higher state.
+                                if (oxI < 0 || oxJ < 0) {
+                                    if (enI > enJ && oxI > oxJ) score += 5;
+                                    if (enJ > enI && oxJ > oxI) score += 5;
+                                }
+                            }
+                        }
+                    }
+
+                    // Build full states for ambiguity card visibility
+                    const fullCombo = { ...combo };
+                    this.elements.forEach(e => {
+                        if (this.states[e.sym]) fullCombo[e.sym] = this.states[e.sym].ox;
+                    });
+
+                    // Generate explanatory rationale for the ambiguity UI
+                    const rationaleParts = [];
+                    unknowns.forEach(u => {
+                        const st = combo[u.sym];
+                        const statesArr = ELEMENTS[u.coreSym] ? ELEMENTS[u.coreSym].states : [];
+                        let idx = statesArr.indexOf(st);
+                        const stStr = st > 0 ? `+${st}` : `${st}`;
+                        
+                        if (idx === 0) rationaleParts.push(`${u.sym} ${stStr} (primary)`);
+                        else if (idx > 0 && idx <= 2) rationaleParts.push(`${u.sym} ${stStr} (common)`);
+                        else rationaleParts.push(`${u.sym} ${stStr} (rare)`);
+                    });
+                    const rationale = rationaleParts.join('; ');
+
+                    return { states: combo, fullStates: fullCombo, score, rationale };
+                });
+
+                ranked.sort((a, b) => a.score - b.score);
+                return ranked;
+            }
+
+            finalize() {
+                const results = this.elements.map(e => {
+                    const stateObj = this.states[e.sym] || { ox: 'N/A', ruleName: 'Unresolved (Intermetallic/Error)' };
+                    return {
+                        sym: e.sym,
+                        count: e.count,
+                        ox: stateObj.ox,
+                        rule: stateObj.ruleName
+                    };
+                });
+                
+                return {
+                    results,
+                    trace: this.trace,
+                    specialNotice: this.specialNotice,
+                    ambiguities: this.ambiguities,
+                    overrideSplits: this.overrideSplits,
+                    charge: this.totalCharge
                 };
             }
-            // --- END NEW LOGIC ---
-
-            throw new Error("Could not determine a solution. The formula may be chemically invalid.");
         }
 
-        function solveByCombination(atoms, charge) {
-            const elements = Object.keys(atoms);
-            const solutions = [];
+        // --- PHASE 6: UI & DOM MANAGEMENT ---
+        const inputEl = document.getElementById('formula-input');
+        const calcBtn = document.getElementById('calc-btn');
+        const errorContainer = document.getElementById('error-container');
+        const resultsContainer = document.getElementById('results-container');
+        const tbody = document.getElementById('results-tbody');
+        const chargeBadge = document.getElementById('charge-badge');
+        const traceContent = document.getElementById('trace-content');
+        const toggleTraceBtn = document.getElementById('toggle-trace-btn');
+        const traceIcon = document.getElementById('trace-icon');
+        const specialNoticeDiv = document.getElementById('special-notice');
+        const ambiguityContainer = document.getElementById('ambiguity-container');
+        const candidatesGrid = document.getElementById('candidates-grid');
 
-            // A helper function for the recursive combination search
-            function findSolutionsRecursive(index, currentAssignments) {
-                if (index === elements.length) {
-                    // Base case: All elements have an assigned state
-                    let sum = 0;
-                    for (const el in currentAssignments) {
-                        sum += currentAssignments[el] * atoms[el];
-                    }
-                    if (Math.abs(sum - charge) < 0.001) { // Check if the sum matches the charge
-                        solutions.push({ ...currentAssignments });
-                    }
-                    return;
-                }
+        // Modal elements
+        const rulesModal = document.getElementById('rules-modal');
+        const rulesModalContent = document.getElementById('rules-modal-content');
+        const openRulesBtn = document.getElementById('open-rules-btn');
+        const closeRulesBtn = document.getElementById('close-rules-btn');
 
-                const currentEl = elements[index];
-                const possibleStates = ELEMENT_DATA[currentEl]?.states || [];
-                
-                if (possibleStates.length === 0) {
-                    // Handle elements with no predefined states
-                    solutions.push({ ...currentAssignments, [currentEl]: 'Unknown'});
-                    return;
-                }
-                
-                for (const state of possibleStates) {
-                    findSolutionsRecursive(index + 1, { ...currentAssignments, [currentEl]: state });
-                }
+        // Modal logic
+        const toggleModal = (show) => {
+            if (show) {
+                rulesModal.classList.remove('hidden');
+                // Trigger reflow for transition
+                void rulesModal.offsetWidth;
+                rulesModal.classList.remove('opacity-0');
+                rulesModalContent.classList.remove('scale-95');
+                rulesModalContent.classList.add('scale-100');
+            } else {
+                rulesModal.classList.add('opacity-0');
+                rulesModalContent.classList.remove('scale-100');
+                rulesModalContent.classList.add('scale-95');
+                setTimeout(() => rulesModal.classList.add('hidden'), 300);
+            }
+        };
+
+        openRulesBtn.addEventListener('click', () => toggleModal(true));
+        closeRulesBtn.addEventListener('click', () => toggleModal(false));
+        rulesModal.addEventListener('click', (e) => {
+            if (e.target === rulesModal) toggleModal(false);
+        });
+
+        // Number formatter
+        const fmtNum = (num) => {
+            if (typeof num !== 'number') return num;
+            if (Number.isInteger(num)) return num > 0 ? `+${num}` : num.toString();
+            // Handle fractions beautifully
+            const n = parseFloat(num.toFixed(3));
+            if (Math.abs(n - 2.667) < 0.01) return '+8/3 (Avg)';
+            if (Math.abs(n - (-0.5)) < 0.01) return '-1/2';
+            if (Math.abs(n - (-0.333)) < 0.01) return '-1/3';
+            return num > 0 ? `+${n} (Avg)` : `${n} (Avg)`;
+        };
+
+        const renderError = (msg) => {
+            errorContainer.textContent = msg;
+            errorContainer.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+        };
+
+        const hideError = () => {
+            errorContainer.classList.add('hidden');
+        };
+
+        const renderResults = (data) => {
+            hideError();
+            resultsContainer.classList.remove('hidden');
+            
+            // Charge Badge
+            const cStr = data.charge === 0 ? '0' : (data.charge > 0 ? `+${data.charge}` : `${data.charge}`);
+            chargeBadge.textContent = `Net Charge: ${cStr}`;
+
+            // Main Table
+            tbody.innerHTML = '';
+            
+            // If we have an override split (e.g. Fe3O4), we show it as primary rows
+            if (data.overrideSplits) {
+                data.overrideSplits.forEach(split => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="p-3 font-semibold text-blue-400">${split.sym}</td>
+                        <td class="p-3 text-gray-300">${split.count}</td>
+                        <td class="p-3 text-center font-bold text-lg text-gray-100">${fmtNum(split.ox)}</td>
+                        <td class="p-3 text-sm text-gray-400 italic">Known Mixed-Valence Site</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                data.results.forEach(res => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'hover:bg-gray-700/50 transition-colors';
+                    tr.innerHTML = `
+                        <td class="p-3 font-semibold text-blue-400">${res.sym}</td>
+                        <td class="p-3 text-gray-300">${res.count}</td>
+                        <td class="p-3 text-center font-bold text-lg ${res.ox > 0 ? 'text-green-400' : (res.ox < 0 ? 'text-red-400' : 'text-gray-100')}">${fmtNum(res.ox)}</td>
+                        <td class="p-3 text-sm text-gray-400">${res.rule}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
 
-            findSolutionsRecursive(0, {});
-            return solutions;
-        }
-
-        function rankSolutions(solutions, atoms) {
-            const getPenalty = (el, state) => ELEMENT_DATA[el]?.states?.indexOf(state) ?? 100;
-            solutions.forEach(sol => {
-                sol.score = Object.keys(sol).reduce((acc, el) => acc + getPenalty(el, sol[el]) * atoms[el], 0);
-            });
-            solutions.sort((a, b) => a.score - b.score);
-        }
-
-        function displaySolution(solution, totalCharge, wasImplicit, formulaPart) {
-            let html = `<div class="bg-gray-800 p-6 rounded-2xl shadow-inner border border-gray-700">`;
-            
-            if (wasImplicit) {
-                html += `<div class="p-3 bg-indigo-900 text-indigo-300 rounded-lg text-sm mb-4"><strong>Note:</strong> Recognized <strong>${formulaPart}</strong> as a common ion with a charge of <strong>${totalCharge}</strong>.</div>`;
+            // Special Notice
+            if (data.specialNotice) {
+                specialNoticeDiv.textContent = data.specialNotice;
+                specialNoticeDiv.classList.remove('hidden');
+            } else {
+                specialNoticeDiv.classList.add('hidden');
             }
-            
-            // Special display for inferred charge
-            if (solution.type === 'inferred_charge') {
-                 html += `<div class="p-3 bg-indigo-900 text-indigo-300 rounded-lg text-sm mb-4"><strong>Note:</strong> The sum of oxidation numbers is <strong>${formatOxidationNumber(solution.inferredCharge)}</strong>, suggesting this is a stable ion with that charge.</div>`;
-                 totalCharge = solution.inferredCharge;
-            }
-            
-            html += `<p class="text-gray-300">Total Charge: <strong>${totalCharge}</strong> (${totalCharge === 0 ? 'Neutral' : 'Ion'})</p>`;
-            
-            switch (solution.type) {
-                case 'definitive':
-                case 'inferred_charge':
-                    html += `<h2 class="text-xl font-bold mt-4 mb-2 text-sky-300">Oxidation Numbers</h2>`;
-                    html += `<ul class="space-y-3">`;
-                    for (const element in solution.solution) {
-                        html += `
-                            <li class="p-3 bg-gray-700 rounded-xl flex justify-between items-center shadow">
-                                <span class="text-lg font-semibold">${element}</span>
-                                <span class="text-xl font-bold text-sky-400">${formatOxidationNumber(solution.solution[element])}</span>
-                            </li>
-                        `;
+
+            // Ambiguities
+            if (data.ambiguities && data.ambiguities.length > 0) {
+                ambiguityContainer.classList.remove('hidden');
+                candidatesGrid.innerHTML = '';
+                data.ambiguities.forEach((ambig, index) => {
+                    const card = document.createElement('div');
+                    card.className = 'p-4 border border-gray-600 rounded-lg bg-gray-700/50 shadow-sm';
+                    
+                    let content = `<h4 class="font-semibold text-gray-200 mb-2 border-b border-gray-600 pb-1">Candidate ${index + 2}</h4>`;
+                    if (ambig.rationale) {
+                        content += `<p class="text-xs text-blue-300 mb-3 italic">${ambig.rationale}</p>`;
                     }
-                    html += `</ul>`;
-                    break;
-                case 'inferred':
-                    html += `<h2 class="text-xl font-bold mt-4 mb-2 text-sky-300">Inferred Solution</h2>`;
-                    html += `<div class="p-3 bg-yellow-900 text-yellow-300 rounded-lg text-sm mb-4"><strong>Note:</strong> This solution is based on fixed rules, and the calculated state for the unknown element may not be a common one.</div>`;
-                    html += `<ul class="space-y-3">`;
-                    for (const element in solution.solution) {
-                        html += `
-                            <li class="p-3 bg-gray-700 rounded-xl flex justify-between items-center shadow">
-                                <span class="text-lg font-semibold">${element}</span>
-                                <span class="text-xl font-bold text-sky-400">${formatOxidationNumber(solution.solution[element])}</span>
-                            </li>
-                        `;
+                    content += `<ul class="space-y-1">`;
+                    for (const [sym, ox] of Object.entries(ambig.fullStates)) {
+                        content += `<li class="flex justify-between text-sm text-gray-300"><span class="font-medium">${sym}</span> <span class="font-bold text-white">${fmtNum(ox)}</span></li>`;
                     }
-                    html += `</ul>`;
-                    break;
-                case 'combinatorial':
-                    html += `<h2 class="text-xl font-bold mt-4 mb-2 text-sky-300">Plausible Solutions</h2>`;
-                    html += `<p class="text-gray-400 text-sm mb-4">Multiple combinations are possible. The solutions are ranked by likelihood, with #1 being the most probable.</p>`;
-                    solution.solutions.forEach((sol, index) => {
-                        html += `<div class="p-4 bg-gray-700 rounded-xl shadow mt-4">
-                            <strong class="text-lg font-bold text-sky-300">Solution ${index + 1}</strong>
-                            <ul class="space-y-2 mt-2">`;
-                        for (const element in sol) {
-                            html += `<li class="flex justify-between items-center text-gray-200">
-                                <span>${element}:</span>
-                                <span>${formatOxidationNumber(sol[element])}</span>
-                            </li>`;
-                        }
-                        html += `</ul></div>`;
-                    });
-                    break;
+                    content += `</ul>`;
+                    card.innerHTML = content;
+                    candidatesGrid.appendChild(card);
+                });
+            } else {
+                ambiguityContainer.classList.add('hidden');
             }
-            html += `</div>`;
-            resultsDiv.innerHTML = html;
-        }
 
-        function formatOxidationNumber(num) {
-            if (num === 'Unknown') return 'Unknown';
-            const sign = num >= 0 ? '+' : '';
-            return `${sign}${Number.isInteger(num) ? num : num.toFixed(2)}`;
-        }
-
-        function displayError(message) {
-            resultsDiv.innerHTML = `<div class="bg-gray-800 p-6 rounded-2xl shadow-inner text-center"><p class="text-red-400 font-semibold">${message}</p></div>`;
-            hideMessage(); // Ensure the main message box is hidden
-        }
-
-        function main() {
-            const rawFormula = formulaInput.value.trim();
-            if (!rawFormula) return displayError("Please enter a formula.");
+            // Trace Log
+            traceContent.innerHTML = data.trace.map(t => `<div>> ${t}</div>`).join('');
             
+            // Add slight animation
+            resultsContainer.classList.remove('fade-in');
+            void resultsContainer.offsetWidth; // trigger reflow
+            resultsContainer.classList.add('fade-in');
+        };
+
+        const processInput = () => {
+            const inputVal = inputEl.value;
             try {
-                let { atoms, totalCharge, formulaPart } = parseFormula(rawFormula);
-                let wasImplicit = false;
-                if (totalCharge === 0 && POLYATOMIC_IONS[formulaPart] !== undefined) {
-                    totalCharge = POLYATOMIC_IONS[formulaPart];
-                    wasImplicit = true;
-                }
-                const solution = solve(atoms, totalCharge);
-                displaySolution(solution, totalCharge, wasImplicit, formulaPart);
-            } catch (error) {
-                displayError(error.message);
+                const parsed = parseFormula(inputVal);
+                const engine = new Engine(parsed);
+                const results = engine.calculate();
+                renderResults(results);
+            } catch (err) {
+                renderError(err.message);
             }
-        }
+        };
+
+        calcBtn.addEventListener('click', processInput);
+        inputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') processInput();
+        });
+
+        // Examples
+        document.querySelectorAll('.example-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                inputEl.value = e.target.getAttribute('data-val');
+                processInput();
+            });
+        });
+
+        // Toggle Trace Accordion
+        toggleTraceBtn.addEventListener('click', () => {
+            traceContent.classList.toggle('hidden');
+            if (traceContent.classList.contains('hidden')) {
+                traceIcon.style.transform = 'rotate(0deg)';
+            } else {
+                traceIcon.style.transform = 'rotate(180deg)';
+            }
+        });
+
+        // Initialize state
+        inputEl.focus();
+
+        // Hidden Regression Test Harness (accessible via console)
+        window.runTests = () => {
+            const tests = [
+                { f: "NaH", expect: {"Na":1, "H":-1} },
+                { f: "CaH2", expect: {"Ca":2, "H":-1} },
+                { f: "LiAlH4", expect: {"Li":1, "Al":3, "H":-1} },
+                { f: "Fe2O3", expect: {"Fe":3, "O":-2} },
+                { f: "Fe3O4", expect: {"Fe":2.667, "O":-2} }, // Approximates internally to 2.667
+                { f: "O4Fe3", expect: {"Fe":2.667, "O":-2} },
+                { f: "H2O2", expect: {"H":1, "O":-1} },
+                { f: "SrO2", expect: {"Sr":2, "O":-1} },
+                { f: "CdO2", expect: {"Cd":2, "O":-1} }, // Hit peroxide heuristic
+                { f: "SO4^2-", expect: {"S":6, "O":-2} },
+                { f: "ClO4^-", expect: {"Cl":7, "O":-2} },
+                { f: "Dy2Ti2O7", expect: {"Dy":3, "Ti":4, "O":-2} },
+                { f: "Tb2Ti2O7", expect: {"Tb":3, "Ti":4, "O":-2} },
+                { f: "NaMg^+", expect: {"Na":1, "Mg":2} }
+            ];
+            let passed = 0;
+            console.log("Running regression tests...");
+            tests.forEach(t => {
+                try {
+                    const parsed = parseFormula(t.f);
+                    const engine = new Engine(parsed);
+                    const results = engine.calculate();
+                    let ok = true;
+                    for (const [sym, ox] of Object.entries(t.expect)) {
+                        const res = results.results.find(r => r.sym === sym);
+                        if (!res || Math.abs(res.ox - ox) > 0.01) ok = false;
+                    }
+                    if (ok && (!results.specialNotice || !results.specialNotice.includes('WARNING'))) {
+                        console.log(`✅ ${t.f} passed.`);
+                        passed++;
+                    } else {
+                        console.error(`❌ ${t.f} failed. Result:`, results.results, results.specialNotice);
+                    }
+                } catch (e) {
+                    console.error(`❌ ${t.f} threw error:`, e);
+                }
+            });
+            console.log(`Tests complete: ${passed}/${tests.length} passed.`);
+        };
+        console.log("Run window.runTests() in the console to execute the embedded regression suite.");
     </script>
 </body>
 </html>
