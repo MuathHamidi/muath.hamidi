@@ -213,6 +213,13 @@ description: A collection of web-based physics and utility applications built by
         <span class="app-link">Open →</span>
     </div>
 
+    <div class="app-card animate-on-scroll" data-category="utility" data-name="Markdown Forge Pro">
+        <span class="app-category utility">Utility</span>
+        <h3><a href="{{ site.baseurl }}/apps/markdown_forge_pro.html">Markdown Forge Pro</a></h3>
+        <p>A comprehensive markdown editor with live preview, math, and diagram support.</p>
+        <span class="app-link">Open →</span>
+    </div>
+
     <div class="no-results" id="noResults" style="display: none;">
         No apps match your search. Try a different term.
     </div>

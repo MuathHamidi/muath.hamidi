@@ -1,0 +1,1462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Forge Pro</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS with Typography Plugin -->
+    <script src="https://cdn.tailwindcss.com/3.4.1?plugins=typography"></script>
+    
+    <!-- Marked.js for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@4.3.0/marked.min.js"></script>
+    
+    <!-- DOMPurify for sanitizing HTML -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
+    
+    <!-- Highlight.js for Code Syntax Highlighting -->
+    <link id="theme-style-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" disabled>
+    <link id="theme-style-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <!-- MathJax for LaTeX Equations -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['\\(', '\\)']],
+                displayMath: [['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+            },
+            startup: {
+                pageReady: () => {
+                    return MathJax.startup.defaultPageReady().then(() => {
+                        // Auto-render initial math once engine is loaded
+                        if (typeof updatePreview === 'function') updatePreview();
+                    });
+                }
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"></script>
+
+    <!-- Mermaid for Diagrams -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js"></script>
+    <script>
+        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+    </script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Default to Dark Mode -->
+    <script>
+        const isDarkInit = !('theme' in localStorage) || localStorage.theme === 'dark';
+        if (isDarkInit) {
+            document.documentElement.classList.add('dark');
+            localStorage.theme = 'dark';
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+        window.addEventListener('DOMContentLoaded', () => {
+            const lightTheme = document.getElementById('theme-style-light');
+            const darkTheme = document.getElementById('theme-style-dark');
+            if (lightTheme && darkTheme) {
+                lightTheme.disabled = isDarkInit;
+                darkTheme.disabled = !isDarkInit;
+            }
+        });
+    </script>
+
+    <style>
+        body {
+            /* Prevent overscroll bounce on mac */
+            overscroll-behavior: none; 
+        }
+        
+        /* Custom scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+
+        html.dark ::-webkit-scrollbar-thumb {
+            background: #475569; 
+        }
+        html.dark ::-webkit-scrollbar-thumb:hover {
+            background: #64748b; 
+        }
+
+        /* Print Styles */
+        @media print {
+            /* Hide UI elements */
+            header, #editor-section, #resizer, .no-print, .copy-code-btn, #toast { 
+                display: none !important; 
+            }
+            
+            /* Reset layout to standard block flow for perfect pagination */
+            body, html, #main-wrapper, #preview-section, #preview-wrapper {
+                height: auto !important;
+                width: auto !important;
+                overflow: visible !important;
+                display: block !important;
+                position: static !important;
+                background: white !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            /* Prevent CSS transition states from capturing during print */
+            * {
+                transition: none !important;
+            }
+
+            /* Expand preview to full page */
+            #preview {
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+
+            /* Hide decorative 'Live Preview' badge */
+            #preview-section > div.absolute {
+                display: none !important;
+            }
+
+            /* Prevent elements from being split across page breaks */
+            blockquote, table, img, .mermaid {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+            
+            /* Allow code blocks to split across pages, otherwise long blocks leave empty pages */
+            pre, code, .hljs, .math-block {
+                page-break-inside: auto;
+                break-inside: auto;
+                overflow: visible !important;
+                white-space: pre-wrap !important;
+                word-wrap: break-word !important;
+            }
+            
+            /* Constrain diagrams to a sane width instead of stretching edge-to-edge
+               across the full printable page (much wider than the on-screen preview
+               pane), which is what was making diagrams look oversized when printed. */
+            .mermaid {
+                max-width: 85% !important;
+                margin: 1.5rem auto !important;
+            }
+
+            .mermaid svg {
+                max-width: 100% !important;
+                width: auto !important;
+                height: auto !important;
+            }
+        }
+
+        /* Copy Code Button */
+        .copy-code-btn {
+            position: absolute; right: 0.5rem; top: 0.5rem;
+            padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 600;
+            color: #94a3b8; background: #334155; border-radius: 0.375rem;
+            cursor: pointer; opacity: 0; transition: all 0.2s; border: 1px solid #475569;
+        }
+        pre { position: relative; }
+        pre:hover .copy-code-btn { opacity: 1; }
+        .copy-code-btn:hover { background: #475569; color: #fff; }
+        .hljs { background: transparent !important; }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#0f172a] h-screen flex flex-col overflow-hidden text-slate-800 dark:text-slate-200 transition-colors duration-200">
+
+    <header class="bg-white dark:bg-[#1e293b] border-b border-slate-200 dark:border-slate-800 px-4 py-3 flex flex-wrap items-center justify-between shadow-sm z-20 shrink-0 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-indigo-500 text-white p-1.5 rounded-lg shadow-md shadow-indigo-500/20">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-slate-800 dark:text-slate-100 tracking-tight leading-none">Markdown Forge</h1>
+            </div>
+        </div>
+        
+        <div class="flex flex-wrap gap-2 items-center">
+            
+            <!-- Import File -->
+            <button id="import-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors" title="Import .md, .txt, or exported .html file">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                <span class="hidden sm:inline">Import</span>
+            </button>
+            <input type="file" id="file-upload" accept=".md,.txt,.html" class="hidden">
+
+            <!-- Export Dropdown / Buttons -->
+            <div class="h-6 border-l border-slate-300 dark:border-slate-600 mx-1"></div>
+
+            <button id="export-md-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors" title="Download as Markdown">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                <span class="hidden sm:inline">.MD</span>
+            </button>
+
+            <button id="export-html-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors" title="Download as HTML Document">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                <span class="hidden sm:inline">.HTML</span>
+            </button>
+
+            <button id="print-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-md transition-colors" title="Print to PDF">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+                <span class="hidden sm:inline">Print</span>
+            </button>
+
+            <div class="h-6 border-l border-slate-300 dark:border-slate-600 mx-1"></div>
+
+            <!-- Toggle View -->
+            <button id="toggle-view-btn" class="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 hover:bg-indigo-100 dark:hover:bg-indigo-500/20 rounded-md transition-colors" title="Toggle Editor / Focus Preview">
+                <svg id="icon-collapse" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>
+                <svg id="icon-expand" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" /></svg>
+                <span id="toggle-text" class="hidden sm:inline">Focus Preview</span>
+            </button>
+
+            <div class="h-6 border-l border-slate-300 dark:border-slate-600 mx-1"></div>
+
+            <!-- Help / Clarification -->
+            <button id="help-btn" class="p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors focus:outline-none" title="How this app works" aria-label="Open help">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            </button>
+
+            <!-- Theme Toggle -->
+            <button id="theme-btn" class="p-2 ml-1 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors focus:outline-none" title="Toggle Theme" aria-label="Toggle light and dark theme">
+                <svg id="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                <svg id="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            </button>
+        </div>
+    </header>
+
+    <main id="main-wrapper" class="flex-1 flex flex-col md:flex-row overflow-hidden w-full mx-auto relative">
+        
+        <!-- Editor Input Panel -->
+        <section id="editor-section" class="w-full md:w-1/2 flex flex-col border-b md:border-b-0 bg-white dark:bg-[#1e293b] h-1/2 md:h-full relative shrink-0 z-10 transition-colors">
+            
+            <!-- Formatting Toolbar -->
+            <div class="flex items-center gap-1 px-4 py-2 bg-slate-50 dark:bg-[#0f172a]/50 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 overflow-x-auto no-scrollbar shrink-0">
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="**" data-suffix="**" title="Bold"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h8a4 4 0 100-8H6v8zm0 0h9a4 4 0 110 8H6v-8z"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="*" data-suffix="*" title="Italic"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="~~" data-suffix="~~" title="Strikethrough"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18m-9-9v18"></path></svg></button>
+                <div class="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="### " data-suffix="" title="Heading"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="> " data-suffix="" title="Quote"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="`" data-suffix="`" title="Inline Code"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></button>
+                <div class="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="- " data-suffix="" title="Bullet List"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="[" data-suffix="](https://)" title="Link"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="![" data-suffix="](image.jpg)" title="Image"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></button>
+                
+                <div class="w-px h-4 bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="| Header | Header |\n|---|---|\n| Cell | Cell |\n" data-suffix="" title="Table"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="- [ ] " data-suffix="" title="Task List"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg></button>
+                <button class="fmt-btn hover:text-indigo-500 dark:hover:text-indigo-400 p-1.5 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors" data-prefix="```mermaid\ngraph TD;\n    A-->B;\n```\n" data-suffix="" title="Mermaid Diagram"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg></button>
+
+                <div class="flex-1"></div>
+                <button id="clear-btn" class="text-xs font-medium text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 px-2 py-1 transition-colors" title="Clear Editor">Clear All</button>
+            </div>
+
+            <textarea 
+                id="editor" 
+                class="flex-1 w-full p-5 text-slate-700 dark:text-slate-300 font-mono text-[13px] sm:text-sm leading-relaxed bg-transparent border-none focus:ring-0 focus:outline-none resize-none"
+                placeholder="Start typing your markdown here..."
+                spellcheck="false"
+            ></textarea>
+
+            <!-- Status Bar -->
+            <div class="bg-slate-50 dark:bg-[#0f172a]/80 border-t border-slate-200 dark:border-slate-800 px-4 py-1.5 flex justify-between items-center text-[11px] text-slate-500 dark:text-slate-400 font-medium shrink-0">
+                <div class="flex gap-4 items-center">
+                    <span id="word-count">0 words</span>
+                    <span id="char-count">0 chars</span>
+                    <div class="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600 hidden sm:block"></div>
+                    <span id="reading-time" class="hidden sm:inline">0 min read</span>
+                </div>
+                <div class="flex gap-4 items-center">
+                    <span id="save-status" class="text-emerald-500 flex items-center gap-1 opacity-0 transition-opacity"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Auto-Saved</span>
+                    <span class="uppercase tracking-wider">Markdown</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Drag Resizer Splitter -->
+        <div id="resizer" class="hidden md:block w-1.5 bg-slate-200 dark:bg-slate-800 hover:bg-indigo-500 dark:hover:bg-indigo-500 cursor-col-resize z-20 transition-colors active:bg-indigo-600 flex-shrink-0"></div>
+
+        <!-- Preview Panel -->
+        <section id="preview-section" class="w-full flex flex-col bg-slate-50 dark:bg-[#0f172a] h-1/2 md:h-full relative overflow-hidden flex-1 transition-colors">
+            
+            <div class="absolute top-3 right-4 bg-slate-200/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 text-[10px] px-2 py-1 rounded font-bold uppercase tracking-wider select-none pointer-events-none opacity-50 z-10 backdrop-blur-sm">
+                Live Preview
+            </div>
+
+            <!-- Content Area -->
+            <div id="preview-wrapper" class="flex-1 overflow-y-auto w-full relative">
+                <div 
+                    id="preview" 
+                    class="p-6 md:p-8 md:px-12 pb-24 prose prose-slate dark:prose-invert max-w-4xl mx-auto prose-a:text-indigo-600 dark:prose-a:text-indigo-400 hover:prose-a:text-indigo-500 dark:hover:prose-a:text-indigo-300 prose-pre:bg-slate-100 dark:prose-pre:bg-[#1e293b] prose-pre:text-slate-800 dark:prose-pre:text-slate-100 prose-pre:border prose-pre:border-slate-300 dark:prose-pre:border-slate-700 prose-img:rounded-xl prose-headings:font-semibold prose-h1:text-3xl prose-h1:font-bold prose-h1:border-b prose-h1:border-slate-200 dark:prose-h1:border-slate-700 prose-h1:pb-2"
+                >
+                    <!-- Rendered HTML will appear here -->
+                </div>
+            </div>
+
+            <!-- Floating Copy Button -->
+            <button id="copy-btn" class="no-print absolute bottom-6 right-6 p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/30 group" title="Copy MD Output">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 translate-y-20 opacity-0 bg-slate-800 dark:bg-slate-700 text-white px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 flex items-center gap-3 pointer-events-none z-50 font-medium text-sm">
+        <svg id="toast-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="toast-msg">Action completed!</span>
+    </div>
+
+    <!-- Help / Clarification Modal -->
+    <div id="help-modal" class="hidden opacity-0 transition-opacity duration-200 fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div id="help-backdrop" class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
+        <div class="help-panel relative scale-95 opacity-0 transition-all duration-200 bg-white dark:bg-[#1e293b] w-full max-w-3xl max-h-[85vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-700">
+            <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+                <div>
+                    <h2 class="text-lg font-bold text-slate-800 dark:text-slate-100 leading-tight">How Markdown Forge Works</h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Every button, explained with an example.</p>
+                </div>
+                <button id="help-close-btn" class="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors focus:outline-none" aria-label="Close help" title="Close">
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="overflow-y-auto px-6 py-5 space-y-7 text-sm text-slate-600 dark:text-slate-300">
+
+                <section>
+                    <h3 class="text-xs uppercase tracking-wider font-bold text-indigo-500 dark:text-indigo-400 mb-3">File Operations</h3>
+                    <div class="space-y-3">
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Import</p><p>Load a .md, .txt, or previously-exported .html file into the editor. Importing an exported .html automatically extracts its original Markdown source rather than the rendered HTML.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Export .MD</p><p>Downloads exactly what's in the editor as a plain document.md file — nothing added, nothing rendered.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-emerald-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Export .HTML</p><p>Renders your current Markdown into a complete, standalone HTML document (with its own Copy / Print / Theme / Export buttons) that anyone can open in a browser, with no need for this app.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-rose-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Print</p><p>Opens your browser's print dialog using a clean, light-background layout optimized for paper/PDF, regardless of which theme you're currently using on screen.</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-xs uppercase tracking-wider font-bold text-indigo-500 dark:text-indigo-400 mb-3">View Controls</h3>
+                    <div class="space-y-3">
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-indigo-500 dark:text-indigo-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Focus Preview</p><p>Hides the editor panel so the preview takes the full window width; click again ("Show Editor") to restore the split view.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Theme toggle (sun/moon icon)</p><p>Switches the whole app between dark and light mode; your choice is remembered for next time.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3M14 4l-4 16" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Drag divider</p><p>Click and drag the thin bar between editor and preview to resize the two panels; double-click it to reset to a 50/50 split.</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-xs uppercase tracking-wider font-bold text-indigo-500 dark:text-indigo-400 mb-3">Formatting Toolbar</h3>
+                    <p class="mb-3 text-slate-500 dark:text-slate-400">Each button wraps your current text selection, or inserts a starting point if nothing is selected.</p>
+                    <div class="grid sm:grid-cols-2 gap-x-4 gap-y-3">
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12h8a4 4 0 100-8H6v8zm0 0h9a4 4 0 110 8H6v-8z"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Bold</p><p>Wraps selection in **text** → renders as bold text.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Italic</p><p>Wraps selection in *text* → renders as italic text.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12h18m-9-9v18"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Strikethrough</p><p>Wraps selection in ~~text~~ → renders with a line through it.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Heading</p><p>Adds ### before the line → renders as a heading.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Quote</p><p>Adds > before the line → renders as a blockquote.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Inline Code</p><p>Wraps selection in single backticks → renders as code text.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Bullet List</p><p>Adds - before the line to start an unordered list item.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Link</p><p>Wraps selection as [text](https://) — fill in the URL after inserting.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Image</p><p>Inserts ![alt text](image.jpg) — replace with a real image URL.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Table</p><p>Inserts a starter 2-column table template you can extend with more | columns/rows.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Task List</p><p>Inserts - [ ] for an unchecked to-do item; change to - [x] to mark it done.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Mermaid Diagram</p><p>Inserts a starter fenced \`\`\`mermaid block that renders as a live flowchart in the preview.</p></div></div>
+                        <div class="flex gap-3 items-start"><div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-rose-50 dark:bg-rose-500/10 text-rose-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></div><div><p class="font-semibold text-slate-800 dark:text-slate-100">Clear All</p><p>Empties the editor completely. This cannot be undone once the page auto-saves, so use with care.</p></div></div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-xs uppercase tracking-wider font-bold text-indigo-500 dark:text-indigo-400 mb-3">Preview Panel</h3>
+                    <div class="space-y-3">
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Floating Copy button (bottom-right of preview)</p><p>Copies your raw Markdown source to the clipboard (not the rendered HTML).</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Copy button on individual code blocks</p><p>Appears on hover over any fenced code block, and copies just that block's contents.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 9l-4 3 4 3m8-6l4 3-4 3" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Scroll sync</p><p>Scrolling either the editor or the preview moves the other panel proportionally, so they stay roughly aligned.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Live rendering</p><p>Markdown, math ($...$ and $$...$$), and \`\`\`mermaid diagrams all re-render automatically as you type — no manual "refresh" step.</p></div>
+                        </div>
+                    </div>
+                </section>
+
+                <section>
+                    <h3 class="text-xs uppercase tracking-wider font-bold text-indigo-500 dark:text-indigo-400 mb-3">Status Bar</h3>
+                    <div class="space-y-3">
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Word count / char count</p><p>Live counts of your document as you type.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Reading time</p><p>Estimated at 200 words per minute.</p></div>
+                        </div>
+                        <div class="flex gap-3 items-start">
+                            <div class="shrink-0 mt-0.5 p-1.5 rounded-md bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                            <div><p class="font-semibold text-slate-800 dark:text-slate-100">Auto-Saved</p><p>A green checkmark that briefly appears whenever your work is saved to this browser's local storage, so a page refresh won't lose your content.</p></div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const defaultMarkdown = `# Welcome to Markdown Forge Pro
+
+This is a live demo document showing everything the editor can do. Type in the left panel and watch this preview update instantly. New here? Click **Help** in the top header — every button is explained there with examples.
+
+---
+
+## 1. Text Formatting
+
+You can write **bold text**, *italic text*, ***bold and italic together***, and ~~strikethrough text~~. For short code snippets inline, use backticks like \`const x = 42\`.
+
+## 2. Headings
+
+# Heading 1
+## Heading 2
+### Heading 3
+#### Heading 4
+##### Heading 5
+###### Heading 6
+
+## 3. Lists
+
+**Unordered, with nesting:**
+- Fruits
+  - Apple
+  - Banana
+    - Cavendish
+    - Plantain
+- Vegetables
+  - Carrot
+  - Spinach
+
+**Ordered:**
+1. Preheat the oven
+2. Mix the batter
+3. Bake for 25 minutes
+   1. Check at the 20-minute mark
+   2. Rotate the pan if needed
+
+**Task list:**
+- [x] Draft the enhancement plan
+- [x] Add a Help button with examples
+- [ ] Ship the new default content
+- [ ] Celebrate
+
+## 4. Blockquotes
+
+> Good writing is clear thinking made visible.
+>
+> > And good documentation is good writing that anticipates questions.
+
+## 5. Links and Images
+
+Visit the [Markdown Guide](https://www.markdownguide.org) to go deeper on syntax.
+
+![Sample placeholder image](https://placehold.co/640x220/6366f1/ffffff?text=Markdown+Forge+Pro)
+
+## 6. Tables
+
+Tables support column alignment:
+
+| Feature       | Status     |      Notes |
+|:--------------|:----------:|-----------:|
+| Auto-save     | ✅ Active  |  local only |
+| PDF Export    | ✅ Active  | via Print   |
+| Diagrams      | ✅ Active  | Mermaid.js  |
+| Math          | ✅ Active  | MathJax     |
+
+## 7. Code Blocks
+
+Inline code like \`npm install\` sits alongside fenced, syntax-highlighted blocks in any language:
+
+\`\`\`python
+def calculate_energy(mass):
+    """Calculates energy using Einstein's formula."""
+    c = 299792458  # speed of light in m/s
+    return mass * (c ** 2)
+\`\`\`
+
+\`\`\`javascript
+function formatBytes(bytes) {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let i = 0;
+  while (bytes >= 1024 && i < units.length - 1) {
+    bytes /= 1024;
+    i++;
+  }
+  return \`\${bytes.toFixed(1)} \${units[i]}\`;
+}
+\`\`\`
+
+\`\`\`bash
+git add .
+git commit -m "Enhance Markdown Forge Pro"
+git push origin main
+\`\`\`
+
+## 8. Horizontal Rule
+
+Use three dashes to create a divider:
+
+---
+
+## 9. Math (LaTeX via MathJax)
+
+Inline math sits right in a sentence, like the mass-energy relation $E = mc^2$, or a chemistry ion such as Dy$^{3+}$.
+
+Block equations get their own centered line:
+
+$$
+\\mathcal{H} = \\sum_{i} \\frac{p_i^2}{2m} + V(\\mathbf{r}_1, \\dots, \\mathbf{r}_N)
+$$
+
+## 10. Diagrams (Mermaid.js)
+
+\`\`\`mermaid
+graph TD;
+    Markdown-->DOMPurify;
+    DOMPurify-->MathJax;
+    DOMPurify-->Highlight.js;
+    MathJax-->HTML_Preview;
+    Highlight.js-->HTML_Preview;
+\`\`\`
+
+---
+
+*This document is only a demo — click **Clear All** in the editor toolbar whenever you're ready to start your own document, or use **Import** to load an existing file.*
+`;
+
+        // Get DOM Elements
+        const editor = document.getElementById('editor');
+        const preview = document.getElementById('preview');
+        const previewWrapper = document.getElementById('preview-wrapper');
+        const clearBtn = document.getElementById('clear-btn');
+        const copyBtn = document.getElementById('copy-btn');
+        const toast = document.getElementById('toast');
+        const toastMsg = document.getElementById('toast-msg');
+        const themeBtn = document.getElementById('theme-btn');
+        const wordCount = document.getElementById('word-count');
+        const charCount = document.getElementById('char-count');
+        const fileUpload = document.getElementById('file-upload');
+        const importBtn = document.getElementById('import-btn');
+        const exportMdBtn = document.getElementById('export-md-btn');
+        const exportHtmlBtn = document.getElementById('export-html-btn');
+        const toggleViewBtn = document.getElementById('toggle-view-btn');
+        const editorSection = document.getElementById('editor-section');
+        const previewSection = document.getElementById('preview-section');
+        const fmtBtns = document.querySelectorAll('.fmt-btn');
+        const readingTime = document.getElementById('reading-time');
+        const saveStatus = document.getElementById('save-status');
+        const printBtn = document.getElementById('print-btn');
+        const resizer = document.getElementById('resizer');
+        const helpBtn = document.getElementById('help-btn');
+        const helpModal = document.getElementById('help-modal');
+        const helpCloseBtn = document.getElementById('help-close-btn');
+        const helpBackdrop = document.getElementById('help-backdrop');
+        const helpPanel = document.querySelector('.help-panel');
+
+        // Custom Renderer for Mermaid to avoid code block styling overlaps
+        const renderer = new marked.Renderer();
+        const originalCode = renderer.code.bind(renderer);
+        renderer.code = function(code, language, isEscaped) {
+            if (language === 'mermaid') {
+                // Encode < and > to prevent DOMPurify from mangling syntax
+                const safeCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                return `<div class="mermaid language-mermaid">${safeCode}</div>`;
+            }
+            return originalCode(code, language, isEscaped);
+        };
+
+        marked.setOptions({
+            gfm: true,
+            breaks: true,
+            renderer: renderer
+        });
+
+        DOMPurify.addHook('uponSanitizeElement', (node, data) => {
+            if (data.tagName === 'input') {
+                if (node.getAttribute('type') !== 'checkbox') {
+                    node.parentNode.removeChild(node);
+                }
+            }
+        });
+
+        const mathExtensions = [
+            {
+                name: 'blockMath',
+                level: 'block',
+                start(src) { return src.indexOf('$$'); },
+                tokenizer(src, tokens) {
+                    const match = /^\$\$([^]*?)\$\$/.exec(src);
+                    if (match) return { type: 'blockMath', raw: match[0], text: match[1] };
+                },
+                renderer(token) {
+                    const safeText = token.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return `<p class="math-block overflow-x-auto">\\[${safeText}\\]</p>`;
+                }
+            },
+            {
+                name: 'inlineMath',
+                level: 'inline',
+                start(src) { return src.indexOf('$'); },
+                tokenizer(src, tokens) {
+                    const match = /^\$(?!\s)([^$\n]+?)(?<!\s)\$(?!\d)/.exec(src);
+                    if (match) return { type: 'inlineMath', raw: match[0], text: match[1] };
+                },
+                renderer(token) {
+                    const safeText = token.text.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return `<span class="math-inline">\\(${safeText}\\)</span>`;
+                }
+            }
+        ];
+        marked.use({ extensions: mathExtensions });
+
+        let mathJaxPromise = Promise.resolve();
+        let mermaidTimeout;
+
+        function updatePreview() {
+            const markdownText = editor.value;
+            // Configured DOMPurify to allow div/classes for Mermaid diagrams and inputs for task lists
+            const cleanHtml = DOMPurify.sanitize(marked.parse(markdownText), { ADD_TAGS: ['div', 'input'], ADD_ATTR: ['type', 'disabled', 'checked'], ADD_CLASSES: true });
+            preview.innerHTML = cleanHtml;
+
+            // Apply Syntax Highlighting manually for robustness (ignores mermaid divs)
+            preview.querySelectorAll('pre code').forEach((block) => {
+                hljs.highlightElement(block);
+            });
+
+            // Inject copy buttons into code blocks
+            preview.querySelectorAll('pre').forEach((pre) => {
+                // Prevent duplicate buttons on re-render if nodes persist
+                if (pre.querySelector('.copy-code-btn')) return;
+                
+                const copyCodeBtn = document.createElement('button');
+                copyCodeBtn.className = 'copy-code-btn';
+                copyCodeBtn.innerText = 'Copy';
+                copyCodeBtn.addEventListener('click', () => {
+                    let text = '';
+                    const codeBlock = pre.querySelector('code');
+                    if (codeBlock) {
+                        text = codeBlock.innerText;
+                    } else {
+                        const clone = pre.cloneNode(true);
+                        const btnToRemove = clone.querySelector('.copy-code-btn');
+                        if (btnToRemove) btnToRemove.remove();
+                        text = clone.innerText;
+                    }
+                    navigator.clipboard.writeText(text);
+                    copyCodeBtn.innerText = 'Copied!';
+                    setTimeout(() => copyCodeBtn.innerText = 'Copy', 2000);
+                });
+                pre.appendChild(copyCodeBtn);
+            });
+
+            // Update Stats
+            const text = editor.value;
+            const textTrimmed = text.trim();
+            const words = textTrimmed ? textTrimmed.split(/\s+/).length : 0;
+            wordCount.innerText = `${words} words`;
+            charCount.innerText = `${text.length} chars`;
+            readingTime.innerText = `${Math.ceil(words / 200)} min read`;
+
+            // Auto-save to localStorage
+            try {
+                localStorage.setItem('markdown_forge_content', text);
+            } catch (e) {
+                console.warn('Failed to save to localStorage:', e);
+            }
+            saveStatus.classList.remove('opacity-0');
+            clearTimeout(window.saveStatusTimeout);
+            window.saveStatusTimeout = setTimeout(() => saveStatus.classList.add('opacity-0'), 2000);
+
+            // Render Math using Promise Chaining to prevent concurrent typesetting crashes
+            if (window.MathJax && window.MathJax.typesetPromise) {
+                mathJaxPromise = mathJaxPromise.then(() => {
+                    MathJax.typesetClear([preview]);
+                    return MathJax.typesetPromise([preview]);
+                }).catch(err => console.warn('MathJax error:', err.message));
+            }
+
+            // Render Mermaid Diagrams cleanly
+            if (window.mermaid) {
+                const isDark = document.documentElement.classList.contains('dark');
+                mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+                
+                clearTimeout(mermaidTimeout);
+                mermaidTimeout = setTimeout(() => {
+                    try { 
+                        mermaid.run({ querySelector: '.language-mermaid', suppressErrors: true }); 
+                    } catch(e) { 
+                        console.warn('Mermaid rendering issue:', e); 
+                    }
+                }, 100);
+            }
+        }
+
+        function showToast(message, isError = false) {
+            toastMsg.innerText = message;
+            
+            const toastIcon = document.getElementById('toast-icon');
+            if (isError) {
+                toastIcon.className = 'h-5 w-5 text-rose-400';
+                toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+            } else {
+                toastIcon.className = 'h-5 w-5 text-emerald-400';
+                toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        editor.addEventListener('input', updatePreview);
+
+        // Scroll Sync logic (Percentage based)
+        let isSyncingLeft = false;
+        let isSyncingRight = false;
+        editor.addEventListener('scroll', function() {
+            if (!isSyncingLeft) {
+                isSyncingRight = true;
+                const scrollable = this.scrollHeight - this.clientHeight;
+                if (scrollable > 0) {
+                    const percentage = this.scrollTop / scrollable;
+                    previewWrapper.scrollTop = percentage * (previewWrapper.scrollHeight - previewWrapper.clientHeight);
+                }
+            }
+            isSyncingLeft = false;
+        });
+        previewWrapper.addEventListener('scroll', function() {
+            if (!isSyncingRight) {
+                isSyncingLeft = true;
+                const scrollable = this.scrollHeight - this.clientHeight;
+                if (scrollable > 0) {
+                    const percentage = this.scrollTop / scrollable;
+                    editor.scrollTop = percentage * (editor.scrollHeight - editor.clientHeight);
+                }
+            }
+            isSyncingRight = false;
+        });
+
+        // Tab to spaces
+        editor.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = this.selectionStart;
+                const end = this.selectionEnd;
+                const text = this.value;
+                
+                // Handle Multi-line selection indent
+                if (start !== end && text.substring(start, end).includes('\n')) {
+                    const before = text.substring(0, start);
+                    const selection = text.substring(start, end);
+                    const after = text.substring(end);
+                    const indented = selection.split('\n').map(line => '  ' + line).join('\n');
+                    
+                    if (document.execCommand('insertText', false, indented)) {
+                        // execCommand successful
+                    } else {
+                        this.value = before + indented + after;
+                    }
+                    this.selectionStart = start;
+                    this.selectionEnd = start + indented.length;
+                } else {
+                    // Single cursor / Single line
+                    if (document.execCommand('insertText', false, '  ')) {
+                        // execCommand successful
+                    } else {
+                        this.value = text.substring(0, start) + "  " + text.substring(end);
+                        this.selectionStart = this.selectionEnd = start + 2;
+                    }
+                }
+                updatePreview();
+            }
+        });
+
+        // Toolbar formatting injection
+        fmtBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const prefix = btn.getAttribute('data-prefix').replace(/\\n/g, '\n');
+                const suffix = btn.getAttribute('data-suffix').replace(/\\n/g, '\n');
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const text = editor.value;
+                const selectedText = text.substring(start, end);
+                
+                const replacement = prefix + selectedText + suffix;
+                editor.focus();
+
+                // Use document.execCommand to maintain browser's Native Undo stack
+                if (document.execCommand('insertText', false, replacement)) {
+                    // Success using execCommand
+                } else {
+                    // Fallback for older browsers
+                    editor.value = text.substring(0, start) + replacement + text.substring(end);
+                }
+                
+                // Keep selection active inside the format tags
+                if (selectedText.length === 0) {
+                    editor.selectionStart = editor.selectionEnd = start + prefix.length;
+                } else {
+                    editor.selectionStart = start + prefix.length;
+                    editor.selectionEnd = start + prefix.length + selectedText.length;
+                }
+                updatePreview();
+            });
+        });
+
+        // Help Modal Logic
+        function openHelpModal() {
+            helpModal.classList.remove('hidden');
+            // Force reflow so the transition below actually animates from the starting state
+            void helpModal.offsetWidth;
+            helpModal.classList.remove('opacity-0');
+            helpModal.classList.add('opacity-100');
+            helpPanel.classList.remove('scale-95', 'opacity-0');
+            helpPanel.classList.add('scale-100', 'opacity-100');
+        }
+
+        function closeHelpModal() {
+            helpModal.classList.remove('opacity-100');
+            helpModal.classList.add('opacity-0');
+            helpPanel.classList.remove('scale-100', 'opacity-100');
+            helpPanel.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                helpModal.classList.add('hidden');
+            }, 200);
+        }
+
+        helpBtn.addEventListener('click', openHelpModal);
+        helpCloseBtn.addEventListener('click', closeHelpModal);
+        helpBackdrop.addEventListener('click', closeHelpModal);
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !helpModal.classList.contains('hidden')) {
+                closeHelpModal();
+            }
+        });
+
+        // Clear Action
+        clearBtn.addEventListener('click', () => {
+            editor.value = '';
+            updatePreview();
+            editor.focus();
+            showToast("Editor cleared");
+        });
+
+        // Theme Action
+        themeBtn.addEventListener('click', () => {
+            const html = document.documentElement;
+            const isDark = !html.classList.contains('dark');
+            if (isDark) {
+                html.classList.add('dark');
+                localStorage.theme = 'dark';
+            } else {
+                html.classList.remove('dark');
+                localStorage.theme = 'light';
+            }
+            if (document.getElementById('theme-style-light')) {
+                document.getElementById('theme-style-light').disabled = isDark;
+                document.getElementById('theme-style-dark').disabled = !isDark;
+            }
+            updatePreview(); // Re-render to update Mermaid diagram colors
+        });
+
+        // Toggle View Action (Collapse Editor)
+        let editorCollapsed = false;
+        toggleViewBtn.addEventListener('click', () => {
+            editorCollapsed = !editorCollapsed;
+            const iconCollapse = document.getElementById('icon-collapse');
+            const iconExpand = document.getElementById('icon-expand');
+            const toggleText = document.getElementById('toggle-text');
+
+            if (editorCollapsed) {
+                // Hide editor, make preview full width
+                editorSection.classList.add('hidden');
+                editorSection.classList.remove('flex');
+                resizer.classList.add('hidden');
+                resizer.classList.remove('md:block');
+                iconCollapse.classList.add('hidden');
+                iconExpand.classList.remove('hidden');
+                toggleText.innerText = "Show Editor";
+            } else {
+                // Restore split view
+                editorSection.classList.remove('hidden');
+                editorSection.classList.add('flex');
+                resizer.classList.remove('hidden');
+                resizer.classList.add('md:block');
+                iconExpand.classList.add('hidden');
+                iconCollapse.classList.remove('hidden');
+                toggleText.innerText = "Focus Preview";
+            }
+        });
+
+        // Resizable Splitter Logic
+        let isResizing = false;
+        resizer.addEventListener('mousedown', (e) => {
+            isResizing = true;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none'; // Prevent text selection highlighting
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+            // Calculate width percentage relative to window
+            let newWidth = (e.clientX / window.innerWidth) * 100;
+            if (newWidth < 20) newWidth = 20; // Min width boundary
+            if (newWidth > 80) newWidth = 80; // Max width boundary
+            editorSection.style.width = `${newWidth}%`;
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                document.body.style.cursor = '';
+                document.body.style.userSelect = '';
+                window.dispatchEvent(new Event('resize')); // Fix any internal layout elements
+            }
+        });
+
+        // Reset splitter on double click
+        resizer.addEventListener('dblclick', () => {
+            editorSection.style.width = '50%';
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        // Fix inline width on window resize (mobile orientation change)
+        window.addEventListener('resize', () => {
+            if (window.innerWidth < 768) {
+                editorSection.style.width = ''; // Let Tailwind flex take over on mobile
+            }
+        });
+
+        // Copy MD Action
+        copyBtn.addEventListener('click', () => {
+            const md = editor.value;
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(md).then(() => showToast("Markdown Copied to clipboard!"));
+            } else {
+                const ta = document.createElement("textarea");
+                ta.value = md; ta.style.position = "absolute"; ta.style.left = "-999999px";
+                document.body.prepend(ta); ta.select();
+                try { document.execCommand('copy'); showToast("Markdown Copied to clipboard!"); } 
+                catch (err) { showToast("Failed to copy", true); }
+                finally { ta.remove(); }
+            }
+        });
+
+        // File Upload / Import Logic
+        importBtn.addEventListener('click', () => fileUpload.click());
+        fileUpload.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const content = e.target.result;
+                if (file.name.endsWith('.html')) {
+                    // Extract embedded markdown from exported HTML
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(content, 'text/html');
+                    const sourceScript = doc.getElementById('markdown-source');
+                    if (sourceScript) {
+                        // Decode it safely
+                        editor.value = decodeURIComponent(sourceScript.textContent.trim());
+                        updatePreview();
+                        showToast("HTML document imported & decoded!");
+                    } else {
+                        showToast("Error: No markdown source found in HTML", true);
+                    }
+                } else {
+                    editor.value = content;
+                    updatePreview();
+                    showToast("File imported successfully!");
+                }
+                // Reset input so the same file can be uploaded again if needed
+                fileUpload.value = '';
+            };
+            reader.readAsText(file);
+        });
+
+        // Download Markdown File
+        exportMdBtn.addEventListener('click', () => {
+            const text = editor.value;
+            const blob = new Blob([text], { type: 'text/markdown' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document.md';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Markdown file downloaded!");
+        });
+
+        // Download HTML Document logic
+        exportHtmlBtn.addEventListener('click', () => {
+            // Re-parse pure Markdown to avoid mutated DOM, allowing checkboxes for task lists
+            const rawParsedHtml = DOMPurify.sanitize(marked.parse(editor.value), { ADD_TAGS: ['div', 'input'], ADD_ATTR: ['type', 'disabled', 'checked'], ADD_CLASSES: true });
+            const isDark = document.documentElement.classList.contains('dark');
+            
+            // Build a standalone HTML document wrapping the parsed Markdown
+            const fullHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exported Markdown Document</title>
+    <!-- Hidden Markdown Source for Re-importing -->
+    <script type="text/markdown" id="markdown-source">${encodeURIComponent(editor.value)}<\/script>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind & Typography -->
+    <script src="https://cdn.tailwindcss.com/3.4.1?plugins=typography"><\/script>
+    
+    <!-- Config -->
+    <script>
+        tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'], mono: ['JetBrains Mono', 'monospace'] } } } };
+    <\/script>
+    <script>
+        const exportedTheme = '${isDark ? 'dark' : 'light'}';
+        let currentTheme = exportedTheme;
+        try {
+            if (!('theme' in localStorage)) {
+                localStorage.theme = exportedTheme;
+            }
+            currentTheme = localStorage.theme;
+        } catch (e) {
+            // localStorage may throw on file:// URIs in some browsers
+        }
+        
+        if (currentTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
+    <\/script>
+    
+    <!-- Syntax Highlighting -->
+    <link id="theme-style-light" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css" ${isDark ? 'disabled' : ''}>
+    <link id="theme-style-dark" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" ${isDark ? '' : 'disabled'}>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"><\/script>
+    <!-- MathJax -->
+    <script>
+        window.MathJax = { tex: { inlineMath: [['\\\\(','\\\\)']], displayMath: [['\\\\[','\\\\]']], processEscapes: true }, options: { skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'] } };
+    <\/script>
+    <script async src="https://cdn.jsdelivr.net/npm/mathjax@3.2.2/es5/tex-mml-chtml.js"><\/script>
+    <!-- Mermaid -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.8.0/dist/mermaid.min.js"><\/script>
+    
+    <script>
+        function showToast(message, isError) {
+            const toast = document.getElementById('export-toast');
+            const toastMsg = document.getElementById('export-toast-msg');
+            const toastIcon = document.getElementById('export-toast-icon');
+            if (!toast || !toastMsg || !toastIcon) return;
+            toastMsg.innerText = message;
+            if (isError) {
+                toastIcon.className = 'h-5 w-5 text-rose-400';
+                toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />';
+            } else {
+                toastIcon.className = 'h-5 w-5 text-emerald-400';
+                toastIcon.innerHTML = '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />';
+            }
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+                toast.classList.remove('translate-y-0', 'opacity-100');
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const lightTheme = document.getElementById('theme-style-light');
+            const darkTheme = document.getElementById('theme-style-dark');
+            if (lightTheme && darkTheme) {
+                lightTheme.disabled = (currentTheme === 'dark');
+                darkTheme.disabled = (currentTheme !== 'dark');
+            }
+            // Initialize Diagrams safely after DOM load
+            document.querySelectorAll('.language-mermaid').forEach(el => {
+                el.setAttribute('data-mermaid-src', el.innerText);
+            });
+            if (window.mermaid) {
+                mermaid.initialize({ startOnLoad: false, theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default' });
+                try {
+                    mermaid.run({ querySelector: '.language-mermaid', suppressErrors: true });
+                } catch(err) {
+                    console.warn('Mermaid rendering failed', err);
+                }
+            }
+            
+            // Initialize Code Highlighting and Copy Buttons
+            document.querySelectorAll('pre').forEach((pre) => {
+                const codeBlock = pre.querySelector('code');
+                if (codeBlock && window.hljs) hljs.highlightElement(codeBlock);
+                
+                // Inject Copy Button
+                const btn = document.createElement('button');
+                btn.className = 'copy-code-btn no-print';
+                btn.innerText = 'Copy';
+                btn.onclick = () => {
+                    let text = '';
+                    if (codeBlock) {
+                        text = codeBlock.innerText;
+                    } else {
+                        const clone = pre.cloneNode(true);
+                        const btnToRemove = clone.querySelector('.copy-code-btn');
+                        if (btnToRemove) btnToRemove.remove();
+                        text = clone.innerText;
+                    }
+                    navigator.clipboard.writeText(text);
+                    btn.innerText = 'Copied!';
+                    setTimeout(() => btn.innerText = 'Copy', 2000);
+                };
+                pre.appendChild(btn);
+            });
+
+            // Copy Markdown Action
+            document.getElementById('copy-md-btn').addEventListener('click', () => {
+                const sourceScript = document.getElementById('markdown-source');
+                const md = sourceScript ? decodeURIComponent(sourceScript.textContent.trim()) : '';
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(md).then(() => showToast('Markdown copied to clipboard!')).catch(() => showToast('Failed to copy', true));
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = md; ta.style.position = 'absolute'; ta.style.left = '-999999px';
+                    document.body.prepend(ta); ta.select();
+                    try { document.execCommand('copy'); showToast('Markdown copied to clipboard!'); }
+                    catch (err) { showToast('Failed to copy', true); }
+                    finally { ta.remove(); }
+                }
+            });
+
+            // Export .MD Action
+            document.getElementById('export-md-toggle').addEventListener('click', () => {
+                const sourceScript = document.getElementById('markdown-source');
+                const md = sourceScript ? decodeURIComponent(sourceScript.textContent.trim()) : '';
+                const blob = new Blob([md], { type: 'text/markdown' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'document.md';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('Markdown file downloaded!');
+            });
+
+            // Save a Copy (.HTML) Action
+            document.getElementById('save-copy-btn').addEventListener('click', () => {
+                const htmlContent = '<!DOCTYPE html>\\n' + document.documentElement.outerHTML;
+                const blob = new Blob([htmlContent], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'document-export.html';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('HTML copy downloaded!');
+            });
+
+            // Print Logic
+            // The dark/light class alone doesn't recolor Mermaid diagrams -- their SVG
+            // colors are baked in by mermaid.run() at render time, not driven live by
+            // CSS -- so diagrams stayed dark-themed on an otherwise light printed page.
+            // Force a light-theme re-render (same data-mermaid-src restore pattern as
+            // the theme toggle below) and await it before opening the print dialog --
+            // a plain beforeprint handler isn't guaranteed to be awaited by the browser
+            // before the print snapshot is taken. wasDark/printMermaidTimeout are
+            // declared just outside this callback so the afterprint listener can also
+            // reach them.
+            document.getElementById('print-toggle').addEventListener('click', async () => {
+                wasDark = document.documentElement.classList.contains('dark');
+                if (wasDark) {
+                    document.documentElement.classList.remove('dark');
+                    if (window.mermaid) {
+                        mermaid.initialize({ startOnLoad: false, theme: 'default' });
+                        document.querySelectorAll('.language-mermaid').forEach(el => {
+                            el.removeAttribute('data-processed');
+                            el.innerHTML = el.getAttribute('data-mermaid-src');
+                        });
+                        try {
+                            await mermaid.run({ querySelector: '.language-mermaid', suppressErrors: true });
+                        } catch (e) {
+                            console.warn('Mermaid print re-render issue:', e);
+                        }
+                    }
+                    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                }
+                window.print();
+            });
+
+            // Theme Toggle Logic
+            let exportMermaidTimeout;
+            document.getElementById('theme-toggle').addEventListener('click', () => {
+                const html = document.documentElement;
+                html.classList.toggle('dark');
+                const isDark = html.classList.contains('dark');
+                try {
+                    localStorage.theme = isDark ? 'dark' : 'light';
+                } catch (e) {
+                    // Ignore localStorage errors on file://
+                }
+                const lightTheme = document.getElementById('theme-style-light');
+                const darkTheme = document.getElementById('theme-style-dark');
+                if (lightTheme && darkTheme) {
+                    lightTheme.disabled = isDark;
+                    darkTheme.disabled = !isDark;
+                }
+                if (window.mermaid) {
+                    mermaid.initialize({ startOnLoad: false, theme: isDark ? 'dark' : 'default' });
+                    document.querySelectorAll('.language-mermaid').forEach(el => {
+                        el.removeAttribute('data-processed');
+                        el.innerHTML = el.getAttribute('data-mermaid-src');
+                    });
+                    clearTimeout(exportMermaidTimeout);
+                    exportMermaidTimeout = setTimeout(() => {
+                        try { mermaid.run({ querySelector: '.language-mermaid', suppressErrors: true }); } catch(e) { console.warn('Mermaid rendering issue:', e); }
+                    }, 100);
+                }
+            });
+        });
+
+        // Ensure printing works beautifully from the exported file too
+        let wasDark = false;
+        let printMermaidTimeout;
+        window.addEventListener('afterprint', () => {
+            if (wasDark) {
+                document.documentElement.classList.add('dark');
+                if (window.mermaid) {
+                    mermaid.initialize({ startOnLoad: false, theme: 'dark' });
+                    document.querySelectorAll('.language-mermaid').forEach(el => {
+                        el.removeAttribute('data-processed');
+                        el.innerHTML = el.getAttribute('data-mermaid-src');
+                    });
+                    clearTimeout(printMermaidTimeout);
+                    printMermaidTimeout = setTimeout(() => {
+                        try { mermaid.run({ querySelector: '.language-mermaid', suppressErrors: true }); } catch (e) { console.warn('Mermaid restore issue:', e); }
+                    }, 100);
+                }
+            }
+        });
+    <\/script>
+    <style>
+        .hljs { background: transparent !important; }
+        .mermaid { display: flex; justify-content: center; margin: 2rem 0; }
+        .mermaid svg { max-width: 100%; height: auto; }
+        
+        /* Copy Code Button Styles */
+        .copy-code-btn { position: absolute; right: 0.5rem; top: 0.5rem; padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 600; color: #94a3b8; background: #334155; border-radius: 0.375rem; cursor: pointer; opacity: 0; transition: all 0.2s; border: 1px solid #475569; }
+        pre { position: relative; }
+        pre:hover .copy-code-btn { opacity: 1; }
+        .copy-code-btn:hover { background: #475569; color: #fff; }
+
+        @media print {
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; color: black !important; }
+            .no-print { display: none !important; }
+            .prose { max-width: 100% !important; }
+            .prose-invert { color: black !important; }
+            blockquote, table, img, .mermaid { page-break-inside: avoid; break-inside: avoid; }
+            pre, code, .hljs, .math-block { page-break-inside: auto; break-inside: auto; overflow: visible !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
+            /* Override the flex layout so the diagram is capped to a sane width instead
+               of stretching edge-to-edge across the full printable page (a flex child's
+               default min-width:auto also ignores max-width, which made the base
+               max-width:100% rule above ineffective here). */
+            .mermaid { display: block !important; max-width: 85% !important; margin: 1.5rem auto !important; text-align: center !important; }
+            .mermaid svg { max-width: 100% !important; width: auto !important; height: auto !important; min-width: 0 !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 dark:bg-[#0f172a] text-slate-800 dark:text-slate-200 transition-colors duration-200">
+    <div class="no-print fixed top-1/2 right-4 -translate-y-1/2 z-20 flex flex-col gap-3">
+        <button id="copy-md-btn" class="p-3 bg-white dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 rounded-full shadow-lg hover:shadow-xl hover:-translate-x-1 transition-all duration-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20" title="Copy the raw Markdown source to clipboard" aria-label="Copy Markdown">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+        </button>
+
+        <button id="export-md-toggle" class="p-3 bg-white dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 rounded-full shadow-lg hover:shadow-xl hover:-translate-x-1 transition-all duration-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20" title="Download the Markdown source as document.md" aria-label="Export Markdown file">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+        </button>
+
+        <button id="save-copy-btn" class="p-3 bg-white dark:bg-[#1e293b] text-emerald-500 rounded-full shadow-lg hover:shadow-xl hover:-translate-x-1 transition-all duration-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/20" title="Save a standalone copy of this HTML document" aria-label="Save HTML copy">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+        </button>
+
+        <button id="print-toggle" class="p-3 bg-white dark:bg-[#1e293b] text-rose-500 rounded-full shadow-lg hover:shadow-xl hover:-translate-x-1 transition-all duration-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-4 focus:ring-rose-500/20" title="Print this document" aria-label="Print">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" /></svg>
+        </button>
+
+        <button id="theme-toggle" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-full shadow-lg hover:shadow-xl hover:-translate-x-1 transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500/30" title="Toggle light / dark theme" aria-label="Toggle light and dark theme">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 block dark:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 hidden dark:block" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+        </button>
+    </div>
+
+    <div class="p-8 md:p-16">
+        <div class="max-w-4xl mx-auto prose prose-slate dark:prose-invert prose-pre:bg-slate-100 dark:prose-pre:bg-[#1e293b] prose-pre:text-slate-800 dark:prose-pre:text-slate-100 prose-pre:border prose-pre:border-slate-300 dark:prose-pre:border-slate-700 prose-img:rounded-xl">
+            ${rawParsedHtml}
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="export-toast" class="no-print fixed bottom-4 left-1/2 transform -translate-x-1/2 translate-y-20 opacity-0 bg-slate-800 dark:bg-slate-700 text-white px-5 py-3 rounded-xl shadow-2xl transition-all duration-300 flex items-center gap-3 pointer-events-none z-50 font-medium text-sm">
+        <svg id="export-toast-icon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="export-toast-msg">Action completed!</span>
+    </div>
+</body>
+</html>`;
+
+            const blob = new Blob([fullHtml], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'document-export.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("HTML document downloaded!");
+        });
+
+        // Print to PDF Logic
+        // The dark/light class alone doesn't recolor Mermaid diagrams -- their SVG
+        // colors are baked in by mermaid.run() at render time, not driven live by
+        // CSS, so diagrams stayed in their dark-theme colors on an otherwise light
+        // printed page. Force a light-theme re-render and wait for it (plus a couple
+        // of paint frames) before opening the print dialog, then restore afterwards.
+        let wasDarkBeforePrint = false;
+        printBtn.addEventListener('click', async () => {
+            wasDarkBeforePrint = document.documentElement.classList.contains('dark');
+            if (wasDarkBeforePrint) {
+                document.documentElement.classList.remove('dark');
+                if (window.mermaid) {
+                    // mermaid.run() silently skips nodes it has already processed, so calling
+                    // it again on the diagram's existing (already dark-rendered) SVG did
+                    // nothing -- the diagram was never actually re-themed for print, which is
+                    // why it stayed dark while the rest of the page correctly went light.
+                    // updatePreview() rebuilds the preview fresh from the source Markdown,
+                    // producing a brand-new, unprocessed .language-mermaid node (and
+                    // re-initializes Mermaid using the theme now in effect), so the run()
+                    // below actually has something new to render.
+                    updatePreview();
+                    try {
+                        await mermaid.run({ querySelector: '.language-mermaid', suppressErrors: true });
+                    } catch (e) {
+                        console.warn('Mermaid print re-render issue:', e);
+                    }
+                }
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+            }
+            window.print();
+        });
+
+        window.addEventListener('afterprint', () => {
+            if (wasDarkBeforePrint) {
+                document.documentElement.classList.add('dark');
+                if (window.mermaid) {
+                    // Same fix as the print handler above: mermaid.run() skips nodes it has
+                    // already processed (now the light-themed SVG left over from printing),
+                    // so restoring dark mode also needs a fresh preview render rather than
+                    // re-running against the existing SVG.
+                    updatePreview();
+                }
+            }
+        });
+
+        // Initialize App
+        function init() {
+            // Restore from auto-save if exists
+            const savedContent = localStorage.getItem('markdown_forge_content');
+            if (savedContent !== null) {
+                editor.value = savedContent;
+            } else {
+                editor.value = defaultMarkdown;
+            }
+            
+            updatePreview();
+        }
+
+        // Boot it up
+        init();
+    </script>
+</body>
+</html>
