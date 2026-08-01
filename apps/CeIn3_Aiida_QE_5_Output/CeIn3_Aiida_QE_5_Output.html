@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>.out File Explorer</title>
+    <style>
+        :root {
+            /* Dark Theme Colors */
+            --bg-base: #0f1115;
+            --bg-panel: #1a1d24;
+            --bg-panel-hover: #232730;
+            --border-color: #2e323a;
+            --text-main: #e2e4e9;
+            --text-muted: #8b92a5;
+            --accent: #5b7cff;
+            --accent-hover: #4564df;
+            --danger: #ff5b5b;
+            
+            /* Typography */
+            --font-ui: system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-ui);
+            background-color: var(--bg-base);
+            color: var(--text-main);
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            line-height: 1.5;
+        }
+
+        #app-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sidebar */
+        #sidebar {
+            width: 300px;
+            background-color: var(--bg-panel);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.3s ease;
+        }
+
+        #sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #sidebar-header h1 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        #file-list {
+            flex: 1;
+            overflow-y: auto;
+            list-style: none;
+        }
+
+        .file-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .file-item:hover {
+            background-color: var(--bg-panel-hover);
+        }
+
+        .file-item.active {
+            background-color: var(--bg-panel-hover);
+            border-left: 3px solid var(--accent);
+            padding-left: calc(1rem - 3px);
+        }
+
+        .file-name {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-meta {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Main Content */
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-base);
+            position: relative;
+        }
+
+        #welcome-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--bg-base);
+            z-index: 10;
+        }
+
+        #welcome-screen.hidden {
+            display: none;
+        }
+
+        #welcome-screen h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        #welcome-screen p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .btn {
+            background-color: var(--bg-panel);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background-color: var(--bg-panel-hover);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-icon {
+            padding: 0.25rem 0.5rem;
+            font-size: 1.1rem;
+        }
+
+        /* Top Bar */
+        #top-bar {
+            padding: 0.5rem 1rem;
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        /* Text Viewer */
+        #text-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        #text-viewer {
+            flex: 1;
+            overflow: auto;
+            padding: 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            white-space: pre;
+            background-color: var(--bg-base);
+            color: var(--text-main);
+        }
+
+        .error-message {
+            color: var(--danger);
+            padding: 1rem;
+            text-align: center;
+        }
+        
+        .hidden { display: none !important; }
+        
+        /* Fallback input */
+        #dir-input {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <!-- Sidebar -->
+        <div id="sidebar">
+            <div id="sidebar-header">
+                <h1>.out Explorer</h1>
+                <div style="display: flex; gap: 0.25rem;">
+                    <button class="btn btn-icon" id="btn-refresh" title="Refresh Folder">↻</button>
+                    <button class="btn btn-icon" id="btn-change-dir" title="Change Folder">📁</button>
+                </div>
+            </div>
+            <ul id="file-list">
+                <!-- File items injected here -->
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div id="main-content">
+            <!-- Welcome / Folder Access Screen -->
+            <div id="welcome-screen">
+                <h2 id="welcome-title">No Folder Selected</h2>
+                <p id="welcome-desc">Select a local folder containing .out files. Your files remain on your device and are not uploaded anywhere.</p>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="btn btn-primary" id="btn-open-folder">Open Folder</button>
+                    <button class="btn btn-primary hidden" id="btn-reconnect-folder">Restore Access</button>
+                </div>
+                <p id="api-status" style="font-size: 0.8rem; margin-top: 1rem; color: var(--text-muted);"></p>
+                <input type="file" id="dir-input" webkitdirectory directory />
+            </div>
+
+            <!-- Top Bar -->
+            <div id="top-bar">
+                <div style="font-weight: 500;" id="current-file-name">Select a file...</div>
+            </div>
+
+            <!-- Text Pane -->
+            <div id="text-pane">
+                <div id="text-viewer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * State Management
+         */
+        const state = {
+            dirHandle: null,    // Native FileSystemDirectoryHandle (if supported)
+            files: [],          // Array of AppFile instances
+            selectedFile: null, // Currently selected AppFile
+            fileContent: '',    // Raw text of current file
+            fileContentCache: new Map(), // Cache file contents by filename to speed up re-clicks
+            useFallbackAPI: false
+        };
+
+        /**
+         * File Representation
+         */
+        class AppFile {
+            constructor(name, handleOrFile, lastModified, size) {
+                this.name = name;
+                this.handleOrFile = handleOrFile; // FileSystemFileHandle (primary) or File object (fallback)
+                this.lastModified = lastModified;
+                this.size = size;
+            }
+
+            async readText() {
+                try {
+                    // Fallback path uses native File objects
+                    if (this.handleOrFile instanceof File) {
+                        return await this.handleOrFile.text();
+                    } 
+                    // Primary path uses FileSystemFileHandle
+                    else if (this.handleOrFile.getFile) {
+                        const file = await this.handleOrFile.getFile();
+                        return await file.text();
+                    }
+                    return "Error: Unsupported file format.";
+                } catch (e) {
+                    console.error("Failed to read file", e);
+                    return `Error reading file: ${e.message}`;
+                }
+            }
+        }
+
+        /**
+         * IndexedDB Persistence for Directory Handle
+         */
+        const DB_NAME = 'OutExplorerDB';
+        const STORE_NAME = 'handles';
+
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        db.createObjectStore(STORE_NAME);
+                    }
+                };
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveDirectoryHandle(handle) {
+            try {
+                const db = await initDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readwrite');
+                    const store = tx.objectStore(STORE_NAME);
+                    store.put(handle, 'lastDir');
+                    tx.oncomplete = () => resolve();
+                    tx.onerror = () => reject(tx.error);
+                });
+            } catch (err) {
+                console.warn("Could not save handle to IDB", err);
+            }
+        }
+
+        async function getDirectoryHandle() {
+            try {
+                const db = await initDB();
+                return new Promise((resolve, reject) => {
+                    const tx = db.transaction(STORE_NAME, 'readonly');
+                    const store = tx.objectStore(STORE_NAME);
+                    const req = store.get('lastDir');
+                    req.onsuccess = () => resolve(req.result);
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (err) {
+                console.warn("Could not retrieve handle from IDB", err);
+                return null;
+            }
+        }
+
+        /**
+         * File System Access API & Fallback Logic
+         */
+        async function checkAPIStatus() {
+            const statusEl = document.getElementById('api-status');
+            const btnOpen = document.getElementById('btn-open-folder');
+            const btnReconnect = document.getElementById('btn-reconnect-folder');
+            const welcomeTitle = document.getElementById('welcome-title');
+            const welcomeDesc = document.getElementById('welcome-desc');
+
+            if ('showDirectoryPicker' in window) {
+                statusEl.innerText = "Using File System Access API (Native)";
+                state.useFallbackAPI = false;
+                
+                // Check if we have a saved handle
+                const savedHandle = await getDirectoryHandle();
+                if (savedHandle) {
+                    try {
+                        // Check if we still have permission
+                        const perm = await savedHandle.queryPermission({ mode: 'read' });
+                        if (perm === 'granted') {
+                            state.dirHandle = savedHandle;
+                            await loadFilesFromHandle(state.dirHandle);
+                        } else {
+                            // Permission expired, show reconnect button to bypass picker
+                            state.dirHandle = savedHandle;
+                            welcomeTitle.innerText = `Reconnect to "${savedHandle.name}"`;
+                            welcomeDesc.innerText = "Your browser requires permission to read this folder again.";
+                            btnOpen.innerText = "Select Different Folder";
+                            btnOpen.classList.remove('btn-primary');
+                            btnReconnect.classList.remove('hidden');
+                            btnReconnect.innerText = `Grant Access to ${savedHandle.name}`;
+                        }
+                    } catch (e) {
+                        console.warn("Saved handle invalid", e);
+                    }
+                }
+            } else {
+                statusEl.innerText = "Using Fallback Access (Select folder to read files)";
+                state.useFallbackAPI = true;
+            }
+        }
+
+        async function handleReconnectFolder() {
+            if (!state.dirHandle) return;
+            try {
+                const request = await state.dirHandle.requestPermission({ mode: 'read' });
+                if (request === 'granted') {
+                    await loadFilesFromHandle(state.dirHandle);
+                }
+            } catch (err) {
+                console.error("Error reconnecting to directory:", err);
+            }
+        }
+
+        async function handleOpenFolder() {
+            if (state.useFallbackAPI) {
+                document.getElementById('dir-input').click();
+            } else {
+                try {
+                    const handle = await window.showDirectoryPicker();
+                    state.dirHandle = handle;
+                    await saveDirectoryHandle(handle);
+                    await loadFilesFromHandle(handle);
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        alert("Error accessing directory: " + err.message);
+                    }
+                }
+            }
+        }
+
+        // Fallback input handler
+        document.getElementById('dir-input').addEventListener('change', (e) => {
+            const files = Array.from(e.target.files).filter(f => f.name.endsWith('.out'));
+            state.files = files.map(f => new AppFile(f.name, f, f.lastModified, f.size));
+            state.files.sort((a, b) => a.name.localeCompare(b.name));
+            renderFileList();
+            hideWelcomeScreen();
+        });
+
+        async function loadFilesFromHandle(dirHandle) {
+            try {
+                const files = [];
+                for await (const entry of dirHandle.values()) {
+                    if (entry.kind === 'file' && entry.name.endsWith('.out')) {
+                        // Don't fully read the file yet, just keep the handle
+                        files.push(new AppFile(entry.name, entry, 0, 0)); 
+                    }
+                }
+                state.files = files.sort((a, b) => a.name.localeCompare(b.name));
+                renderFileList();
+                hideWelcomeScreen();
+            } catch (err) {
+                console.error("Error reading directory contents", err);
+                // If permission was lost on refresh
+                if (err.name === 'NotAllowedError') {
+                   showWelcomeScreen();
+                }
+            }
+        }
+
+        async function refreshFiles() {
+            if (state.useFallbackAPI) {
+                // Fallback can't auto-refresh, need user to select again
+                document.getElementById('dir-input').click();
+            } else if (state.dirHandle) {
+                // Re-verify permission
+                const perm = await state.dirHandle.queryPermission({ mode: 'read' });
+                if (perm !== 'granted') {
+                    const request = await state.dirHandle.requestPermission({ mode: 'read' });
+                    if (request !== 'granted') return;
+                }
+                await loadFilesFromHandle(state.dirHandle);
+            }
+        }
+
+        /**
+         * UI Rendering
+         */
+        function showWelcomeScreen() {
+            document.getElementById('welcome-screen').classList.remove('hidden');
+        }
+
+        function hideWelcomeScreen() {
+            document.getElementById('welcome-screen').classList.add('hidden');
+        }
+
+        function renderFileList() {
+            const listEl = document.getElementById('file-list');
+            listEl.innerHTML = '';
+            
+            if (state.files.length === 0) {
+                listEl.innerHTML = '<li class="file-item" style="color: var(--text-muted)">No .out files found</li>';
+                return;
+            }
+
+            state.files.forEach((file, index) => {
+                const li = document.createElement('li');
+                li.className = 'file-item';
+                if (state.selectedFile === file) li.classList.add('active');
+                
+                li.innerHTML = `
+                    <span class="file-name" title="${file.name}">${file.name}</span>
+                `;
+                li.addEventListener('click', () => selectFile(file));
+                listEl.appendChild(li);
+            });
+        }
+
+        async function selectFile(file) {
+            state.selectedFile = file;
+            document.getElementById('current-file-name').innerText = file.name;
+            renderFileList(); // Update active class
+            
+            document.getElementById('text-viewer').innerText = "Loading...";
+            
+            let content;
+            if (state.fileContentCache.has(file.name)) {
+                content = state.fileContentCache.get(file.name);
+            } else {
+                content = await file.readText();
+                // Simple cache size limit to prevent memory blowup (store last 10)
+                if (state.fileContentCache.size > 10) {
+                    const firstKey = state.fileContentCache.keys().next().value;
+                    state.fileContentCache.delete(firstKey);
+                }
+                state.fileContentCache.set(file.name, content);
+            }
+            
+            state.fileContent = content;
+            renderText(content);
+        }
+
+        function renderText(text) {
+            // For extremely large files, we should chunk, but for MVP we load into pre
+            // Truncate if > 5MB to avoid freezing browser completely during innerText assignment
+            if (text.length > 5000000) {
+                document.getElementById('text-viewer').innerText = text.substring(0, 5000000) + "\n\n... [File truncated for preview due to large size] ...";
+            } else {
+                document.getElementById('text-viewer').innerText = text;
+            }
+        }
+
+        /**
+         * Event Listeners & Setup
+         */
+        document.getElementById('btn-open-folder').addEventListener('click', handleOpenFolder);
+        document.getElementById('btn-reconnect-folder').addEventListener('click', handleReconnectFolder);
+        document.getElementById('btn-change-dir').addEventListener('click', () => {
+            // Force re-picking instead of reconnecting
+            document.getElementById('welcome-title').innerText = "Select a Folder";
+            document.getElementById('welcome-desc').innerText = "Select a local folder containing .out files.";
+            document.getElementById('btn-open-folder').innerText = "Open Folder";
+            document.getElementById('btn-open-folder').classList.add('btn-primary');
+            document.getElementById('btn-reconnect-folder').classList.add('hidden');
+            showWelcomeScreen();
+            if (state.useFallbackAPI) {
+                document.getElementById('dir-input').click();
+            } else {
+                handleOpenFolder();
+            }
+        });
+        document.getElementById('btn-refresh').addEventListener('click', refreshFiles);
+
+        // Initialize App
+        window.onload = checkAPIStatus;
+
+    </script>
+</body>
+</html>

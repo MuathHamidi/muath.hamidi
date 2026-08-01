@@ -152,8 +152,30 @@
                 display: none !important;
             }
 
-            /* Prevent elements from being split across page breaks */
-            blockquote, table, img, .mermaid {
+            /* Prevent elements from being split across page breaks. Blockquotes,
+               images, and diagrams are short enough that avoiding a mid-element
+               split is worth it and rarely leaves a large gap. */
+            blockquote, img, .mermaid {
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            /* Long tables must be allowed to split across pages -- otherwise the
+               whole table gets pushed to the next page whenever it doesn't fit in
+               the remaining space, leaving a big blank gap at the bottom of the
+               current one. Instead, keep individual rows intact (never cut a row
+               mid-line) and repeat the header row on every page the table spans. */
+            table {
+                page-break-inside: auto;
+                break-inside: auto;
+            }
+            thead {
+                display: table-header-group;
+            }
+            tfoot {
+                display: table-footer-group;
+            }
+            tr {
                 page-break-inside: avoid;
                 break-inside: avoid;
             }
@@ -1150,9 +1172,200 @@ graph TD;
                 lightTheme.disabled = (currentTheme === 'dark');
                 darkTheme.disabled = (currentTheme !== 'dark');
             }
-            // Initialize Diagrams safely after DOM load
+
+            // Table of Contents: heading IDs, TOC build, toggle + persistence, scroll-spy
+            (function initToc() {
+                const content = document.getElementById('doc-content');
+                const sidebar = document.getElementById('toc-sidebar');
+                const overlay = document.getElementById('toc-overlay');
+                const toggleBtn = document.getElementById('toc-toggle-btn');
+                const closeBtn = document.getElementById('toc-close-btn');
+                const nav = document.getElementById('toc-nav');
+                const wrapper = document.getElementById('content-wrapper');
+                if (!content || !sidebar || !nav) return;
+
+                // Ensure every heading has a stable, unique id -- don't rely solely on
+                // marked's built-in slugger, which may change behavior across versions.
+                const usedIds = new Set();
+                const headings = content.querySelectorAll('h1, h2, h3, h4, h5, h6');
+                headings.forEach(h => {
+                    let base = h.id || h.textContent.trim().toLowerCase()
+                        .replace(/[^\\w\\s-]/g, '')
+                        .replace(/\\s+/g, '-')
+                        .replace(/-+/g, '-') || 'section';
+                    let id = base, n = 2;
+                    while (usedIds.has(id)) id = base + '-' + (n++);
+                    usedIds.add(id);
+                    h.id = id;
+                });
+
+                // Nothing worth navigating -- hide the whole feature
+                if (headings.length < 2) {
+                    sidebar.classList.add('hidden');
+                    overlay.classList.add('hidden');
+                    toggleBtn.classList.add('hidden');
+                    return;
+                }
+
+                // Build TOC links, indented relative to the shallowest heading level used.
+                // Clear first -- if this ever runs against a DOM that's already been
+                // initialized once (e.g. a "Save a Copy" export reopened later), rebuilding
+                // without clearing would append a second, duplicate set of links.
+                nav.innerHTML = '';
+                const minLevel = Math.min(...Array.from(headings).map(h => +h.tagName[1]));
+                headings.forEach(h => {
+                    const level = +h.tagName[1];
+                    const a = document.createElement('a');
+                    a.href = '#' + h.id;
+                    a.textContent = h.textContent;
+                    a.title = h.textContent;
+                    a.dataset.target = h.id;
+                    a.dataset.level = level;
+                    a.className = 'toc-link block truncate rounded-md py-1.5 px-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50 hover:text-slate-900 dark:hover:text-white transition-colors';
+                    a.style.paddingLeft = (0.5 + (level - minLevel) * 0.9) + 'rem';
+                    if (level <= minLevel) a.classList.add('font-medium');
+                    nav.appendChild(a);
+                });
+
+                // Heading-depth filter: lets the reader choose how deep the TOC goes
+                // (e.g. hide H4-H6 clutter in a long document). Only worth showing when
+                // there's more than one level to filter between.
+                const levelsPresent = Array.from(new Set(Array.from(headings).map(h => +h.tagName[1]))).sort();
+                const maxLevel = levelsPresent[levelsPresent.length - 1];
+                const depthRow = document.getElementById('toc-depth-row');
+                const depthSelect = document.getElementById('toc-depth-select');
+
+                if (depthRow && depthSelect && levelsPresent.length > 1) {
+                    depthRow.classList.remove('hidden');
+                    depthSelect.innerHTML = '';
+
+                    levelsPresent.forEach((lvl, i) => {
+                        const opt = document.createElement('option');
+                        opt.value = lvl;
+                        opt.textContent = i === 0 ? ('Top level only (H' + lvl + ')') : ('Up to H' + lvl);
+                        depthSelect.appendChild(opt);
+                    });
+                    const allOpt = document.createElement('option');
+                    allOpt.value = 'all';
+                    allOpt.textContent = 'All levels';
+                    allOpt.selected = true;
+                    depthSelect.appendChild(allOpt);
+
+                    const applyDepthFilter = (value) => {
+                        const max = value === 'all' ? maxLevel : +value;
+                        nav.querySelectorAll('.toc-link').forEach(a => {
+                            a.classList.toggle('hidden', +a.dataset.level > max);
+                        });
+                    };
+
+                    let storedDepth = null;
+                    try { storedDepth = localStorage.getItem('markdown_forge_toc_depth'); } catch (e) {}
+                    if (storedDepth && (storedDepth === 'all' || levelsPresent.includes(+storedDepth))) {
+                        depthSelect.value = storedDepth;
+                    }
+                    applyDepthFilter(depthSelect.value);
+
+                    depthSelect.addEventListener('change', () => {
+                        applyDepthFilter(depthSelect.value);
+                        try { localStorage.setItem('markdown_forge_toc_depth', depthSelect.value); } catch (e) {}
+                    });
+                } else if (depthRow) {
+                    depthRow.classList.add('hidden');
+                }
+
+                // The toggle button sits at a fixed top-4/left-4 spot and has a higher
+                // z-index than the sidebar, so once the sidebar opens it just sits on top
+                // of the sidebar's own header instead of moving out of the way. On desktop
+                // the content gets pushed over (md:ml-72), so slide the button along with
+                // it; on mobile the sidebar overlays the content instead, so a repositioned
+                // button would still sit under the sidebar -- hide it there instead and
+                // rely on the sidebar's own close button and the click-to-close overlay.
+                function positionToggleBtn(isOpen) {
+                    const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+                    if (isOpen && isDesktop) {
+                        toggleBtn.style.left = '19rem';
+                        toggleBtn.style.opacity = '';
+                        toggleBtn.style.pointerEvents = '';
+                    } else if (isOpen) {
+                        toggleBtn.style.left = '';
+                        toggleBtn.style.opacity = '0';
+                        toggleBtn.style.pointerEvents = 'none';
+                    } else {
+                        toggleBtn.style.left = '';
+                        toggleBtn.style.opacity = '';
+                        toggleBtn.style.pointerEvents = '';
+                    }
+                }
+
+                function openToc() {
+                    sidebar.classList.remove('-translate-x-full', 'hidden');
+                    overlay.classList.toggle('hidden', window.matchMedia('(min-width: 768px)').matches);
+                    wrapper.classList.add('md:ml-72');
+                    toggleBtn.setAttribute('aria-expanded', 'true');
+                    positionToggleBtn(true);
+                    try { localStorage.setItem('markdown_forge_toc_open', '1'); } catch (e) {}
+                }
+                function closeToc() {
+                    sidebar.classList.add('-translate-x-full');
+                    overlay.classList.add('hidden');
+                    wrapper.classList.remove('md:ml-72');
+                    toggleBtn.setAttribute('aria-expanded', 'false');
+                    positionToggleBtn(false);
+                    try { localStorage.setItem('markdown_forge_toc_open', '0'); } catch (e) {}
+                }
+
+                window.addEventListener('resize', () => {
+                    if (!sidebar.classList.contains('-translate-x-full')) positionToggleBtn(true);
+                });
+
+                nav.addEventListener('click', (e) => {
+                    const link = e.target.closest('.toc-link');
+                    if (!link) return;
+                    e.preventDefault();
+                    const target = document.getElementById(link.dataset.target);
+                    if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    try { history.replaceState(null, '', '#' + link.dataset.target); } catch (e) {}
+                    if (window.matchMedia('(max-width: 767px)').matches) closeToc();
+                });
+
+                toggleBtn.addEventListener('click', () =>
+                    sidebar.classList.contains('-translate-x-full') ? openToc() : closeToc());
+                if (closeBtn) closeBtn.addEventListener('click', closeToc);
+                overlay.addEventListener('click', closeToc);
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape' && !sidebar.classList.contains('-translate-x-full')) closeToc();
+                });
+
+                // Initial state: an explicit stored choice wins, otherwise default open on
+                // desktop widths and closed on mobile so the TOC doesn't eat a small screen.
+                let storedPref = null;
+                try { storedPref = localStorage.getItem('markdown_forge_toc_open'); } catch (e) {}
+                const isDesktop = window.matchMedia('(min-width: 768px)').matches;
+                const shouldOpen = storedPref !== null ? storedPref === '1' : isDesktop;
+                shouldOpen ? openToc() : closeToc();
+
+                // Scroll-spy: highlight the TOC entry for the section currently in view
+                const linkMap = new Map(Array.from(nav.querySelectorAll('.toc-link')).map(l => [l.dataset.target, l]));
+                const spyClasses = ['bg-indigo-50', 'dark:bg-indigo-500/10', 'text-indigo-600', 'dark:text-indigo-400'];
+                const tocObserver = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        const link = linkMap.get(entry.target.id);
+                        if (!link) return;
+                        spyClasses.forEach(c => link.classList.toggle(c, entry.isIntersecting));
+                    });
+                }, { rootMargin: '0px 0px -70% 0px' });
+                headings.forEach(h => tocObserver.observe(h));
+            })();
+
+            // Initialize Diagrams safely after DOM load. Only capture the raw source
+            // once -- if this ever runs again against an already-rendered DOM (e.g. a
+            // "Save a Copy" export reopened later), re-reading el.innerText would grab
+            // the rendered SVG's text instead of the original Mermaid syntax, corrupting
+            // the diagram the next time it needs to be restored for a theme toggle or print.
             document.querySelectorAll('.language-mermaid').forEach(el => {
-                el.setAttribute('data-mermaid-src', el.innerText);
+                if (!el.hasAttribute('data-mermaid-src')) {
+                    el.setAttribute('data-mermaid-src', el.innerText);
+                }
             });
             if (window.mermaid) {
                 mermaid.initialize({ startOnLoad: false, theme: document.documentElement.classList.contains('dark') ? 'dark' : 'default' });
@@ -1163,30 +1376,37 @@ graph TD;
                 }
             }
             
-            // Initialize Code Highlighting and Copy Buttons
+            // Initialize Code Highlighting and Copy Buttons. Guard both steps so
+            // re-running this against an already-initialized DOM (e.g. a reopened
+            // "Save a Copy" export) never double-highlights a code block or stacks a
+            // second Copy button on top of the first.
             document.querySelectorAll('pre').forEach((pre) => {
                 const codeBlock = pre.querySelector('code');
-                if (codeBlock && window.hljs) hljs.highlightElement(codeBlock);
-                
+                if (codeBlock && window.hljs && !codeBlock.classList.contains('hljs')) {
+                    hljs.highlightElement(codeBlock);
+                }
+
                 // Inject Copy Button
-                const btn = document.createElement('button');
-                btn.className = 'copy-code-btn no-print';
-                btn.innerText = 'Copy';
-                btn.onclick = () => {
-                    let text = '';
-                    if (codeBlock) {
-                        text = codeBlock.innerText;
-                    } else {
-                        const clone = pre.cloneNode(true);
-                        const btnToRemove = clone.querySelector('.copy-code-btn');
-                        if (btnToRemove) btnToRemove.remove();
-                        text = clone.innerText;
-                    }
-                    navigator.clipboard.writeText(text);
-                    btn.innerText = 'Copied!';
-                    setTimeout(() => btn.innerText = 'Copy', 2000);
-                };
-                pre.appendChild(btn);
+                if (!pre.querySelector('.copy-code-btn')) {
+                    const btn = document.createElement('button');
+                    btn.className = 'copy-code-btn no-print';
+                    btn.innerText = 'Copy';
+                    btn.onclick = () => {
+                        let text = '';
+                        if (codeBlock) {
+                            text = codeBlock.innerText;
+                        } else {
+                            const clone = pre.cloneNode(true);
+                            const btnToRemove = clone.querySelector('.copy-code-btn');
+                            if (btnToRemove) btnToRemove.remove();
+                            text = clone.innerText;
+                        }
+                        navigator.clipboard.writeText(text);
+                        btn.innerText = 'Copied!';
+                        setTimeout(() => btn.innerText = 'Copy', 2000);
+                    };
+                    pre.appendChild(btn);
+                }
             });
 
             // Copy Markdown Action
@@ -1332,9 +1552,20 @@ graph TD;
         @media print {
             body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: white !important; color: black !important; }
             .no-print { display: none !important; }
+            #content-wrapper { margin-left: 0 !important; }
             .prose { max-width: 100% !important; }
             .prose-invert { color: black !important; }
-            blockquote, table, img, .mermaid { page-break-inside: avoid; break-inside: avoid; }
+            /* Blockquotes, images, and diagrams are short enough that avoiding a
+               mid-element split is worth it and rarely leaves a large gap. */
+            blockquote, img, .mermaid { page-break-inside: avoid; break-inside: avoid; }
+            /* Long tables must be allowed to split across pages -- otherwise the whole
+               table gets pushed to the next page, leaving a big blank gap at the bottom
+               of the current one. Keep individual rows intact and repeat the header row
+               on every page the table spans. */
+            table { page-break-inside: auto; break-inside: auto; }
+            thead { display: table-header-group; }
+            tfoot { display: table-footer-group; }
+            tr { page-break-inside: avoid; break-inside: avoid; }
             pre, code, .hljs, .math-block { page-break-inside: auto; break-inside: auto; overflow: visible !important; white-space: pre-wrap !important; word-wrap: break-word !important; }
             /* Override the flex layout so the diagram is capped to a sane width instead
                of stretching edge-to-edge across the full printable page (a flex child's
@@ -1369,9 +1600,34 @@ graph TD;
         </button>
     </div>
 
-    <div class="p-8 md:p-16">
-        <div class="max-w-4xl mx-auto prose prose-slate dark:prose-invert prose-pre:bg-slate-100 dark:prose-pre:bg-[#1e293b] prose-pre:text-slate-800 dark:prose-pre:text-slate-100 prose-pre:border prose-pre:border-slate-300 dark:prose-pre:border-slate-700 prose-img:rounded-xl">
-            ${rawParsedHtml}
+    <!-- Table of Contents Sidebar -->
+    <aside id="toc-sidebar" class="no-print fixed top-0 left-0 h-screen w-72 bg-white dark:bg-[#1e293b] border-r border-slate-200 dark:border-slate-700 z-30 flex flex-col transition-transform duration-200 -translate-x-full">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-slate-200 dark:border-slate-700 shrink-0">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Contents</span>
+            <button id="toc-close-btn" class="md:hidden p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200" aria-label="Close table of contents">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+        <div id="toc-depth-row" class="hidden px-4 py-2 border-b border-slate-200 dark:border-slate-700 shrink-0">
+            <label for="toc-depth-select" class="sr-only">Heading depth shown</label>
+            <select id="toc-depth-select" class="w-full text-xs bg-slate-50 dark:bg-[#0f172a] border border-slate-200 dark:border-slate-700 rounded-md px-2 py-1.5 text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"></select>
+        </div>
+        <nav id="toc-nav" role="navigation" aria-label="Table of contents" class="flex-1 overflow-y-auto px-2 py-3 text-sm"></nav>
+    </aside>
+
+    <!-- Mobile overlay (click to close TOC) -->
+    <div id="toc-overlay" class="no-print fixed inset-0 bg-black/40 z-20 hidden"></div>
+
+    <!-- TOC Toggle (always visible when a TOC exists) -->
+    <button id="toc-toggle-btn" class="no-print fixed top-4 left-4 z-40 p-3 bg-white dark:bg-[#1e293b] text-slate-600 dark:text-slate-300 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 border border-slate-200 dark:border-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20" title="Toggle table of contents" aria-label="Toggle table of contents" aria-expanded="false" aria-controls="toc-sidebar">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+    </button>
+
+    <div id="content-wrapper" class="transition-[margin] duration-200">
+        <div class="p-8 md:p-16">
+            <div id="doc-content" class="max-w-4xl mx-auto prose prose-slate dark:prose-invert prose-pre:bg-slate-100 dark:prose-pre:bg-[#1e293b] prose-pre:text-slate-800 dark:prose-pre:text-slate-100 prose-pre:border prose-pre:border-slate-300 dark:prose-pre:border-slate-700 prose-img:rounded-xl">
+                ${rawParsedHtml}
+            </div>
         </div>
     </div>
 
