@@ -402,7 +402,7 @@ function filterApps() {
 // ============================================================
 // --- Utility Passcode Lock ---
 // ============================================================
-const PASSCODE        = '0000';
+const PASSCODE        = '00000';
 const SESSION_KEY     = 'utility_unlocked';
 const overlay         = document.getElementById('utility-lock-overlay');
 const pinDots         = document.querySelectorAll('.pin-dot');
