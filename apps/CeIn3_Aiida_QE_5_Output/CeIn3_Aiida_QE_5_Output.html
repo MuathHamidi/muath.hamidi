@@ -530,13 +530,9 @@
         }
 
         function renderText(text) {
-            // For extremely large files, we should chunk, but for MVP we load into pre
-            // Truncate if > 5MB to avoid freezing browser completely during innerText assignment
-            if (text.length > 5000000) {
-                document.getElementById('text-viewer').innerText = text.substring(0, 5000000) + "\n\n... [File truncated for preview due to large size] ...";
-            } else {
-                document.getElementById('text-viewer').innerText = text;
-            }
+            // Note: For extremely large files (e.g., hundreds of megabytes), 
+            // assigning the full string might temporarily pause the browser.
+            document.getElementById('text-viewer').innerText = text;
         }
 
         /**
