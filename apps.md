@@ -141,12 +141,6 @@ description: A collection of web-based physics and utility applications built by
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="physics" data-name="CeIn3 AiiDA QE Output Explorer">
-        <span class="app-category physics">Physics</span>
-        <h3><a href="{{ site.baseurl }}/apps/CeIn3_Aiida_QE_5_Output/CeIn3_Aiida_QE_5_Output.html">CeIn₃ AiiDA QE Output Explorer</a></h3>
-        <p>Browse and inspect Quantum ESPRESSO .out files from AiiDA calculations on CeIn₃.</p>
-        <span class="app-link">Open →</span>
-    </div>
 
     <!-- ==================== UTILITY APPS ==================== -->
 
