@@ -383,7 +383,7 @@
                 </div>
                 <div id="text-viewer"></div>
             </div>
-            <div id="truncation-notice">⚠ File truncated at 2 MB for browser performance.</div>
+    
         </div>
     </div>
 </div>
@@ -427,7 +427,7 @@ const MANIFEST = [
     { name: 'PK9945_round8_7Bplus7Dplus7K.out',                   size: 8301150 },
 ];
 
-const TRUNCATE_BYTES = 2 * 1024 * 1024; // 2 MB display cap
+
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
@@ -447,7 +447,6 @@ const welcomeScreen     = document.getElementById('welcome-screen');
 const textPane          = document.getElementById('text-pane');
 const textViewer        = document.getElementById('text-viewer');
 const loadingOverlay    = document.getElementById('loading-overlay');
-const truncationNotice  = document.getElementById('truncation-notice');
 const btnRaw            = document.getElementById('btn-raw');
 const sourceBadge       = document.getElementById('source-badge');
 const dirInput          = document.getElementById('dir-input');
@@ -556,16 +555,8 @@ dirInput.addEventListener('change', e => {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function decodeBuffer(buf) {
-    const decoder = new TextDecoder('utf-8');
-    let truncated = false;
-    let text;
-    if (buf.byteLength > TRUNCATE_BYTES) {
-        text = decoder.decode(buf.slice(0, TRUNCATE_BYTES)) + '\n\n… [truncated]';
-        truncated = true;
-    } else {
-        text = decoder.decode(buf);
-    }
-    return { text, truncated };
+    const text = new TextDecoder('utf-8').decode(buf);
+    return { text, truncated: false };
 }
 
 function formatBytes(b) {
@@ -639,7 +630,7 @@ async function selectFile(file) {
     textPane.classList.remove('hidden');
     loadingOverlay.classList.remove('hidden');
     textViewer.textContent = '';
-    truncationNotice.style.display = 'none';
+
 
     renderFileList(); // update active highlight
 
@@ -659,7 +650,7 @@ async function selectFile(file) {
     }
 
     textViewer.textContent = result.text;
-    if (result.truncated) truncationNotice.style.display = '';
+
     loadingOverlay.classList.add('hidden');
 }
 </script>
