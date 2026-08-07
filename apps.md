@@ -150,77 +150,77 @@ description: A collection of web-based physics and utility applications built by
 
     <!-- ==================== UTILITY APPS ==================== -->
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="Audio Cutter">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="Audio Cutter">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/audio_cutter.html">Audio Cutter</a></h3>
         <p>Trim audio files using an interactive waveform editor and export as WAV or MP3.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="PDF Page Extractor">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="PDF Page Extractor">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/pdf_page_extractor.html">PDF Page Extractor</a></h3>
         <p>Extract PDF pages and convert to high-quality PNG or JPEG images.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="Image and Text Creator">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="Image and Text Creator">
         <span class="app-category utility">Utility</span>
-        <h3><a href="{{ site.baseurl }}/apps/image_creator.html">Image & Text Creator</a></h3>
+        <h3><a href="{{ site.baseurl }}/apps/image_creator.html">Image &amp; Text Creator</a></h3>
         <p>Customize images with size, background, text, and meta-information.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="BibTeX Studio">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="BibTeX Studio">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/BibTeXStudio/BibTeXStudio.html">BibTeX Studio</a></h3>
         <p>Parse, clean, and convert BibTeX entries into APA, MLA, IEEE, and more.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="Web Builder">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="Web Builder">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/WebsiteBuilder/WebBuilder.html">Web Builder</a></h3>
         <p>Design websites and professional resumes — save locally and export as HTML.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="File Aggregator">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="File Aggregator">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/FileAggregator.html">File Aggregator</a></h3>
         <p>View directory structure and text content of files.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="File Size Explorer">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="File Size Explorer">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/FileSizeExplorer.html">File Size Explorer</a></h3>
         <p>Explore files in a directory and view their sizes.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="PDF Merger">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="PDF Merger">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/pdf_merger.html">PDF Merger</a></h3>
         <p>Merge multiple PDF files into a single document.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="Web Python IDE">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="Web Python IDE">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/advanced_web_python_ide.html">Web Python IDE</a></h3>
         <p>A Python IDE that runs entirely in your browser.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="Neural Network Image Generator">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="Neural Network Image Generator">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/neural_network_image_generator.html">Neural Network Image Generator</a></h3>
         <p>Generate aesthetic wavy images using a neural network.</p>
         <span class="app-link">Open →</span>
     </div>
 
-    <div class="app-card animate-on-scroll" data-category="utility" data-name="Markdown Forge Pro">
+    <div class="app-card animate-on-scroll utility-locked" data-category="utility" data-name="Markdown Forge Pro">
         <span class="app-category utility">Utility</span>
         <h3><a href="{{ site.baseurl }}/apps/markdown_forge_pro.html">Markdown Forge Pro</a></h3>
         <p>A comprehensive markdown editor with live preview, math, and diagram support.</p>
@@ -233,128 +233,100 @@ description: A collection of web-based physics and utility applications built by
 
 </div>
 
-<!-- ==================== UTILITY PASSCODE MODAL ==================== -->
-<div id="utility-lock-overlay" aria-modal="true" role="dialog" aria-labelledby="lock-title" style="
-    display: none;
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: rgba(0,0,0,0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+<!-- ==================== UTILITY UNLOCK BAR ==================== -->
+<div id="utility-unlock-bar" style="
+    display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 2.5rem;
+    padding: 0.85rem 1.25rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.07);
+    background: rgba(255,255,255,0.03);
+    width: fit-content;
+    transition: border-color 0.3s, box-shadow 0.3s;
 ">
-    <div id="lock-modal" style="
-        background: var(--card-bg, #1a1d2e);
-        border: 1px solid rgba(255,255,255,0.08);
-        border-radius: 20px;
-        padding: 2.5rem 2rem 2rem;
-        width: min(340px, 92vw);
-        text-align: center;
-        box-shadow: 0 32px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
-        animation: lockIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both;
-    ">
-        <!-- Lock icon -->
-        <div style="
-            width: 56px; height: 56px;
-            margin: 0 auto 1.25rem;
-            border-radius: 16px;
-            background: linear-gradient(135deg, var(--accent-primary, #6c63ff), var(--accent-secondary, #00d2ff));
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.6rem;
-            box-shadow: 0 8px 24px rgba(108,99,255,0.35);
-        ">🔒</div>
-
-        <h2 id="lock-title" style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.35rem; letter-spacing: -0.01em;">Utilities Access</h2>
-        <p style="font-size: 0.82rem; color: var(--text-muted, #8b92a5); margin-bottom: 1.75rem; line-height: 1.5;">Enter the 4-digit code to open this tool.</p>
-
-        <!-- PIN dots -->
-        <div id="pin-dots" style="display: flex; gap: 0.75rem; justify-content: center; margin-bottom: 1.5rem;">
-            <span class="pin-dot" style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.18);transition:background 0.2s,transform 0.15s;"></span>
-            <span class="pin-dot" style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.18);transition:background 0.2s,transform 0.15s;"></span>
-            <span class="pin-dot" style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.18);transition:background 0.2s,transform 0.15s;"></span>
-            <span class="pin-dot" style="width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.12);border:2px solid rgba(255,255,255,0.18);transition:background 0.2s,transform 0.15s;"></span>
-        </div>
-
-        <!-- Numpad -->
-        <div id="numpad" style="display: grid; grid-template-columns: repeat(3,1fr); gap: 0.6rem; margin-bottom: 1.1rem;">
-            <button class="pin-btn" data-val="1">1</button>
-            <button class="pin-btn" data-val="2">2</button>
-            <button class="pin-btn" data-val="3">3</button>
-            <button class="pin-btn" data-val="4">4</button>
-            <button class="pin-btn" data-val="5">5</button>
-            <button class="pin-btn" data-val="6">6</button>
-            <button class="pin-btn" data-val="7">7</button>
-            <button class="pin-btn" data-val="8">8</button>
-            <button class="pin-btn" data-val="9">9</button>
-            <button class="pin-btn pin-btn--action" id="pin-clear" data-val="clear" style="font-size:0.75rem;letter-spacing:0.03em;">CLR</button>
-            <button class="pin-btn" data-val="0">0</button>
-            <button class="pin-btn pin-btn--action" id="pin-back" data-val="back">⌫</button>
-        </div>
-
-        <p id="lock-error" style="font-size:0.78rem;color:#ff6b6b;min-height:1.1em;margin-bottom:0.75rem;opacity:0;transition:opacity 0.2s;"></p>
-        <button id="lock-cancel" style="
-            background: none; border: none;
-            color: var(--text-muted, #8b92a5);
-            font-size: 0.82rem; cursor: pointer;
-            padding: 0.25rem 0.75rem;
-            border-radius: 6px;
-            transition: color 0.2s;
-        ">Cancel</button>
+    <span id="lock-icon" style="font-size: 1.1rem; line-height: 1; user-select: none;">🔒</span>
+    <span style="font-size: 0.82rem; color: var(--text-muted, #8b92a5); white-space: nowrap; user-select: none;">Utilities</span>
+    <!-- 4 dot inputs -->
+    <div id="code-dots" style="display: flex; gap: 0.45rem; align-items: center;">
+        <span class="cdot" data-pos="0"></span>
+        <span class="cdot" data-pos="1"></span>
+        <span class="cdot" data-pos="2"></span>
+        <span class="cdot" data-pos="3"></span>
     </div>
+    <!-- Hidden real input captures keystrokes -->
+    <input id="code-input" type="password" inputmode="numeric" maxlength="4"
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        aria-label="Enter utility unlock code"
+        style="
+            position: absolute;
+            opacity: 0;
+            width: 1px; height: 1px;
+            pointer-events: none;
+        ">
+    <span id="unlock-hint" style="font-size: 0.75rem; color: var(--text-muted, #8b92a5); opacity: 0.5; user-select: none;">click to enter code</span>
 </div>
 
 <style>
-@keyframes lockIn {
-    from { opacity: 0; transform: scale(0.88) translateY(12px); }
-    to   { opacity: 1; transform: scale(1)   translateY(0); }
+/* Utility cards are hidden until unlocked */
+.utility-locked {
+    display: none !important;
 }
-@keyframes pinShake {
+.utility-locked.utility-visible {
+    display: flex !important;  /* restores card layout; overridden by filterApps if needed */
+    animation: utilReveal 0.4s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes utilReveal {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes barShake {
     0%,100% { transform: translateX(0); }
-    20%      { transform: translateX(-6px); }
-    40%      { transform: translateX(6px); }
-    60%      { transform: translateX(-4px); }
-    80%      { transform: translateX(4px); }
+    20%      { transform: translateX(-5px); }
+    40%      { transform: translateX(5px); }
+    60%      { transform: translateX(-3px); }
+    80%      { transform: translateX(3px); }
 }
-.pin-btn {
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.09);
-    border-radius: 12px;
-    color: var(--text-main, #e2e4e9);
-    font-size: 1.2rem;
-    font-weight: 600;
-    padding: 0.9rem 0;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
-    user-select: none;
+
+/* Code dots */
+.cdot {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.22);
+    background: transparent;
+    transition: background 0.15s, border-color 0.15s, transform 0.12s;
 }
-.pin-btn:hover {
-    background: rgba(255,255,255,0.12);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+.cdot.filled {
+    background: var(--accent-primary, #6c63ff);
+    border-color: var(--accent-primary, #6c63ff);
+    transform: scale(1.2);
 }
-.pin-btn:active {
-    transform: scale(0.92);
-    background: rgba(255,255,255,0.18);
+.cdot.error {
+    border-color: #ff6b6b;
+    background: rgba(255,107,107,0.25);
 }
-.pin-btn--action {
-    background: rgba(255,255,255,0.03);
-    color: var(--text-muted, #8b92a5);
-    font-size: 0.85rem;
+
+#utility-unlock-bar {
+    cursor: text;
 }
-.pin-btn--action:hover { color: var(--text-main, #e2e4e9); }
-#pin-dots.shake {
-    animation: pinShake 0.4s ease;
+#utility-unlock-bar:focus-within,
+#utility-unlock-bar.focused {
+    border-color: rgba(var(--accent-primary-rgb, 108,99,255), 0.4);
+    box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb, 108,99,255), 0.08);
 }
-.pin-dot.filled {
-    background: var(--accent-primary, #6c63ff) !important;
-    border-color: var(--accent-primary, #6c63ff) !important;
-    transform: scale(1.15);
+#utility-unlock-bar.shake {
+    animation: barShake 0.38s ease;
 }
-#utility-lock-overlay.visible {
-    display: flex !important;
+#utility-unlock-bar.unlocked {
+    border-color: rgba(0,210,100,0.35);
+    box-shadow: 0 0 0 3px rgba(0,210,100,0.08);
 }
-#lock-cancel:hover { color: var(--text-main, #e2e4e9); }
+#unlock-hint {
+    transition: opacity 0.2s;
+}
 </style>
 
 <script>
@@ -380,6 +352,12 @@ function filterApps() {
     let visible = 0;
 
     cards.forEach(card => {
+        // Locked utility cards that haven't been revealed yet — always hide
+        if (card.classList.contains('utility-locked') && !card.classList.contains('utility-visible')) {
+            card.style.display = 'none';
+            return;
+        }
+
         const category = card.dataset.category;
         const name = (card.dataset.name || '').toLowerCase();
         const desc = (card.querySelector('p')?.textContent || '').toLowerCase();
@@ -399,166 +377,104 @@ function filterApps() {
     if (noResults) noResults.style.display = visible === 0 ? '' : 'none';
 }
 
-// ============================================================
-// --- Utility Passcode Lock ---
-// ============================================================
-const PASSCODE        = '00000';
-const SESSION_KEY     = 'utility_unlocked';
-const overlay         = document.getElementById('utility-lock-overlay');
-const pinDots         = document.querySelectorAll('.pin-dot');
-const lockError       = document.getElementById('lock-error');
-const pinDotsWrapper  = document.getElementById('pin-dots');
-
-let pinBuffer   = '';   // digits entered so far
-let pendingHref = '';   // URL to navigate to after unlock
-let pendingNewTab = false;
-
-// --- Check session unlock ---
-function isUnlocked() {
-    return sessionStorage.getItem(SESSION_KEY) === '1';
-}
-function markUnlocked() {
-    sessionStorage.setItem(SESSION_KEY, '1');
-}
-
-// --- Open modal ---
-function openLock(href, newTab = false) {
-    if (isUnlocked()) { navigate(href, newTab); return; }
-    pendingHref   = href;
-    pendingNewTab = newTab;
-    pinBuffer     = '';
-    updateDots();
-    showError('');
-    overlay.classList.add('visible');
-    overlay.style.display = 'flex';
-}
-
-// --- Close modal ---
-function closeLock() {
-    overlay.classList.remove('visible');
-    overlay.style.display = 'none';
-    pinBuffer = '';
-    updateDots();
-    showError('');
-}
-
-// --- Navigate helper ---
-function navigate(href, newTab) {
-    if (newTab) { window.open(href, '_blank'); }
-    else        { window.location.href = href; }
-}
-
-// --- Update dot indicators ---
-function updateDots() {
-    pinDots.forEach((dot, i) => {
-        dot.classList.toggle('filled', i < pinBuffer.length);
-    });
-}
-
-// --- Show / hide error text ---
-function showError(msg) {
-    lockError.textContent = msg;
-    lockError.style.opacity = msg ? '1' : '0';
-}
-
-// --- Wrong code feedback ---
-function shakeAndClear() {
-    showError('Incorrect code — try again.');
-    pinDotsWrapper.classList.remove('shake');
-    void pinDotsWrapper.offsetWidth; // reflow to re-trigger
-    pinDotsWrapper.classList.add('shake');
-    setTimeout(() => {
-        pinBuffer = '';
-        updateDots();
-    }, 420);
-}
-
-// --- Handle numpad presses ---
-function handlePin(val) {
-    if (val === 'clear') {
-        pinBuffer = '';
-        showError('');
-        updateDots();
-        return;
-    }
-    if (val === 'back') {
-        pinBuffer = pinBuffer.slice(0, -1);
-        showError('');
-        updateDots();
-        return;
-    }
-    if (pinBuffer.length >= 4) return;
-    pinBuffer += val;
-    updateDots();
-
-    if (pinBuffer.length === 4) {
-        if (pinBuffer === PASSCODE) {
-            markUnlocked();
-            closeLock();
-            navigate(pendingHref, pendingNewTab);
-        } else {
-            shakeAndClear();
-        }
-    }
-}
-
-// Wire up numpad buttons
-document.querySelectorAll('.pin-btn').forEach(btn => {
-    btn.addEventListener('click', () => handlePin(btn.dataset.val));
-});
-
-// Cancel button
-document.getElementById('lock-cancel').addEventListener('click', closeLock);
-
-// Click on backdrop closes modal
-overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) closeLock();
-});
-
-// Keyboard support (physical keyboard)
-overlay.addEventListener('keydown', (e) => {
-    if (e.key >= '0' && e.key <= '9') handlePin(e.key);
-    else if (e.key === 'Backspace') handlePin('back');
-    else if (e.key === 'Escape') closeLock();
-});
-overlay.setAttribute('tabindex', '-1');
-
-// Focus the overlay when it opens so keyboard events fire
-const lockObserver = new MutationObserver(() => {
-    if (overlay.classList.contains('visible')) overlay.focus();
-});
-lockObserver.observe(overlay, { attributes: true, attributeFilter: ['class'] });
-
-// ============================================================
-// --- Card Click Redirection (with Utility lock) ---
-// ============================================================
+// --- Card Click Redirection ---
 document.querySelectorAll('.app-card').forEach(card => {
-    const isUtility = card.dataset.category === 'utility';
-
-    // Intercept <a> link clicks inside utility cards
-    if (isUtility) {
-        card.querySelectorAll('a').forEach(a => {
-            a.addEventListener('click', (e) => {
-                e.preventDefault();
-                openLock(a.href, e.ctrlKey || e.metaKey);
-            });
-        });
-    }
-
-    // Card body click
     card.addEventListener('click', (e) => {
-        if (e.target.closest('a') && !isUtility) return; // let non-utility links through normally
-        if (e.target.closest('a') && isUtility) return;  // already handled by link listener above
-
+        if (e.target.closest('a')) return;
         const link = card.querySelector('h3 a');
-        if (!link) return;
-
-        if (isUtility) {
-            openLock(link.href, e.ctrlKey || e.metaKey);
-        } else {
+        if (link) {
             if (e.ctrlKey || e.metaKey) { window.open(link.href, '_blank'); }
             else { window.location.href = link.href; }
         }
     });
 });
+
+// ============================================================
+// --- Utility Unlock via Code Input ---
+// ============================================================
+const PASSCODE    = '0000';
+const SESSION_KEY = 'utility_unlocked';
+
+const bar         = document.getElementById('utility-unlock-bar');
+const codeInput   = document.getElementById('code-input');
+const codeDots    = document.querySelectorAll('.cdot');
+const lockIcon    = document.getElementById('lock-icon');
+const unlockHint  = document.getElementById('unlock-hint');
+
+// Restore session unlock
+if (sessionStorage.getItem(SESSION_KEY) === '1') {
+    revealUtilities(false); // no animation on restore
+}
+
+// Clicking anywhere on the bar focuses the hidden input
+bar.addEventListener('click', () => {
+    codeInput.focus();
+});
+
+codeInput.addEventListener('focus', () => {
+    bar.classList.add('focused');
+    unlockHint.style.opacity = '0';
+});
+codeInput.addEventListener('blur', () => {
+    bar.classList.remove('focused');
+    if (!sessionStorage.getItem(SESSION_KEY)) {
+        unlockHint.style.opacity = '0.5';
+    }
+});
+
+// As user types, update the dots and check the code
+codeInput.addEventListener('input', () => {
+    // Sanitise — only digits
+    codeInput.value = codeInput.value.replace(/\D/g, '').slice(0, 4);
+    updateDots(codeInput.value);
+
+    if (codeInput.value.length === 4) {
+        if (codeInput.value === PASSCODE) {
+            sessionStorage.setItem(SESSION_KEY, '1');
+            revealUtilities(true);
+        } else {
+            wrongCode();
+        }
+    }
+});
+
+function updateDots(val) {
+    codeDots.forEach((dot, i) => {
+        dot.classList.toggle('filled', i < val.length);
+        dot.classList.remove('error');
+    });
+}
+
+function wrongCode() {
+    codeDots.forEach(d => { d.classList.remove('filled'); d.classList.add('error'); });
+    bar.classList.add('shake');
+    bar.addEventListener('animationend', () => bar.classList.remove('shake'), { once: true });
+    setTimeout(() => {
+        codeInput.value = '';
+        updateDots('');
+    }, 500);
+}
+
+function revealUtilities(animate) {
+    // Mark bar as unlocked
+    bar.classList.add('unlocked');
+    lockIcon.textContent = '🔓';
+    unlockHint.textContent = 'unlocked';
+    unlockHint.style.opacity = '0.5';
+    codeDots.forEach(d => { d.classList.add('filled'); d.classList.remove('error'); });
+
+    // Show cards with staggered animation
+    const cards = document.querySelectorAll('.utility-locked');
+    cards.forEach((card, i) => {
+        if (animate) {
+            card.style.animationDelay = `${i * 50}ms`;
+        } else {
+            card.style.animation = 'none';
+        }
+        card.classList.add('utility-visible');
+    });
+
+    // Re-run filter so the newly visible cards respect current filter/search
+    filterApps();
+}
 </script>
