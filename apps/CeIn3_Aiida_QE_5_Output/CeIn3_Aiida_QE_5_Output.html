@@ -49,16 +49,13 @@
             border-bottom: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.4rem;
         }
 
         #sidebar-header h1 {
             font-size: 0.95rem;
             font-weight: 700;
             letter-spacing: -0.01em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
         }
 
         #sidebar-meta {
@@ -66,7 +63,14 @@
             color: var(--text-muted);
         }
 
-        /* Search box */
+        #sidebar-actions {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
         #sidebar-search {
             padding: 0.5rem 1rem;
             border-bottom: 1px solid var(--border-color);
@@ -93,7 +97,6 @@
             list-style: none;
         }
 
-        /* Loading / status row */
         .status-row {
             padding: 0.9rem 1rem;
             font-size: 0.8rem;
@@ -128,8 +131,6 @@
             border-left: 3px solid var(--accent);
             padding-left: calc(1rem - 3px);
         }
-        .file-item.error-item { opacity: 0.45; cursor: default; }
-        .file-item.error-item:hover { background: none; }
 
         .file-name {
             font-family: var(--font-mono);
@@ -147,15 +148,11 @@
         }
         .tag-badge {
             display: inline-block;
-            background: rgba(255,255,255,0.06);
             border-radius: 3px;
             padding: 0 4px;
             font-size: 0.65rem;
-            letter-spacing: 0.02em;
         }
-        .tag-badge.ok   { color: var(--accent-green); background: rgba(62,207,142,0.1); }
         .tag-badge.warn { color: #fbbf24; background: rgba(251,191,36,0.1); }
-        .tag-badge.err  { color: var(--danger); background: rgba(255,91,91,0.1); }
 
         /* ── Main ── */
         #main-content {
@@ -200,8 +197,48 @@
             flex-shrink: 0;
         }
         .btn:hover { background: rgba(255,255,255,0.1); border-color: var(--text-muted); }
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+        }
+        .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 
-        /* Placeholder when nothing selected */
+        /* ── Welcome / fallback screen ── */
+        #welcome-screen {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 2rem;
+            text-align: center;
+        }
+        #welcome-screen.hidden { display: none; }
+
+        #welcome-screen .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.25rem;
+        }
+        #welcome-screen h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        #welcome-screen p {
+            font-size: 0.83rem;
+            color: var(--text-muted);
+            max-width: 360px;
+            line-height: 1.6;
+        }
+        #welcome-screen .btn-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        /* ── Placeholder (file not yet selected) ── */
         #placeholder {
             flex: 1;
             display: flex;
@@ -212,10 +249,10 @@
             gap: 0.5rem;
             font-size: 0.88rem;
         }
-        #placeholder svg { opacity: 0.25; }
+        #placeholder svg { opacity: 0.2; }
         #placeholder.hidden { display: none; }
 
-        /* Text viewer */
+        /* ── Text viewer ── */
         #text-pane {
             flex: 1;
             overflow: hidden;
@@ -223,6 +260,14 @@
             flex-direction: column;
         }
         #text-pane.hidden { display: none; }
+
+        #text-area-wrap {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
 
         #text-viewer {
             flex: 1;
@@ -236,7 +281,6 @@
             color: var(--text-main);
         }
 
-        /* Loading overlay on text area */
         #loading-overlay {
             position: absolute;
             inset: 0;
@@ -247,15 +291,7 @@
             z-index: 5;
         }
         #loading-overlay.hidden { display: none; }
-        #text-area-wrap {
-            flex: 1;
-            position: relative;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
 
-        /* Truncation notice */
         #truncation-notice {
             padding: 0.4rem 1rem;
             font-size: 0.75rem;
@@ -263,7 +299,21 @@
             background: rgba(251,191,36,0.06);
             border-top: 1px solid rgba(251,191,36,0.15);
             display: none;
+            flex-shrink: 0;
         }
+
+        /* Source mode badge */
+        #source-badge {
+            font-size: 0.7rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        /* hidden file input */
+        #dir-input { display: none; }
 
         .hidden { display: none !important; }
     </style>
@@ -276,36 +326,56 @@
     <div id="sidebar">
         <div id="sidebar-header">
             <h1>CeIn₃ · AiiDA QE Output</h1>
-            <div id="sidebar-meta">Loading files…</div>
+            <div id="sidebar-meta">Initialising…</div>
+        </div>
+        <div id="sidebar-actions">
+            <button class="btn" id="btn-open-folder" title="Load files from a local folder">📁 Open folder</button>
         </div>
         <div id="sidebar-search">
             <input type="text" id="file-search" placeholder="Filter files…" autocomplete="off">
         </div>
         <ul id="file-list">
-            <li class="status-row"><span class="spinner"></span> Fetching output files…</li>
+            <li class="status-row">
+                <span class="spinner"></span> Loading…
+            </li>
         </ul>
     </div>
 
-    <!-- Main -->
+    <!-- Main content -->
     <div id="main-content">
         <div id="top-bar">
             <div id="current-file-name">Select a file from the sidebar</div>
-            <button class="btn" id="btn-raw" title="Open raw file in new tab" style="display:none">Raw ↗</button>
+            <div style="display:flex;gap:0.5rem;align-items:center;">
+                <span id="source-badge" class="hidden"></span>
+                <button class="btn hidden" id="btn-raw">Raw ↗</button>
+            </div>
         </div>
 
-        <!-- Placeholder -->
+        <!-- Welcome/fallback screen (shown when no files could be auto-loaded) -->
+        <div id="welcome-screen" class="hidden">
+            <div class="icon">📂</div>
+            <h2>Open the output folder</h2>
+            <p>
+                The <code>.out</code> files are not hosted on this server.<br>
+                Select the local <strong>CeIn3_Aiida_QE_5_Output</strong> folder on your computer to browse the files — they stay on your device.
+            </p>
+            <div class="btn-row">
+                <button class="btn btn-primary" id="btn-open-folder-2">Select Folder</button>
+            </div>
+        </div>
+
+        <!-- Nothing selected yet -->
         <div id="placeholder">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                 <polyline points="14 2 14 8 20 8"/>
                 <line x1="16" y1="13" x2="8" y2="13"/>
                 <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
             </svg>
             <span>Select a file to view its contents</span>
         </div>
 
-        <!-- Text area -->
+        <!-- Text viewer -->
         <div id="text-pane" class="hidden">
             <div id="text-area-wrap">
                 <div id="loading-overlay">
@@ -313,109 +383,211 @@
                 </div>
                 <div id="text-viewer"></div>
             </div>
-            <div id="truncation-notice">⚠ File truncated at 2 MB for browser performance. Use "Raw ↗" to open the full file.</div>
+            <div id="truncation-notice">⚠ File truncated at 2 MB for browser performance.</div>
         </div>
     </div>
-
 </div>
 
+<!-- Fallback: webkitdirectory input -->
+<input type="file" id="dir-input" webkitdirectory directory accept=".out">
+
 <script>
-/**
- * Known .out files in this directory.
- * Fetched automatically — no folder picker required.
- */
-const OUT_FILES = [
-    'PK8973_round1_cg.out',
-    'PK9000_round2_cg_beta002.out',
-    'PK9032_round3_baseline_cutoffs50-400.out',
-    'PK9693_round4_combined.out',
-    'PK9702_round5A_mixing_plain.out',
-    'PK9706_round5B_ndim20.out',
-    'PK9710_round5C_diago_full_acc.out',
-    'PK9714_round5D_degauss005.out',
-    'PK9718_round5E_magmom07.out',
-    'PK9761_round6_5Aplus5E.out',
-    'PK9767_round7A_startingwfc_atomicrandom.out',
-    'PK9772_round7B_magmom09.out',
-    'PK9777_round7C_magmom03.out',
-    'PK9782_round7D_beta03_plain.out',
-    'PK9787_round7E_beta015_plain.out',
-    'PK9792_round7F_mixing_TF.out',
-    'PK9802_round7H_diag_rmmdavidson.out',
-    'PK9807_round7I_ndim20_plain.out',
-    'PK9812_round7J_ueff4.0.out',
-    'PK9817_round7K_ueff6.0.out',
-    'PK9822_round7L_startingwfc_random.out',
-    'PK9827_round7M_kpoints2x1x1.out',
-    'PK9864_diagnostic_U0.out',
-    'PK9870_diagnostic_4fincore_plusHubbard_REJECTED.out',
-    'PK9876_diagnostic_4fincore_noU_REJECTED.out',
-    'PK9945_round8_7Bplus7Dplus7K.out',
+// ─────────────────────────────────────────────────────────────────────────────
+// Known .out files (from MANIFEST.txt).
+// The app first probes these via HTTP.  If they are not served (e.g. GitHub
+// Pages and the large files were not committed), it falls back to a folder
+// picker so the user can load files from their local disk.
+// ─────────────────────────────────────────────────────────────────────────────
+const MANIFEST = [
+    { name: 'PK8973_round1_cg.out',                               size: 8300509 },
+    { name: 'PK9000_round2_cg_beta002.out',                       size: 8300467 },
+    { name: 'PK9032_round3_baseline_cutoffs50-400.out',           size: 8300998 },
+    { name: 'PK9693_round4_combined.out',                         size: 8302065 },
+    { name: 'PK9702_round5A_mixing_plain.out',                    size: 8300076 },
+    { name: 'PK9706_round5B_ndim20.out',                          size: 8300140 },
+    { name: 'PK9710_round5C_diago_full_acc.out',                  size: 8301538 },
+    { name: 'PK9714_round5D_degauss005.out',                      size: 8301255 },
+    { name: 'PK9718_round5E_magmom07.out',                        size: 8301332 },
+    { name: 'PK9761_round6_5Aplus5E.out',                         size: 8299775 },
+    { name: 'PK9767_round7A_startingwfc_atomicrandom.out',        size: 8299990 },
+    { name: 'PK9772_round7B_magmom09.out',                        size: 8299818 },
+    { name: 'PK9777_round7C_magmom03.out',                        size: 8300549 },
+    { name: 'PK9782_round7D_beta03_plain.out',                    size: 8300764 },
+    { name: 'PK9787_round7E_beta015_plain.out',                   size: 8300334 },
+    { name: 'PK9792_round7F_mixing_TF.out',                       size: 8300608 },
+    { name: 'PK9802_round7H_diag_rmmdavidson.out',                size: 8301545 },
+    { name: 'PK9807_round7I_ndim20_plain.out',                    size: 8299818 },
+    { name: 'PK9812_round7J_ueff4.0.out',                         size: 8300334 },
+    { name: 'PK9817_round7K_ueff6.0.out',                         size: 8300248 },
+    { name: 'PK9822_round7L_startingwfc_random.out',              size: 8300761 },
+    { name: 'PK9827_round7M_kpoints2x1x1.out',                    size: 8300589 },
+    { name: 'PK9864_diagnostic_U0.out',                           size:  254110 },
+    { name: 'PK9870_diagnostic_4fincore_plusHubbard_REJECTED.out',size:    1731 },
+    { name: 'PK9876_diagnostic_4fincore_noU_REJECTED.out',        size:    1731 },
+    { name: 'PK9945_round8_7Bplus7Dplus7K.out',                   size: 8301150 },
 ];
 
 const TRUNCATE_BYTES = 2 * 1024 * 1024; // 2 MB display cap
 
 // ── State ──────────────────────────────────────────────────────────────────
 const state = {
-    files: [],           // [{name, url, status, size}]
+    files: [],           // [{name, source:'http'|'local', getContent:fn, size}]
     selected: null,
-    cache: new Map(),    // name → text content
+    cache: new Map(),
+    mode: null,          // 'http' | 'local'
 };
 
-// ── DOM refs ───────────────────────────────────────────────────────────────
+// ── DOM ────────────────────────────────────────────────────────────────────
 const fileListEl        = document.getElementById('file-list');
 const sidebarMeta       = document.getElementById('sidebar-meta');
 const fileSearchEl      = document.getElementById('file-search');
 const currentFileNameEl = document.getElementById('current-file-name');
 const placeholder       = document.getElementById('placeholder');
+const welcomeScreen     = document.getElementById('welcome-screen');
 const textPane          = document.getElementById('text-pane');
 const textViewer        = document.getElementById('text-viewer');
 const loadingOverlay    = document.getElementById('loading-overlay');
 const truncationNotice  = document.getElementById('truncation-notice');
 const btnRaw            = document.getElementById('btn-raw');
+const sourceBadge       = document.getElementById('source-badge');
+const dirInput          = document.getElementById('dir-input');
 
 // ── Boot ───────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', async () => {
+    sidebarMeta.textContent = 'Checking server…';
 
-async function init() {
-    // Build file descriptors with relative URLs
-    state.files = OUT_FILES.map(name => ({
-        name,
-        url: name,   // same directory — relative URL works perfectly
-        status: 'pending', // pending | ok | error
-        size: null,
+    // Probe just the first file to see if they are hosted
+    const probe = MANIFEST[0];
+    let serverAvailable = false;
+    try {
+        const r = await fetch(probe.name, { method: 'HEAD' });
+        serverAvailable = r.ok;
+    } catch { /* network error or CORS */ }
+
+    if (serverAvailable) {
+        loadFromServer();
+    } else {
+        showFallback();
+    }
+});
+
+// ── Mode A: files served over HTTP ─────────────────────────────────────────
+function loadFromServer() {
+    state.mode = 'http';
+    state.files = MANIFEST.map(m => ({
+        name: m.name,
+        size: m.size,
+        source: 'http',
+        getContent: async () => {
+            const r = await fetch(m.name);
+            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            const buf = await r.arrayBuffer();
+            return decodeBuffer(buf);
+        },
     }));
-
-    renderFileList(state.files);
-    sidebarMeta.textContent = `${state.files.length} files · click to open`;
-
-    // Probe file availability (HEAD requests in parallel)
-    await probeFiles();
+    sidebarMeta.textContent = `${state.files.length} files · server`;
+    sourceBadge.textContent = '🌐 Served';
+    sourceBadge.classList.remove('hidden');
+    welcomeScreen.classList.add('hidden');
+    renderFileList();
 }
 
-async function probeFiles() {
-    const checks = state.files.map(async f => {
-        try {
-            const r = await fetch(f.url, { method: 'HEAD' });
-            f.status = r.ok ? 'ok' : 'error';
-            const cl = r.headers.get('content-length');
-            if (cl) f.size = parseInt(cl, 10);
-        } catch {
-            f.status = 'error';
-        }
-    });
-    await Promise.all(checks);
-
-    const ok  = state.files.filter(f => f.status === 'ok').length;
-    const err = state.files.filter(f => f.status === 'error').length;
-    sidebarMeta.textContent = `${ok} files available${err ? ` · ${err} unavailable` : ''}`;
-    renderFileList(state.files);
+// ── Mode B: files loaded from local disk via folder picker ─────────────────
+function showFallback() {
+    state.mode = 'local';
+    fileListEl.innerHTML = '';
+    sidebarMeta.textContent = 'No server files — select folder';
+    welcomeScreen.classList.remove('hidden');
+    placeholder.classList.add('hidden');
 }
 
-// ── Render sidebar ─────────────────────────────────────────────────────────
-function renderFileList(files) {
+function loadFromLocalFiles(fileObjs) {
+    // fileObjs: native File objects
+    const outFiles = [...fileObjs].filter(f => f.name.endsWith('.out'));
+    if (outFiles.length === 0) {
+        sidebarMeta.textContent = 'No .out files found in selected folder';
+        return;
+    }
+    outFiles.sort((a,b) => a.name.localeCompare(b.name));
+    state.files = outFiles.map(f => ({
+        name: f.name,
+        size: f.size,
+        source: 'local',
+        getContent: async () => {
+            const buf = await f.arrayBuffer();
+            return decodeBuffer(buf);
+        },
+    }));
+    state.cache.clear();
+    state.selected = null;
+    welcomeScreen.classList.add('hidden');
+    placeholder.classList.remove('hidden');
+    textPane.classList.add('hidden');
+    sidebarMeta.textContent = `${state.files.length} files · local`;
+    sourceBadge.textContent = '💾 Local';
+    sourceBadge.classList.remove('hidden');
+    renderFileList();
+}
+
+// ── Folder picker wiring ───────────────────────────────────────────────────
+function openFolderPicker() {
+    if ('showDirectoryPicker' in window) {
+        window.showDirectoryPicker().then(async handle => {
+            const files = [];
+            for await (const entry of handle.values()) {
+                if (entry.kind === 'file' && entry.name.endsWith('.out')) {
+                    files.push(await entry.getFile());
+                }
+            }
+            loadFromLocalFiles(files);
+        }).catch(e => { if (e.name !== 'AbortError') alert('Could not open folder: ' + e.message); });
+    } else {
+        dirInput.click();
+    }
+}
+
+document.getElementById('btn-open-folder').addEventListener('click', openFolderPicker);
+document.getElementById('btn-open-folder-2').addEventListener('click', openFolderPicker);
+
+dirInput.addEventListener('change', e => {
+    loadFromLocalFiles(e.target.files);
+    e.target.value = '';
+});
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function decodeBuffer(buf) {
+    const decoder = new TextDecoder('utf-8');
+    let truncated = false;
+    let text;
+    if (buf.byteLength > TRUNCATE_BYTES) {
+        text = decoder.decode(buf.slice(0, TRUNCATE_BYTES)) + '\n\n… [truncated]';
+        truncated = true;
+    } else {
+        text = decoder.decode(buf);
+    }
+    return { text, truncated };
+}
+
+function formatBytes(b) {
+    if (b >= 1e6) return (b/1e6).toFixed(1) + ' MB';
+    if (b >= 1e3) return (b/1e3).toFixed(0) + ' KB';
+    return b + ' B';
+}
+
+function parseLabel(name) {
+    const m = name.match(/round(\d+[A-Z]?)_(.+?)\.out$/i);
+    if (m) return `round ${m[1]} · ${m[2].replace(/_/g,' ')}`;
+    const d = name.match(/diagnostic_(.+?)\.out$/i);
+    if (d) return `diagnostic · ${d[1].replace(/_/g,' ')}`;
+    return '';
+}
+
+// ── Render sidebar list ────────────────────────────────────────────────────
+function renderFileList() {
     const query = (fileSearchEl.value || '').toLowerCase().trim();
-    const filtered = query ? files.filter(f => f.name.toLowerCase().includes(query)) : files;
+    const filtered = query
+        ? state.files.filter(f => f.name.toLowerCase().includes(query))
+        : state.files;
 
     fileListEl.innerHTML = '';
 
@@ -426,99 +598,70 @@ function renderFileList(files) {
 
     filtered.forEach(f => {
         const li = document.createElement('li');
-        li.className = 'file-item' +
-            (f === state.selected ? ' active' : '') +
-            (f.status === 'error' ? ' error-item' : '');
+        li.className = 'file-item' + (f === state.selected ? ' active' : '');
 
-        // Parse label from filename
-        const label = parseLabel(f.name);
-        const badgeClass = f.status === 'ok' ? 'ok' : f.status === 'error' ? 'err' : '';
-        const badgeText  = f.status === 'ok' ? '✓' : f.status === 'error' ? '✗ unavailable' : '…';
-        const sizeStr    = f.size ? formatBytes(f.size) : '';
-        const isRejected = f.name.includes('REJECTED');
+        const label   = parseLabel(f.name);
+        const sizeStr = f.size ? formatBytes(f.size) : '';
+        const isRej   = f.name.includes('REJECTED');
 
         li.innerHTML = `
             <span class="file-name" title="${f.name}">${f.name}</span>
             <span class="file-tag">
-                ${badgeClass ? `<span class="tag-badge ${badgeClass}">${badgeText}</span>` : ''}
-                ${isRejected ? '<span class="tag-badge warn">REJECTED</span>' : ''}
-                ${label ? `<span style="color:var(--text-muted)">${label}</span>` : ''}
-                ${sizeStr ? `<span style="margin-left:auto;color:var(--text-muted)">${sizeStr}</span>` : ''}
+                ${isRej ? '<span class="tag-badge warn">REJECTED</span>' : ''}
+                ${label ? `<span>${label}</span>` : ''}
+                ${sizeStr ? `<span style="margin-left:auto">${sizeStr}</span>` : ''}
             </span>`;
 
-        if (f.status !== 'error') {
-            li.addEventListener('click', () => selectFile(f));
-        }
+        li.addEventListener('click', () => selectFile(f));
         fileListEl.appendChild(li);
     });
 }
 
-// Extract a human label from the filename (round, variant, etc.)
-function parseLabel(name) {
-    // e.g. PK9702_round5A_mixing_plain → "round5A · mixing plain"
-    const m = name.match(/round(\d+[A-Z]?)_(.+?)\.out$/i);
-    if (m) return `round ${m[1]} · ${m[2].replace(/_/g,' ')}`;
-    const d = name.match(/diagnostic_(.+?)\.out$/i);
-    if (d) return `diagnostic · ${d[1].replace(/_/g,' ')}`;
-    return '';
-}
+fileSearchEl.addEventListener('input', () => renderFileList());
 
-function formatBytes(b) {
-    if (b >= 1e6) return (b/1e6).toFixed(1) + ' MB';
-    if (b >= 1e3) return (b/1e3).toFixed(0) + ' KB';
-    return b + ' B';
-}
-
-// ── File selection & loading ───────────────────────────────────────────────
+// ── File selection ─────────────────────────────────────────────────────────
 async function selectFile(file) {
     if (state.selected === file) return;
     state.selected = file;
+
     currentFileNameEl.textContent = file.name;
     currentFileNameEl.classList.add('loaded');
-    btnRaw.style.display = '';
-    btnRaw.onclick = () => window.open(file.url, '_blank');
 
-    // Switch to text pane
+    if (file.source === 'http') {
+        btnRaw.classList.remove('hidden');
+        btnRaw.onclick = () => window.open(file.name, '_blank');
+    } else {
+        btnRaw.classList.add('hidden');
+    }
+
     placeholder.classList.add('hidden');
+    welcomeScreen.classList.add('hidden');
     textPane.classList.remove('hidden');
     loadingOverlay.classList.remove('hidden');
     textViewer.textContent = '';
     truncationNotice.style.display = 'none';
 
-    renderFileList(state.files); // update active highlight
+    renderFileList(); // update active highlight
 
-    // Load content (from cache or fetch)
-    let text;
+    let result;
     if (state.cache.has(file.name)) {
-        text = state.cache.get(file.name);
+        result = state.cache.get(file.name);
     } else {
         try {
-            const resp = await fetch(file.url);
-            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const buf = await resp.arrayBuffer();
-            const decoder = new TextDecoder('utf-8');
-            if (buf.byteLength > TRUNCATE_BYTES) {
-                text = decoder.decode(buf.slice(0, TRUNCATE_BYTES)) + '\n\n… [truncated]';
-                truncationNotice.style.display = '';
-            } else {
-                text = decoder.decode(buf);
-            }
+            result = await file.getContent();
         } catch (e) {
-            text = `Error loading file:\n${e.message}`;
+            result = { text: `Error loading file:\n${e.message}`, truncated: false };
         }
-        // Simple LRU: evict oldest if cache > 8 entries
-        if (state.cache.size >= 8) {
+        if (state.cache.size >= 6) {
             state.cache.delete(state.cache.keys().next().value);
         }
-        state.cache.set(file.name, text);
+        state.cache.set(file.name, result);
     }
 
-    textViewer.textContent = text;
+    textViewer.textContent = result.text;
+    if (result.truncated) truncationNotice.style.display = '';
     loadingOverlay.classList.add('hidden');
 }
-
-// ── Sidebar search ─────────────────────────────────────────────────────────
-fileSearchEl.addEventListener('input', () => renderFileList(state.files));
 </script>
 </body>
 </html>
