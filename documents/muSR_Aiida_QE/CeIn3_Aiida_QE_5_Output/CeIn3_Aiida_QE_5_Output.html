@@ -319,6 +319,131 @@
     </style>
 </head>
 <body>
+<style>
+    /* ── Gate overlay ── */
+    #passcode-gate-overlay {
+        position: fixed; inset: 0; z-index: 2147483647; /* max z-index */
+        display: flex; align-items: center; justify-content: center;
+        background: var(--bg-base, #0f1115); font-family: var(--font-ui, system-ui, sans-serif);
+        color: var(--text-main, #e2e4e9);
+    }
+    #passcode-gate-overlay.hidden { display: none; }
+    #gate-card-inner {
+        background: var(--bg-panel, #1a1d24); border: 1px solid var(--border-color, #2e323a); border-radius: 22px;
+        padding: 2.5rem 2.25rem 2rem; width: min(360px, 94vw); text-align: center;
+        box-shadow: 0 32px 80px rgba(0,0,0,0.55);
+        animation: gateIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes gateIn { from { opacity:0; transform: scale(0.88) translateY(14px); } to { opacity:1; transform: scale(1) translateY(0); } }
+    .gate-icon-inner { width: 60px; height: 60px; margin: 0 auto 1.25rem; border-radius: 18px; background: linear-gradient(135deg, #6c63ff, #00d2ff); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 8px 28px rgba(108,99,255,0.35); }
+    #gate-card-inner h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 0.3rem; margin-top: 0; }
+    #gate-card-inner p.sub { font-size: 0.8rem; color: #8b92a5; margin-bottom: 1.6rem; }
+    /* PIN dots */
+    #pin-dots-inner { display: flex; gap: 0.8rem; justify-content: center; margin-bottom: 1.6rem; }
+    .pdot-inner { width: 15px; height: 15px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.2); background: transparent; transition: background 0.15s, border-color 0.15s, transform 0.12s; }
+    .pdot-inner.filled { background: #6c63ff; border-color: #6c63ff; transform: scale(1.18); }
+    .pdot-inner.error { border-color: #ff6b6b; background: rgba(255,107,107,0.28); }
+    /* Numpad */
+    #numpad-inner { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; margin-bottom: 1rem; }
+    .nkey-inner { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); border-radius: 13px; color: #e2e4e9; font-size: 1.2rem; font-weight: 600; padding: 0.9rem 0; cursor: pointer; user-select: none; transition: background 0.15s; }
+    .nkey-inner:active { background: rgba(255,255,255,0.18); }
+    .nkey-inner.action { background: rgba(255,255,255,0.03); color: #8b92a5; font-size: 0.82rem; }
+    #gate-error-inner { font-size: 0.78rem; color: #ff6b6b; min-height: 1.1em; margin-bottom: 0.6rem; opacity: 0; }
+    #gate-back-inner { font-size: 0.78rem; color: #8b92a5; text-decoration: none; opacity: 0.6; }
+    #gate-back-inner:hover { opacity: 1; }
+    @keyframes shake-inner { 0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(6px);} 60%{transform:translateX(-4px);} 80%{transform:translateX(4px);} }
+    #pin-dots-inner.shake { animation: shake-inner 0.42s ease; }
+    
+    /* hide the actual content behind the overlay */
+    body.locked { overflow: hidden !important; }
+    body.locked > *:not(#passcode-gate-overlay):not(script):not(style) { opacity: 0 !important; pointer-events: none !important; }
+</style>
+
+<div id="passcode-gate-overlay" tabindex="-1">
+    <div id="gate-card-inner">
+        <div class="gate-icon-inner">🔒</div>
+        <h2>Access Required</h2>
+        <p class="sub">Enter the 4-digit code to view this document.</p>
+        <div id="pin-dots-inner">
+            <span class="pdot-inner"></span><span class="pdot-inner"></span><span class="pdot-inner"></span><span class="pdot-inner"></span>
+        </div>
+        <div id="numpad-inner">
+            <button class="nkey-inner" data-v="1">1</button><button class="nkey-inner" data-v="2">2</button><button class="nkey-inner" data-v="3">3</button>
+            <button class="nkey-inner" data-v="4">4</button><button class="nkey-inner" data-v="5">5</button><button class="nkey-inner" data-v="6">6</button>
+            <button class="nkey-inner" data-v="7">7</button><button class="nkey-inner" data-v="8">8</button><button class="nkey-inner" data-v="9">9</button>
+            <button class="nkey-inner action" data-v="clr">CLR</button><button class="nkey-inner" data-v="0">0</button><button class="nkey-inner action" data-v="back">⌫</button>
+        </div>
+        <p id="gate-error-inner"></p>
+        <a href="/muath.hamidi/documents/muSR_Aiida_QE/" id="gate-back-inner">← Back to Folder</a>
+    </div>
+</div>
+
+<script>
+(function(){
+    const PASSCODE = '1111';
+    const SESSION_KEY = 'documents_unlocked';
+    if (sessionStorage.getItem(SESSION_KEY) === '1') {
+        document.getElementById('passcode-gate-overlay').classList.add('hidden');
+        return;
+    }
+    
+    document.body.classList.add('locked');
+    const overlay = document.getElementById('passcode-gate-overlay');
+    const dots = document.querySelectorAll('.pdot-inner');
+    const err = document.getElementById('gate-error-inner');
+    const pinDots = document.getElementById('pin-dots-inner');
+    let buf = '';
+
+    function renderDots() {
+        dots.forEach((d, i) => {
+            d.classList.toggle('filled', i < buf.length);
+            d.classList.remove('error');
+        });
+    }
+    
+    function wrong() {
+        err.textContent = 'Incorrect code — try again.';
+        err.style.opacity = '1';
+        dots.forEach(d => { d.classList.remove('filled'); d.classList.add('error'); });
+        pinDots.classList.remove('shake');
+        void pinDots.offsetWidth;
+        pinDots.classList.add('shake');
+        setTimeout(() => { buf = ''; renderDots(); }, 450);
+    }
+    
+    function unlock() {
+        document.body.classList.remove('locked');
+        overlay.classList.add('hidden');
+    }
+    
+    function press(v) {
+        if (v === 'clr') { buf = ''; err.style.opacity='0'; renderDots(); return; }
+        if (v === 'back') { buf = buf.slice(0,-1); err.style.opacity='0'; renderDots(); return; }
+        if (buf.length >= 4) return;
+        buf += v;
+        renderDots();
+        if (buf.length === 4) {
+            if (buf === PASSCODE) {
+                sessionStorage.setItem(SESSION_KEY, '1');
+                unlock();
+            } else {
+                wrong();
+            }
+        }
+    }
+    
+    document.querySelectorAll('.nkey-inner').forEach(btn => {
+        btn.addEventListener('click', () => press(btn.dataset.v));
+    });
+    
+    overlay.addEventListener('keydown', e => {
+        if (e.key >= '0' && e.key <= '9') press(e.key);
+        else if (e.key === 'Backspace') press('back');
+        else if (e.key === 'Escape') window.location.href = '/muath.hamidi/documents/muSR_Aiida_QE/';
+    });
+    overlay.focus();
+})();
+</script>
 
 <div id="app-container">
 
