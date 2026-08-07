@@ -14,7 +14,7 @@ description: Research documents, notes, and technical logs shared by Muath Hamid
     <!-- Folder: muSR_Aiida_QE -->
     <div class="doc-folder-group doc-locked" id="folder-musr">
         <div class="doc-folder-header animate-on-scroll">
-            <span class="doc-folder-icon">📁</span>
+
             <div>
                 <div class="doc-folder-name">muSR_Aiida_QE</div>
                 <div class="doc-folder-desc">μSR pipeline on CeIn₃ using AiiDA + Quantum ESPRESSO</div>
@@ -23,9 +23,9 @@ description: Research documents, notes, and technical logs shared by Muath Hamid
         </div>
 
         <div class="doc-folder-cards">
-            <div class="app-card animate-on-scroll" data-name="CeIn3 AiiDA QE Phase 5">
+            <div class="app-card animate-on-scroll" data-name="Letter on CeIn3 AiiDA QE Phase 5">
                 <span class="app-category physics">Physics</span>
-                <h3><a href="{{ site.baseurl }}/documents/muSR_Aiida_QE/CeIn3_Aiida_QE_5.html">CeIn₃ AiiDA QE — Phase 5</a></h3>
+                <h3><a href="{{ site.baseurl }}/documents/muSR_Aiida_QE/Letter_on_CeIn3_Aiida_QE_5.html">Letter on CeIn₃ AiiDA QE — Phase 5</a></h3>
                 <p>Persistent SCF non-convergence in a collinear DFT+U calculation on CeIn₃ with an interstitial positive muon.</p>
                 <span class="app-link">Open →</span>
             </div>
