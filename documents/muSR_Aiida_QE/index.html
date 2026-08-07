@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>muSR_Aiida_QE — Muath Hamidi</title>
+    <meta name="description" content="μSR pipeline on CeIn₃ using AiiDA and Quantum ESPRESSO — Muath Hamidi">
+
+    <!-- Mirror the site's stylesheet & theme engine via absolute path -->
+    <link rel="icon" type="image/svg+xml" href="/muath.hamidi/assets/images/favicon.svg">
+    <link rel="stylesheet" href="/muath.hamidi/assets/css/style.css">
+    <script src="/muath.hamidi/assets/js/theme-engine.js"></script>
+
+    <style>
+        /* ── Gate overlay (shown until unlocked) ── */
+        #gate {
+            position: fixed;
+            inset: 0;
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.72);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+        #gate.hidden { display: none; }
+
+        #gate-card {
+            background: var(--card-bg, #1a1d2e);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 22px;
+            padding: 2.5rem 2.25rem 2rem;
+            width: min(360px, 94vw);
+            text-align: center;
+            box-shadow: 0 32px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.04);
+            animation: gateIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+        }
+        @keyframes gateIn {
+            from { opacity:0; transform: scale(0.88) translateY(14px); }
+            to   { opacity:1; transform: scale(1)   translateY(0); }
+        }
+
+        .gate-icon {
+            width: 60px; height: 60px;
+            margin: 0 auto 1.25rem;
+            border-radius: 18px;
+            background: linear-gradient(135deg, var(--accent-primary, #6c63ff), var(--accent-secondary, #00d2ff));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.75rem;
+            box-shadow: 0 8px 28px rgba(108,99,255,0.35);
+        }
+        #gate-card h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 0.3rem;
+            letter-spacing: -0.01em;
+        }
+        #gate-card .subtitle {
+            font-size: 0.8rem;
+            color: var(--text-secondary, #8b92a5);
+            margin-bottom: 0.35rem;
+            line-height: 1.5;
+        }
+        #gate-card .folder-label {
+            display: inline-block;
+            font-family: monospace;
+            font-size: 0.78rem;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 6px;
+            padding: 0.15rem 0.55rem;
+            margin-bottom: 1.6rem;
+            color: var(--text-secondary, #8b92a5);
+        }
+
+        /* PIN dots */
+        #pin-dots {
+            display: flex;
+            gap: 0.8rem;
+            justify-content: center;
+            margin-bottom: 1.6rem;
+        }
+        .pdot {
+            width: 15px; height: 15px;
+            border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.2);
+            background: transparent;
+            transition: background 0.15s, border-color 0.15s, transform 0.12s;
+        }
+        .pdot.filled {
+            background: var(--accent-primary, #6c63ff);
+            border-color: var(--accent-primary, #6c63ff);
+            transform: scale(1.18);
+        }
+        .pdot.error {
+            border-color: #ff6b6b;
+            background: rgba(255,107,107,0.28);
+        }
+
+        /* Numpad */
+        #numpad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.65rem;
+            margin-bottom: 1rem;
+        }
+        .nkey {
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 13px;
+            color: var(--text-primary, #e2e4e9);
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0.9rem 0;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.1s;
+            user-select: none;
+        }
+        .nkey:hover  { background: rgba(255,255,255,0.12); }
+        .nkey:active { transform: scale(0.91); background: rgba(255,255,255,0.18); }
+        .nkey.action {
+            background: rgba(255,255,255,0.03);
+            color: var(--text-secondary, #8b92a5);
+            font-size: 0.82rem;
+        }
+        .nkey.action:hover { color: var(--text-primary, #e2e4e9); }
+
+        #gate-error {
+            font-size: 0.78rem;
+            color: #ff6b6b;
+            min-height: 1.1em;
+            margin-bottom: 0.6rem;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        #gate-back-link {
+            font-size: 0.78rem;
+            color: var(--text-secondary, #8b92a5);
+            text-decoration: none;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        #gate-back-link:hover { opacity: 1; }
+
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%     { transform: translateX(-6px); }
+            40%     { transform: translateX(6px); }
+            60%     { transform: translateX(-4px); }
+            80%     { transform: translateX(4px); }
+        }
+        #pin-dots.shake { animation: shake 0.42s ease; }
+
+        /* ── Content (shown after unlock) ── */
+        #content { display: none; }
+        #content.visible { display: block; }
+
+        .folder-page-header {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        .folder-page-icon { font-size: 1.6rem; }
+        .folder-page-title {
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .folder-page-meta {
+            font-size: 0.82rem;
+            color: var(--text-secondary, #8b92a5);
+            margin-bottom: 2rem;
+        }
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.8rem;
+            color: var(--text-secondary, #8b92a5);
+            text-decoration: none;
+            margin-bottom: 1.75rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+        }
+        .back-link:hover { opacity: 1; }
+    </style>
+</head>
+<body>
+    <canvas id="cosmicCanvas" class="cosmic-canvas"></canvas>
+
+    <!-- Navigation (mirrors default layout) -->
+    <header class="navbar">
+        <div class="nav-inner">
+            <a href="/muath.hamidi/" class="nav-logo">Muath Hamidi</a>
+            <button class="nav-toggle" aria-label="Toggle navigation" id="navToggle">
+                <span></span><span></span><span></span>
+            </button>
+            <nav id="navMenu">
+                <ul>
+                    <li><a href="/muath.hamidi/">Home</a></li>
+                    <li><a href="/muath.hamidi/apps">Apps</a></li>
+                    <li><a href="/muath.hamidi/presentations">Presentations</a></li>
+                    <li><a href="/muath.hamidi/posts">Posts</a></li>
+                    <li><a href="/muath.hamidi/documents" class="active">Documents</a></li>
+                    <li><a href="/muath.hamidi/cv">CV</a></li>
+                    <li><a href="/muath.hamidi/contact">Contact</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <!-- ── GATE ── -->
+    <div id="gate" role="dialog" aria-modal="true" aria-labelledby="gate-title" tabindex="-1">
+        <div id="gate-card">
+            <div class="gate-icon">🔒</div>
+            <h2 id="gate-title">Access Required</h2>
+            <p class="subtitle">Enter the 4-digit code to view this folder.</p>
+            <span class="folder-label">📁 muSR_Aiida_QE</span>
+
+            <div id="pin-dots">
+                <span class="pdot"></span>
+                <span class="pdot"></span>
+                <span class="pdot"></span>
+                <span class="pdot"></span>
+            </div>
+
+            <div id="numpad">
+                <button class="nkey" data-v="1">1</button>
+                <button class="nkey" data-v="2">2</button>
+                <button class="nkey" data-v="3">3</button>
+                <button class="nkey" data-v="4">4</button>
+                <button class="nkey" data-v="5">5</button>
+                <button class="nkey" data-v="6">6</button>
+                <button class="nkey" data-v="7">7</button>
+                <button class="nkey" data-v="8">8</button>
+                <button class="nkey" data-v="9">9</button>
+                <button class="nkey action" data-v="clr">CLR</button>
+                <button class="nkey" data-v="0">0</button>
+                <button class="nkey action" data-v="back">⌫</button>
+            </div>
+
+            <p id="gate-error"></p>
+            <a href="/muath.hamidi/documents" id="gate-back-link">← Back to Documents</a>
+        </div>
+    </div>
+
+    <!-- ── CONTENT (revealed after unlock) ── -->
+    <div class="container">
+        <div id="content">
+            <a href="/muath.hamidi/documents" class="back-link">← Documents</a>
+
+            <div class="folder-page-header">
+                <span class="folder-page-icon">📁</span>
+                <h1 class="folder-page-title">muSR_Aiida_QE</h1>
+            </div>
+            <p class="folder-page-meta">μSR pipeline on CeIn₃ using AiiDA + Quantum ESPRESSO &mdash; Phase 5 documents</p>
+
+            <div class="app-grid">
+                <div class="app-card animate-on-scroll" data-name="CeIn3 AiiDA QE Phase 5" style="animation-delay:0ms">
+                    <span class="app-category physics">Physics</span>
+                    <h3><a href="/muath.hamidi/documents/muSR_Aiida_QE/CeIn3_Aiida_QE_5.html">CeIn₃ AiiDA QE — Phase 5</a></h3>
+                    <p>Persistent SCF non-convergence in a collinear DFT+U calculation on CeIn₃ with an interstitial positive muon.</p>
+                    <span class="app-link">Open →</span>
+                </div>
+
+                <div class="app-card animate-on-scroll" data-name="CeIn3 AiiDA QE Output Explorer" style="animation-delay:70ms">
+                    <span class="app-category physics">Physics</span>
+                    <h3><a href="/muath.hamidi/documents/muSR_Aiida_QE/CeIn3_Aiida_QE_5_Output/CeIn3_Aiida_QE_5_Output.html">CeIn₃ AiiDA QE Output Explorer</a></h3>
+                    <p>Browse and inspect Quantum ESPRESSO .out files from AiiDA calculations on CeIn₃ (Phase 5).</p>
+                    <span class="app-link">Open →</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="site-footer">
+        <span class="footer-text">© 2026 Muath Hamidi</span>
+        <div class="footer-links">
+            <a href="mailto:muath.hamidi@mail.mcgill.ca" title="Email">✉ Email</a>
+            <a href="https://www.linkedin.com/in/muath-hamidi-434691271" target="_blank" rel="noopener">🔗 LinkedIn</a>
+            <a href="https://x.com/MuathHamidi" target="_blank" rel="noopener">𝕏 X</a>
+        </div>
+    </footer>
+
+    <script>
+    // ── Passcode gate ──────────────────────────────────────────────────────
+    const PASSCODE    = '1111';
+    const SESSION_KEY = 'documents_unlocked'; // shared with documents.md
+
+    const gate    = document.getElementById('gate');
+    const dots    = document.querySelectorAll('.pdot');
+    const errEl   = document.getElementById('gate-error');
+    const pinDots = document.getElementById('pin-dots');
+    let   buf     = '';
+
+    // Already unlocked this session?
+    if (sessionStorage.getItem(SESSION_KEY) === '1') unlock(false);
+
+    // Numpad clicks
+    document.querySelectorAll('.nkey').forEach(btn => {
+        btn.addEventListener('click', () => press(btn.dataset.v));
+    });
+
+    // Physical keyboard
+    gate.addEventListener('keydown', e => {
+        if (e.key >= '0' && e.key <= '9') press(e.key);
+        else if (e.key === 'Backspace') press('back');
+        else if (e.key === 'Escape') window.location.href = '/muath.hamidi/documents';
+    });
+    gate.focus();
+
+    function press(v) {
+        if (v === 'clr') { buf = ''; showErr(''); renderDots(); return; }
+        if (v === 'back') { buf = buf.slice(0,-1); showErr(''); renderDots(); return; }
+        if (buf.length >= 4) return;
+        buf += v;
+        renderDots();
+        if (buf.length === 4) {
+            if (buf === PASSCODE) {
+                sessionStorage.setItem(SESSION_KEY, '1');
+                unlock(true);
+            } else {
+                wrong();
+            }
+        }
+    }
+
+    function renderDots() {
+        dots.forEach((d, i) => {
+            d.classList.toggle('filled', i < buf.length);
+            d.classList.remove('error');
+        });
+    }
+
+    function showErr(msg) {
+        errEl.textContent = msg;
+        errEl.style.opacity = msg ? '1' : '0';
+    }
+
+    function wrong() {
+        showErr('Incorrect code — try again.');
+        dots.forEach(d => { d.classList.remove('filled'); d.classList.add('error'); });
+        pinDots.classList.remove('shake');
+        void pinDots.offsetWidth;
+        pinDots.classList.add('shake');
+        setTimeout(() => { buf = ''; renderDots(); }, 450);
+    }
+
+    function unlock(animate) {
+        gate.classList.add('hidden');
+        const content = document.getElementById('content');
+        content.classList.add('visible');
+        // Trigger scroll animations
+        const observer = new IntersectionObserver(entries => {
+            entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+        }, { threshold: 0.1 });
+        document.querySelectorAll('.animate-on-scroll').forEach(el => observer.observe(el));
+    }
+
+    // ── Card click redirection ──────────────────────────────────────────────
+    document.querySelectorAll('.app-card').forEach(card => {
+        card.addEventListener('click', e => {
+            if (e.target.closest('a')) return;
+            const link = card.querySelector('h3 a');
+            if (link) {
+                if (e.ctrlKey || e.metaKey) window.open(link.href, '_blank');
+                else window.location.href = link.href;
+            }
+        });
+    });
+
+    // ── Mobile nav ─────────────────────────────────────────────────────────
+    const navToggle  = document.getElementById('navToggle');
+    const navMenu    = document.getElementById('navMenu');
+    const navOverlay = document.getElementById('navOverlay');
+    if (navToggle) {
+        navToggle.addEventListener('click', () => {
+            navToggle.classList.toggle('open');
+            navMenu.classList.toggle('open');
+            navOverlay.classList.toggle('visible');
+            document.body.style.overflow = navMenu.classList.contains('open') ? 'hidden' : '';
+        });
+        navOverlay.addEventListener('click', () => {
+            navToggle.classList.remove('open');
+            navMenu.classList.remove('open');
+            navOverlay.classList.remove('visible');
+            document.body.style.overflow = '';
+        });
+    }
+    </script>
+
+    <script src="/muath.hamidi/assets/js/cosmic-bg.js"></script>
+
+    <!-- Theme widget (mirrors default layout) -->
+    <button class="theme-widget-btn" id="themeWidgetOpen" aria-label="Open Theme Settings" title="Theme Settings">🎨</button>
+    <div class="theme-widget-overlay" id="themeWidgetOverlay"></div>
+    <div class="theme-drawer" id="themeWidgetDrawer">
+        <div class="theme-drawer-header">
+            <span class="theme-drawer-title">Theme Settings</span>
+            <button class="theme-drawer-close" id="themeWidgetClose" aria-label="Close settings">&times;</button>
+        </div>
+        <div class="theme-option-group">
+            <span class="theme-option-label">Interface Theme</span>
+            <div class="theme-mode-grid">
+                <button class="theme-mode-btn" data-mode="light"><span>☀️</span><span>Light</span></button>
+                <button class="theme-mode-btn" data-mode="dark"><span>🌙</span><span>Dark</span></button>
+                <button class="theme-mode-btn" data-mode="system"><span>💻</span><span>System</span></button>
+            </div>
+        </div>
+        <div class="theme-option-group">
+            <span class="theme-option-label">Accent Color</span>
+            <div class="theme-accent-grid">
+                <button class="theme-accent-btn accent-indigo" data-accent="indigo" title="Quantum Indigo"></button>
+                <button class="theme-accent-btn accent-emerald" data-accent="emerald" title="Emerald Magnetism"></button>
+                <button class="theme-accent-btn accent-sunset" data-accent="sunset" title="Plasma Sunset"></button>
+                <button class="theme-accent-btn accent-gold" data-accent="gold" title="Chamber Gold"></button>
+                <button class="theme-accent-btn accent-cyber" data-accent="cyber" title="Monochrome Cyber"></button>
+            </div>
+        </div>
+        <div class="theme-option-group">
+            <span class="theme-option-label">Accessibility</span>
+            <div class="animation-toggle-container">
+                <span style="font-size:0.9rem;color:var(--text-secondary)">Enable Transitions</span>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="themeAnimationsToggle" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
